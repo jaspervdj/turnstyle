@@ -1,0 +1,9 @@
+compiler: 'ghc-9.6.3'
+resolver:
+  url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/23.yaml
+packages:
+- .
+nix:
+  packages:
+  - pkg-config
+  - zlib
