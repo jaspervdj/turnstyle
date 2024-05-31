@@ -22,11 +22,20 @@ Library
   Ghc-options:     -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   Default-language: Haskell2010
   Exposed-modules:
+    Turnstyle.Eval
+    Turnstyle.Expr
+    Turnstyle.Image
     Turnstyle.JuicyPixels
-    Turnstyle.Spec
+    Turnstyle.Parse
+    Turnstyle.Pretty
+    Turnstyle.Prim
+    Turnstyle.Quattern
+    Turnstyle.Scale
   Build-depends:
     base        >= 4.7 && < 5,
-    JuicyPixels >= 3.3 && < 3.4
+    containers  >= 0.6 && < 0.7,
+    JuicyPixels >= 3.3 && < 3.4,
+    mtl         >= 2.3 && < 2.4
 
 Executable turnstyle
   Main-is:          Main.hs
@@ -35,11 +44,27 @@ Executable turnstyle
   Default-language: Haskell2010
   Build-depends:    base >=4.7 && <5, turnstyle
 
+Executable turnstyle-spec-figures
+  Main-is:          SpecFigures.hs
+  Hs-source-dirs:   src
+  Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  Default-language: Haskell2010
+  Build-depends:
+    base         >= 4.7 && < 5,
+    diagrams-lib >= 1.4 && < 1.5,
+    diagrams-svg >= 1.4 && < 1.5,
+    turnstyle
+
 Test-suite turnstyle-test
   Type:             exitcode-stdio-1.0
-  Main-is:          Spec.hs
-  Other-modules:    Paths_turnstyle
+  Main-is:          Main.hs
   Hs-source-dirs:   test
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
-  Build-depends:    base >=4.7 && <5, turnstyle
+  Other-modules:
+    Turnstyle.Quattern.Tests
+  Build-depends:
+    base        >= 4.7  && < 5,
+    tasty       >= 1.4  && < 1.5,
+    tasty-hunit >= 0.10 && < 0.11,
+    turnstyle,

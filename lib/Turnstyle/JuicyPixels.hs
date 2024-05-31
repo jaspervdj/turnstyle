@@ -4,9 +4,9 @@ module Turnstyle.JuicyPixels
     , loadImage
     ) where
 
-import qualified Codec.Picture  as JP
+import qualified Codec.Picture   as JP
 
-import           Turnstyle.Spec
+import           Turnstyle.Image (Image (..))
 
 newtype JuicyPixels = JuicyPixels (JP.Image JP.PixelRGB8)
 
