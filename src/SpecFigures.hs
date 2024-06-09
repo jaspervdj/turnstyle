@@ -26,12 +26,10 @@ data Turnstyle = Turnstyle
     , leftCircle      :: Bool
     , centerPixel     :: Pixel
     , centerArrow     :: Arrow
-    , centerBackArrow :: Arrow
     , centerLabel     :: Maybe String
     , centerCircle    :: Bool
     , frontPixel      :: Pixel
     , frontArrow      :: Arrow
-    , frontBackArrow  :: Arrow
     , frontLabel      :: Maybe String
     , frontCircle     :: Bool
     , rightPixel      :: Pixel
@@ -48,12 +46,10 @@ mkTurnstyle u c r d = Turnstyle
     , leftCircle      = False
     , centerPixel     = c
     , centerArrow     = NoArrow
-    , centerBackArrow = NoArrow
     , centerLabel     = Nothing
     , centerCircle    = False
     , frontPixel      = r
     , frontArrow      = NoArrow
-    , frontBackArrow  = NoArrow
     , frontLabel      = Nothing
     , frontCircle     = False
     , rightPixel      = d
@@ -66,9 +62,7 @@ turnstyle :: Turnstyle -> Diagram B
 turnstyle Turnstyle {..} =
     atop (mkArrow leftArrow (0.5 ^& (0.0)) unitY) $
     atop (mkArrow centerArrow ((0.5) ^& (-1.0)) unitX) $
-    atop (mkArrow centerBackArrow ((-0.5) ^& (-1.0)) unitX) $
     atop (mkArrow frontArrow (1.5 ^& (-1.0)) unitX) $
-    atop (mkArrow frontBackArrow (2.5 ^& (-1.0)) unit_X) $
     atop (mkArrow rightArrow (0.5 ^& (-2.0)) unit_Y) $
     frame 1 $
     lw none $
@@ -129,15 +123,15 @@ main = do
         turnstyle (mkTurnstyle A B C D)
             {leftLabel = Just "L", centerLabel = Just "C", frontLabel = Just "F", rightLabel = Just "R"}
     renderSVG "spec/app.svg" (mkHeight 400) $
-        turnstyle (mkTurnstyle A B A C) {leftArrow = Arrow, frontArrow = DashedArrow} |||
-        turnstyle (mkTurnstyle A B C A) {leftArrow = Arrow, rightArrow = DashedArrow} |||
-        turnstyle (mkTurnstyle B C A A) {frontArrow = Arrow, rightArrow = DashedArrow}
+        turnstyle (mkTurnstyle A B A C) {leftArrow = Arrow, leftCircle = True, frontArrow = DashedArrow, frontCircle = True} |||
+        turnstyle (mkTurnstyle A B C A) {leftArrow = Arrow, leftCircle = True, rightArrow = DashedArrow, rightCircle = True} |||
+        turnstyle (mkTurnstyle B C A A) {frontArrow = Arrow, frontCircle = True, rightArrow = DashedArrow, rightCircle = True}
     renderSVG "spec/lam.svg" (mkHeight 400) $
-        turnstyle (mkTurnstyle A A B C) {leftArrow = Arrow} |||
-        turnstyle (mkTurnstyle B A C A) {rightArrow = Arrow}
+        turnstyle (mkTurnstyle A A B C) {leftArrow = Arrow, leftCircle = True} |||
+        turnstyle (mkTurnstyle B A C A) {rightArrow = Arrow, rightCircle = True}
     renderSVG "spec/var.svg" (mkHeight 400) $
-        turnstyle (mkTurnstyle B A B B) {centerBackArrow = Arrow} |||
-        turnstyle (mkTurnstyle B B A B) {frontBackArrow = Arrow}
+        turnstyle (mkTurnstyle B A B B) {centerCircle = True} |||
+        turnstyle (mkTurnstyle B B A B) {frontCircle = True}
     renderSVG "spec/symbol.svg" (mkHeight 400) $
         turnstyle (mkTurnstyle A B C D) {leftArrow = Arrow, frontArrow = Arrow, rightArrow = Arrow}
     renderSVG "spec/id.svg" (mkHeight 400) $
@@ -146,5 +140,6 @@ main = do
             turnstyle (mkTurnstyle B A A A) {frontArrow = Arrow})
         ===
         (turnstyle (mkTurnstyle B A A C) {frontArrow = Arrow} |||
+            turnstyle (mkTurnstyle B A A B) {frontArrow = Arrow} |||
             turnstyle (mkTurnstyle A A B B) {leftArrow = Arrow} |||
             turnstyle (mkTurnstyle B A B A) {rightArrow = Arrow})
