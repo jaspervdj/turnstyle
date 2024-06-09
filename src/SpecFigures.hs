@@ -13,23 +13,31 @@ colorToStyle B = lightsteelblue
 colorToStyle C = greenyellow
 colorToStyle D = coral
 
-data Arrow = NoArrow | Arrow | DashedArrow deriving (Eq, Show)
+data Arrow
+    = NoArrow
+    | Arrow
+    | DashedArrow
+    deriving (Eq, Show)
 
 data Turnstyle = Turnstyle
     { leftPixel       :: Pixel
     , leftArrow       :: Arrow
     , leftLabel       :: Maybe String
+    , leftCircle      :: Bool
     , centerPixel     :: Pixel
     , centerArrow     :: Arrow
     , centerBackArrow :: Arrow
     , centerLabel     :: Maybe String
+    , centerCircle    :: Bool
     , frontPixel      :: Pixel
     , frontArrow      :: Arrow
     , frontBackArrow  :: Arrow
     , frontLabel      :: Maybe String
+    , frontCircle     :: Bool
     , rightPixel      :: Pixel
     , rightArrow      :: Arrow
     , rightLabel      :: Maybe String
+    , rightCircle     :: Bool
     }
 
 mkTurnstyle :: Pixel -> Pixel -> Pixel -> Pixel -> Turnstyle
@@ -37,17 +45,21 @@ mkTurnstyle u c r d = Turnstyle
     { leftPixel       = u
     , leftArrow       = NoArrow
     , leftLabel       = Nothing
+    , leftCircle      = False
     , centerPixel     = c
     , centerArrow     = NoArrow
     , centerBackArrow = NoArrow
     , centerLabel     = Nothing
+    , centerCircle    = False
     , frontPixel      = r
     , frontArrow      = NoArrow
     , frontBackArrow  = NoArrow
     , frontLabel      = Nothing
+    , frontCircle     = False
     , rightPixel      = d
     , rightArrow      = NoArrow
     , rightLabel      = Nothing
+    , rightCircle     = False
     }
 
 turnstyle :: Turnstyle -> Diagram B
@@ -60,12 +72,12 @@ turnstyle Turnstyle {..} =
     atop (mkArrow rightArrow (0.5 ^& (-2.0)) unit_Y) $
     frame 1 $
     lw none $
-    alignL (label leftLabel `atop` fc (colorToStyle leftPixel) square 1)
+    alignL (tile leftLabel leftCircle leftPixel)
     ===
-    alignL ((label centerLabel `atop` fc (colorToStyle centerPixel) (square 1)) |||
-        (label frontLabel `atop` fc (colorToStyle frontPixel) (square 1)))
+    alignL (tile centerLabel centerCircle centerPixel |||
+        tile frontLabel frontCircle frontPixel)
     ===
-    alignL (label rightLabel `atop` fc (colorToStyle rightPixel) (square 1))
+    alignL (tile rightLabel rightCircle rightPixel)
   where
     mkArrow NoArrow _ _ = mempty
     mkArrow Arrow p v =
@@ -73,8 +85,12 @@ turnstyle Turnstyle {..} =
     mkArrow DashedArrow p v =
         arrowAt' (with & headLength .~ large) p v # dashingL [0.1, 0.1] 0
 
-    label Nothing    = mempty
-    label (Just txt) = translateY (-1/8) $ scale (2/3) (text txt)
+    tile label circ color =
+        (case label of
+            Nothing -> mempty
+            Just txt -> translateY (-1/8) $ scale (2/3) (text txt)) `atop`
+        (if circ then lw none $ fc black $ circle 0.1 else mempty) `atop`
+        fc (colorToStyle color) (square 1)
 
 initialization :: Diagram B
 initialization =
@@ -102,13 +118,14 @@ main :: IO ()
 main = do
     renderSVG "spec/init.svg" (mkHeight 400) initialization
     renderSVG "spec/enter.svg" (mkHeight 400) $
-        let enter = turnstyle (mkTurnstyle A B C D) {centerArrow = Arrow} in
+        let enter = turnstyle (mkTurnstyle A B C D)
+                {centerArrow = Arrow, centerCircle = True} in
         alignT enter |||
         translateY (-1) (alignT (rotateBy (3 / 4) enter)) |||
         alignT (rotateBy (2 / 4) enter) |||
         alignT (rotateBy (1 / 4) enter)
     renderSVG "spec/label.svg" (mkHeight 400) $
-        turnstyle (mkTurnstyle A B C D) {centerArrow = Arrow} |||
+        turnstyle (mkTurnstyle A B C D) {centerArrow = Arrow, centerCircle = True} |||
         turnstyle (mkTurnstyle A B C D)
             {leftLabel = Just "L", centerLabel = Just "C", frontLabel = Just "F", rightLabel = Just "R"}
     renderSVG "spec/app.svg" (mkHeight 400) $
