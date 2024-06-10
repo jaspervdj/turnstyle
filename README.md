@@ -25,17 +25,29 @@ Illustrated for all four headings:
 
 ![](spec/enter.svg)
 
-All further illustrations in the specification assume we are heading right.
+For brevity, in all further illustrations in the specification we will assume we
+are heading right.
 
 We use the following names to refer to the four pixels that make up the
-Turnstyle: **L**eft, **C**enter, **F**ront, and **R**ight.
+Turnstyle shape: **L**eft, **C**enter, **F**ront, and **R**ight.
 
 ![](spec/label.svg)
 
 To evaluate an **expression**, we consider the colors of the four pixels.
+
 Note that Turnstyle programs can use _any colors_, as long as we can compare
-two colors for equality.  This gives us **15 unique patterns**.
-The pattern determines the kind of expression.
+two colors for (in-)equality.  This gives us **15 unique patterns**:
+
+![](spec/all.svg)
+
+The pattern determines how we continue with evaluation.  Turnstyle supports five
+different kinds of expressions:
+
+1.  Variables
+2.  Lambda abstraction
+3.  Function application
+4.  Symbols (primitive operations and numeric literals)
+5.  Identity (no-op)
 
 ### Variables
 
@@ -48,8 +60,7 @@ A variable evaluates to the value assigned to the color indicated by the circle.
 
 Lambda abstraction constructs the anonymous function _(λv.e)_, where _e_ is the
 expression at the solid arrow (→) and the variable _v_ is the color of the
-pixel indicated with the circle.  Note that _e_ is parsed using a different
-heading
+pixel indicated with the circle.
 
 ![](spec/lam.svg)
 
@@ -76,7 +87,7 @@ contiguous.
 
 ![](spec/symbol.svg)
 
- -  If _area(L) ≥ area(R)_, the Turnstyle evaluates to a **numerical** literal
+ -  If _area(L) ≥ area(R)_, the Turnstyle evaluates to a **numeric** literal
     of the integer value _area(F)_.
  -  Otherwise, _area(L) < area(R)_ evaluates to a  **primitive function**.
     In this case, _area(R) - area(L)_ determines the **primitive opcode**,
@@ -114,7 +125,7 @@ This is an overview of the different primitive functions and what they do.
     You can also consider this as _((`lt` x) y)_ evaluating to a church-encoded
     boolean.
 
-#### Identity
+#### Identity (no-op)
 
 For all other patterns, we evaluate the expression at the Turnstyle indicated by
 the arrow (→).  You can visualize this as following the color of the line.

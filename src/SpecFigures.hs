@@ -75,9 +75,9 @@ turnstyle Turnstyle {..} =
   where
     mkArrow NoArrow _ _ = mempty
     mkArrow Arrow p v =
-        arrowAt' (with & headLength .~ large) p v
+        arrowAt' (with & headLength .~ 20) p v
     mkArrow DashedArrow p v =
-        arrowAt' (with & headLength .~ large) p v # dashingL [0.1, 0.1] 0
+        arrowAt' (with & headLength .~ 20) p v # dashingL [0.1, 0.1] 0
 
     tile label circ color =
         (case label of
@@ -86,31 +86,8 @@ turnstyle Turnstyle {..} =
         (if circ then lw none $ fc black $ circle 0.1 else mempty) `atop`
         fc (colorToStyle color) (square 1)
 
-initialization :: Diagram B
-initialization =
-    frame 1 $
-    atop (arrowAt' (with & headLength .~ large) (0.5 ^& 0.0) (2.0 ^& 0.0)) $
-    atop (arrowAt' (with & headLength .~ large) (0.5 ^& 0.0) unit_Y) $
-    lw none $
-    alignL (
-        fc mistyrose (square 1) |||
-        fc mistyrose (square 1) |||
-        fc lightsteelblue (square 1) |||
-        fc mistyrose (square 1))
-    ===
-    alignL (fc coral (square 1) |||
-        fc mistyrose (square 1) |||
-        fc lightsteelblue (square 1) |||
-        fc mistyrose (square 1))
-    ===
-    alignL (fc mistyrose (square 1) |||
-        fc lightsteelblue (square 1) |||
-        fc mistyrose (square 1) |||
-        fc mistyrose (square 1))
-
 main :: IO ()
 main = do
-    renderSVG "spec/init.svg" (mkHeight 400) initialization
     renderSVG "spec/enter.svg" (mkHeight 400) $
         let enter = turnstyle (mkTurnstyle A B C D)
                 {centerArrow = Arrow, centerCircle = True} in
@@ -133,13 +110,31 @@ main = do
         turnstyle (mkTurnstyle B A B B) {centerCircle = True} |||
         turnstyle (mkTurnstyle B B A B) {frontCircle = True}
     renderSVG "spec/symbol.svg" (mkHeight 400) $
-        turnstyle (mkTurnstyle A B C D) {leftArrow = Arrow, frontArrow = Arrow, rightArrow = Arrow}
+        turnstyle (mkTurnstyle A B C D)
+            {leftLabel = Just "L", frontLabel = Just "F", rightLabel = Just "R"}
     renderSVG "spec/id.svg" (mkHeight 400) $
-        (turnstyle (mkTurnstyle A A A A) {frontArrow = Arrow} |||
-            turnstyle (mkTurnstyle A A A B) {frontArrow = Arrow} |||
-            turnstyle (mkTurnstyle B A A A) {frontArrow = Arrow})
+        (turnstyle (mkTurnstyle A A A A) {frontArrow = Arrow, frontCircle = True} |||
+            turnstyle (mkTurnstyle A A A B) {frontArrow = Arrow, frontCircle = True} |||
+            turnstyle (mkTurnstyle B A A A) {frontArrow = Arrow, frontCircle = True})
         ===
-        (turnstyle (mkTurnstyle B A A C) {frontArrow = Arrow} |||
-            turnstyle (mkTurnstyle B A A B) {frontArrow = Arrow} |||
-            turnstyle (mkTurnstyle A A B B) {leftArrow = Arrow} |||
-            turnstyle (mkTurnstyle B A B A) {rightArrow = Arrow})
+        (turnstyle (mkTurnstyle B A A C) {frontArrow = Arrow, frontCircle = True} |||
+            turnstyle (mkTurnstyle B A A B) {frontArrow = Arrow, frontCircle = True} |||
+            turnstyle (mkTurnstyle A A B B) {leftArrow = Arrow, leftCircle = True} |||
+            turnstyle (mkTurnstyle B A B A) {rightArrow = Arrow, rightCircle = True})
+
+    renderSVG "spec/all.svg" (mkHeight 400) $
+        (turnstyle (mkTurnstyle A A A A) |||
+            turnstyle (mkTurnstyle A A A B) |||
+            turnstyle (mkTurnstyle A A B A) |||
+            turnstyle (mkTurnstyle A A B B) |||
+            turnstyle (mkTurnstyle A A B C)) ===
+        (turnstyle (mkTurnstyle A B A A) |||
+            turnstyle (mkTurnstyle A B A B) |||
+            turnstyle (mkTurnstyle A B A C) |||
+            turnstyle (mkTurnstyle A B B A) |||
+            turnstyle (mkTurnstyle A B B B)) ===
+        (turnstyle (mkTurnstyle A B B C) |||
+            turnstyle (mkTurnstyle A B C A) |||
+            turnstyle (mkTurnstyle A B C B) |||
+            turnstyle (mkTurnstyle A B C C) |||
+            turnstyle (mkTurnstyle A B C D))
