@@ -15,28 +15,7 @@ implementation.
 
 The program is encoded as an image.
 
-## Initialization
-
-Before a program is executed, we determine the **initial position**.
-To do this, we find the first pixel that has a different color from the top-left
-pixel on the first row and column respectively.
-
-![](spec/init.svg)
-
-The **area** containing this pixel in the top row determines the initial X
-coordinate, and the **area** containing the this pixel in the first column
-determines the initial Y coordinate.
-
-An **area** is defined as the number of pixels a contiguous color region.
-Pixels of the same color that only touch diagonally are **not** considered
-contiguous.
-
-In the example image above, we pick (2, 1) as the initial position.
-
-If the top row or left column only has one color, we pick _image width / 2_
-or _image height / 2_ for the initial X and Y coordinates respectively.
-
-## Execution
+### Program flow
 
 At every program step we consider the **Turnstyle shape** of the pixels
 surrounding the current **position** and facing the current **heading**.
@@ -58,6 +37,22 @@ Note that Turnstyle programs can use _any colors_, as long as we can compare
 two colors for equality.  This gives us **15 unique patterns**.
 The pattern determines the kind of expression.
 
+### Variables
+
+In Turnstyle, variables are _colors_.
+A variable evaluates to the value assigned to the color indicated by the circle.
+
+![](spec/var.svg)
+
+### Lambda Abstraction
+
+Lambda abstraction constructs the anonymous function _(λv.e)_, where _e_ is the
+expression at the solid arrow (→) and the variable _v_ is the color of the
+pixel indicated with the circle.  Note that _e_ is parsed using a different
+heading
+
+![](spec/lam.svg)
+
 ### Function application
 
 Function application evaluates the expression _(f x)_, where _f_ is the
@@ -66,20 +61,9 @@ arrow (⇢).
 
 ![](spec/app.svg)
 
-### Lambda Abstraction
-
-Lambda abstraction constructs the anonymous function _(λx.e)_, where _e_ is the
-expression at the solid arrow (→) and _x_ is the color of the pixel at the
-base of the arrow.
-
-![](spec/lam.svg)
-
-### Variables
-
-Variables simply evaluate to the value assigned to the color of the pixel at
-the head of the arrow.
-
-![](spec/var.svg)
+If you visualize standing on the image and looking towards the front, the
+left-hand side of the application will always be to the left of the right-hand
+side of the application.
 
 ### Symbols
 
@@ -90,15 +74,17 @@ An **area** is defined as the number of pixels a contiguous color region.
 Pixels of the same color that only touch diagonally are **not** considered
 contiguous.
 
- -  _area(left) ≥ area(right)_: an **numerical** literal of the integer value
-    _area(center)_.
- -  _area(left) < area(right)_: a **primitive function**.
- -    *  _area(right) - area(left)_ determines the **primitive opcode**.
-      *  _|area(front) - area(right)|_ determines the **primitive mode**.
-
 ![](spec/symbol.svg)
 
+ -  If _area(L) ≥ area(R)_, the Turnstyle evaluates to a **numerical** literal
+    of the integer value _area(F)_.
+ -  Otherwise, _area(L) < area(R)_ evaluates to a  **primitive function**.
+    In this case, _area(R) - area(L)_ determines the **primitive opcode**,
+    and _|area(F) - area(R)|_ determines the **primitive mode**.
+
 #### Primitives
+
+This is an overview of the different primitive functions and what they do.
 
 | Primitive opcode | Primitive mode | Primitive       |
 | ---------------- | -------------- | --------------- |
@@ -128,9 +114,10 @@ contiguous.
     You can also consider this as _((`lt` x) y)_ evaluating to a church-encoded
     boolean.
 
-### Identity
+#### Identity
 
-For all other patterns, we evaluate the expression indicated by the arrow (→).
+For all other patterns, we evaluate the expression at the Turnstyle indicated by
+the arrow (→).  You can visualize this as following the color of the line.
 
 ![](spec/id.svg)
 
@@ -158,3 +145,6 @@ Embeds the Y combinator to continuously write `F` to the terminal.
  -  Allow relative creative in freedom in color choice and images
  -  But also ensure it is possible to create very dense images
  -  Allow users to implement and share code that looks like specific images
+ -  A relatively large number of primops should be possible so we can
+    actually write real programs.  This lead to using at least two numbers
+    for primops.
