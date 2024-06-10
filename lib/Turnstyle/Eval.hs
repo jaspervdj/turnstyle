@@ -10,6 +10,7 @@ import           Data.Char         (chr, ord)
 import qualified Data.Set          as S
 import qualified Turnstyle.Expr    as Expr
 import           Turnstyle.Expr    (Expr)
+import           Turnstyle.Number
 import           Turnstyle.Prim
 
 eval :: (Exception e, Ord v) => Expr ann e v -> IO (Whnf ann e v)
@@ -23,7 +24,7 @@ data Whnf ann e v
     | Lam (Id v) (Expr ann e (Id v))
     | Var (Id v)
     | UnsatPrim Int Prim [Expr ann e (Id v)]
-    | Lit Int
+    | Lit Number
     deriving (Show)
 
 whnf :: (Exception e, Ord v) => Expr ann e (Id v) -> IO (Whnf ann e v)
@@ -37,7 +38,7 @@ whnf (Expr.App ann f x) = do
 whnf (Expr.Lam _ v body) = pure $ Lam v body
 whnf (Expr.Var _ v) = pure $ Var v
 whnf (Expr.Prim _ p) = pure $ UnsatPrim (primArity p) p []
-whnf (Expr.Lit _ lit) = pure $ Lit lit
+whnf (Expr.Lit _ lit) = pure $ Lit $ fromIntegral lit
 whnf (Expr.Err _ err) = throwIO err
 
 subst
@@ -75,7 +76,9 @@ prim _ (POut outMode) [outE, kE] = do
     Lit out <- whnf outE
     case outMode of
         OutNumber -> print out
-        OutChar   -> putChar $ chr out
+        OutChar -> case numberToInt out of
+            Nothing -> fail $ "cannot print rational as char: " ++ show out
+            Just n  -> putChar $ chr n
     whnf kE
 prim _ (PNumOp numOp) [xE, yE] = do
     Lit x <- whnf xE
@@ -83,7 +86,7 @@ prim _ (PNumOp numOp) [xE, yE] = do
     pure $ Lit $ case numOp of
         NumOpAdd      -> x + y
         NumOpSubtract -> x - y
-        NumOpDivide   -> x `div` y
+        NumOpDivide   -> x / y
         NumOpMultiply -> x * y
 prim _ (PCompare cmp) [xE, yE, fE, gE] = do
     Lit x <- whnf xE

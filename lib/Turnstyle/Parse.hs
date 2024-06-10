@@ -16,7 +16,6 @@ import           GHC.Exception      (Exception)
 import           Turnstyle.Expr
 import           Turnstyle.Image
 import           Turnstyle.Prim
-import Data.Maybe (fromMaybe)
 import           Turnstyle.Quattern (Quattern (..), quattern)
 
 data Pos = Pos Int Int deriving (Eq, Ord, Show)
@@ -24,18 +23,11 @@ data Pos = Pos Int Int deriving (Eq, Ord, Show)
 inside :: Image img => Pos -> img -> Bool
 inside (Pos x y) img = x >= 0 && x < width img && y >= 0 && y < height img
 
-initialPosition :: (Image img, Eq (Pixel img)) => img -> Maybe Pos
+initialPosition :: Image img => img -> Maybe Pos
 initialPosition img
     | width img <= 0 || height img <= 0 = Nothing
-    | otherwise                         = Just $ Pos
-        (fromMaybe (width  img `div` 2) $ go (move 1 R) (Pos 0 0))
-        (fromMaybe (height img `div` 2) $ go (move 1 D) (Pos 0 0))
-  where
-    color0 = pixel 0 0 img
-    go next pos@(Pos x y)
-        | not (inside pos img)    = Nothing
-        | color0 /= pixel x y img = Just . S.size $ flood pos img
-        | otherwise               = go next (next pos)
+    | otherwise                         = Just $
+        Pos (width  img `div` 2) (height img `div` 2)
 
 data Dir = R | D | L | U deriving (Eq, Show)
 
@@ -100,23 +92,15 @@ parse pos dir img = case pattern of
     ABCC -> App ann parseFront parseRight
 
     -- Lam
-    --
-    --     |
-    --     A     A
-    --     BA    BC
-    --     C     C
-    --           |
-    --
-    AABC -> Lam ann (relPixel LeftPos) parseLeft
-    ABCB -> Lam ann (relPixel RightPos) parseRight
+    AABC -> Lam ann (relPixel RightPos) parseLeft
+    ABCB -> Lam ann (relPixel LeftPos) parseRight
+    ABBC -> Lam ann (relPixel CenterPos) parseFront
 
     -- Var
-    --
-    --     A     A
-    --    +BA    AB+
-    --     A     A
     ABAA -> Var ann $ relPixel CenterPos
     AABA -> Var ann $ relPixel FrontPos
+    AAAB -> Var ann $ relPixel RightPos
+    ABBB -> Var ann $ relPixel LeftPos
 
     -- Int/Prim
     ABCD
@@ -130,12 +114,9 @@ parse pos dir img = case pattern of
 
     -- Steer
     AAAA -> parseFront
-    AAAB -> parseFront
+    ABBA -> parseFront
     AABB -> parseLeft
     ABAB -> parseRight
-    ABBA -> parseFront
-    ABBB -> parseFront
-    ABBC -> parseFront
  where
     ann        = (pos, dir)
     relPos     = rel pos dir
@@ -157,8 +138,9 @@ parse pos dir img = case pattern of
 
 parseImage
   :: forall img. (Image img, Eq (Pixel img), Show (Pixel img))
-  => img -> Expr Ann ParseError (Pixel img)
-parseImage img = case initialPosition img of
+  => Maybe Pos -> img -> Expr Ann ParseError (Pixel img)
+parseImage (Just (Pos x y)) img = parse (Pos x y) R img
+parseImage Nothing img = case initialPosition img of
     Nothing  -> Err (Pos 0 0, R) EmptyImage
     Just pos -> parse pos R img
 
@@ -177,4 +159,3 @@ flood pos0@(Pos x0 y0) img = go (S.singleton pos0) (S.singleton pos0)
             go (S.union acc nbs) (S.difference nbs acc)
 
     neighbours pos = [move 1 d pos | d <- [U, R, D, L]]
-
