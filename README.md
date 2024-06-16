@@ -158,6 +158,9 @@ _λf. (λx. f (x x)) (λx. f (x x))_.
 This reuses the Y combinator above to continuously print ⊦ to the terminal:
 _(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`output_char` ((`add` 34) ((`multiply` 94) 94))) f)_.
 
+![](examples/pi-large.png)
+
+Prints an approximation of _pi_ by comparing the circle to its diameter.
 
 ## Open questions
 
