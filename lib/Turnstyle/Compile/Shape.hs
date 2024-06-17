@@ -24,24 +24,24 @@ data Shape = Shape
     , sConstraints :: [ColorConstraint Pos]
     } deriving (Show)
 
-rotateShapeLeft :: Int -> Int -> (Shape, M.Map v Pos) -> (Shape, M.Map v Pos)
-rotateShapeLeft entrance offsetY (s, ctx) =
+rotateShapeLeft :: Shape -> (Shape, Pos -> Pos)
+rotateShapeLeft s =
     ( Shape
         { sWidth       = sHeight s
         , sHeight      = sWidth s
         , sEntrance    = sEntrance s
         , sConstraints = fmap rot <$> sConstraints s
         }
-    , revRot <$> ctx
+    , revPos
     )
   where
-    revRot (Pos x y) = Pos (y - offsetY) (-x - entrance)
-    rot    (Pos x y) = Pos (-y - entrance) (x + offsetY)
+    rot    (Pos x y) = Pos y (sWidth s - x - 1)
+    revPos (Pos x y) = Pos (sWidth s - y - 1) x
 
-exprToShape :: Ord v => Expr ann Void v -> Shape
+exprToShape :: (Show v, Ord v) => Expr ann Void v -> Shape
 exprToShape = exprToShape' M.empty
 
-exprToShape' :: Ord v => M.Map v Pos -> Expr ann Void v -> Shape
+exprToShape' :: (Ord v, Show v) => M.Map v Pos -> Expr ann Void v -> Shape
 exprToShape' ctx expr = case expr of
 
     Lam _ v body -> Shape
@@ -52,17 +52,35 @@ exprToShape' ctx expr = case expr of
             -- Turnstyle shape
             [ Eq lamL lamC, NotEq lamL lamF, NotEq lamL lamR
             , NotEq lamF lamR
-            ]
-            -- sConstraints bodyShape
+            ] ++
+            -- Tunnel
+            [Eq lamF (move x R left)   | x <- [0 .. sEntrance bodyShape - 1]] ++
+            [Eq lamC (move x R center) | x <- [0 .. sEntrance bodyShape - 1]] ++
+            [Eq lamF (move x R right)  | x <- [0 .. sEntrance bodyShape - 1]] ++
+            [Eq lamF (move 1 R lamL)] ++
+            [Eq lamL (move 1 U lamL)] ++
+            sConstraints bodyShape ++
+            -- Variable uniqueness
+            (case M.lookup v ctx of
+                Just p -> [Eq lamR p]
+                Nothing -> [NotEq lamR q | (_, q) <- M.toList ctx])
         }
       where
-        (bodyShape, bodyCtx) = rotateShapeLeft (sEntrance bodyShape) 1
-            (exprToShape' (M.insert v right bodyCtx) body, ctx)
+        bodyContext =
+            M.insert v (Pos (-3) (sEntrance bodyShape)) $
+            fmap mapCtx $ ctx
+
+        (bodyShape, mapCtx) = rotateShapeLeft (exprToShape' bodyContext body)
 
         lamL = move (sEntrance bodyShape) R left
         lamR = move (sEntrance bodyShape) R right
         lamF = move (sEntrance bodyShape) R front
         lamC = move (sEntrance bodyShape) R center
+
+        left   = move 1 U center
+        center = Pos 0 (sHeight bodyShape + 1)
+        front  = move 1 R center
+        right  = move 1 D center
 
     Var _ v -> case M.lookup v ctx of
         Nothing  -> error "exprToShape: unbound variable"
@@ -78,6 +96,11 @@ exprToShape' ctx expr = case expr of
                 [ Eq front pos
                 ]
             }
+      where
+        left   = move 1 U center
+        center = Pos 0 1
+        front  = move 1 R center
+        right  = move 1 D center
 
     Prim _ prim -> Shape
         { sWidth       = max 2 (max (frontArea + 1) rightArea)
@@ -115,6 +138,11 @@ exprToShape' ctx expr = case expr of
         frontArea =
             if mode < rightArea then rightArea - mode else rightArea + mode
 
+        left   = move 1 U center
+        center = Pos 0 1
+        front  = move 1 R center
+        right  = move 1 D center
+
     Lit _ n -> Shape
         { sWidth       = 1 + n
         , sHeight      = 3
@@ -140,10 +168,10 @@ exprToShape' ctx expr = case expr of
         -- The extension for a literal
         frontExtension = [move i R center | i <- [1 .. n]]
 
-    Err _ void -> absurd void
-  where
-    left   = move 1 U center
-    center = Pos 0 0
-    front  = move 1 R center
-    right  = move 1 D center
+        left   = move 1 U center
+        center = Pos 0 1
+        front  = move 1 R center
+        right  = move 1 D center
 
+
+    Err _ void -> absurd void

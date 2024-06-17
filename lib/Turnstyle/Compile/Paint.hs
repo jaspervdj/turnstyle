@@ -23,7 +23,7 @@ paint s = JP.generateImage
     (sHeight s * 2)
   where
     offsetX    = sWidth s
-    offsetY    = (sHeight s + sEntrance s - 1)
+    offsetY    = sHeight s - sEntrance s
     background = JP.PixelRGB8 255 255 255
     colors     = fmap (palette !!) $ solve $ sConstraints s
 

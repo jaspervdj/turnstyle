@@ -12,7 +12,6 @@ import           Turnstyle.Expr
 import           Turnstyle.JuicyPixels   (loadImage)
 import           Turnstyle.Parse         (Pos (..), parseImage)
 import           Turnstyle.Pretty        (prettyExpr)
-import           Turnstyle.Prim
 import           Turnstyle.Scale         (autoScale)
 
 data Options = Options
@@ -65,9 +64,7 @@ main = do
         Compile -> do
             JP.savePngImage "a.png" $ JP.ImageRGB8 $
                 paint $ exprToShape @Int $
-                    -- Lit () 3
-                    -- Prim () $ PNumOp NumOpAdd
-                    Lam () 1 $ Lit () 3
+                    Lam () 1 $ Lam () 2 $ Lam () 3 $ Lam () 2 $ Var () 2
   where
     opts = OA.info (parseOptions OA.<**> OA.helper)
         (OA.fullDesc <> OA.progDesc "turnstyle interpreter")
