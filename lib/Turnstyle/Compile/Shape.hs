@@ -7,7 +7,6 @@ module Turnstyle.Compile.Shape
 
 import qualified Data.Map       as M
 import           Data.Void      (Void, absurd)
-import           Debug.Trace
 import           Turnstyle.Expr
 import           Turnstyle.Prim
 import           Turnstyle.TwoD
@@ -107,8 +106,6 @@ exprToShape' ctx expr = case expr of
         , sHeight      = 3
         , sEntrance    = 1
         , sConstraints =
-            trace ("frontArea: " ++ show frontArea) $
-            trace ("rightArea: " ++ show rightArea) $
             -- Turnstyle shape
             [ NotEq left center, NotEq left front, NotEq left right
             , NotEq center front, NotEq center right

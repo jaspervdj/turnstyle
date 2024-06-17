@@ -24,7 +24,7 @@ data Expr ann e v
     | Prim ann Prim
     | Lit ann Int
     | Err ann e
-    deriving (Foldable, Functor, Show)
+    deriving (Eq, Foldable, Functor, Show)
 
 -- | Free variables in an expression.
 freeVars :: Ord v => Expr ann e v -> S.Set v

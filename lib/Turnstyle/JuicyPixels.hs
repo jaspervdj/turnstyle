@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module Turnstyle.JuicyPixels
-    ( Image
+    ( JuicyPixels (..)
+    , Image
     , loadImage
     ) where
 

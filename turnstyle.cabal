@@ -88,6 +88,7 @@ Test-suite turnstyle-test
     Turnstyle.Quattern.Tests
   Build-depends:
     base             >= 4.7  && < 5,
+    either           >= 5.0  && < 5.1,
     tasty            >= 1.4  && < 1.5,
     tasty-hunit      >= 0.10 && < 0.11,
     tasty-quickcheck >= 0.10 && < 0.11,
