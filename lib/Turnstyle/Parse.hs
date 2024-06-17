@@ -17,8 +17,7 @@ import           Turnstyle.Expr
 import           Turnstyle.Image
 import           Turnstyle.Prim
 import           Turnstyle.Quattern (Quattern (..), quattern)
-
-data Pos = Pos Int Int deriving (Eq, Ord, Show)
+import           Turnstyle.TwoD
 
 inside :: Image img => Pos -> img -> Bool
 inside (Pos x y) img = x >= 0 && x < width img && y >= 0 && y < height img
@@ -28,21 +27,6 @@ initialPosition img
     | width img <= 0 || height img <= 0 = Nothing
     | otherwise                         = Just $
         Pos (width  img `div` 2) (height img `div` 2)
-
-data Dir = R | D | L | U deriving (Eq, Show)
-
-move :: Int -> Dir -> Pos -> Pos
-move n R (Pos x y) = Pos (x + n) (y    )
-move n D (Pos x y) = Pos (x    ) (y + n)
-move n L (Pos x y) = Pos (x - n) (y    )
-move n U (Pos x y) = Pos (x    ) (y - n)
-
-rotateLeft, rotateRight :: Dir -> Dir
-rotateLeft R = U
-rotateLeft D = R
-rotateLeft L = D
-rotateLeft U = L
-rotateRight  = rotateLeft . rotateLeft . rotateLeft
 
 -- | Selecting single pixel from the turnstyle:
 --

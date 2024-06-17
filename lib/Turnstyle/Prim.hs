@@ -7,6 +7,7 @@ module Turnstyle.Prim
 
     , primArity
     , decodePrim
+    , encodePrim
     ) where
 
 data Prim
@@ -54,3 +55,14 @@ decodePrim 3 2 = Just $ PNumOp NumOpMultiply
 decodePrim 3 3 = Just $ PNumOp NumOpDivide
 decodePrim 4 0 = Just $ PCompare CmpLessThan
 decodePrim _ _ = Nothing
+
+encodePrim :: Prim -> (Int, Int)
+encodePrim (PIn InNumber)         = (1, 0)
+encodePrim (PIn InChar)           = (1, 1)
+encodePrim (POut OutNumber)       = (2, 0)
+encodePrim (POut OutChar)         = (2, 1)
+encodePrim (PNumOp NumOpAdd)      = (3, 0)
+encodePrim (PNumOp NumOpSubtract) = (3, 1)
+encodePrim (PNumOp NumOpMultiply) = (3, 2)
+encodePrim (PNumOp NumOpDivide)   = (3, 3)
+encodePrim (PCompare CmpLessThan) = (4, 0)
