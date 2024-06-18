@@ -14,6 +14,7 @@ import           Turnstyle.Parse         (Pos (..), parseImage)
 import           Turnstyle.Pretty        (prettyExpr)
 import           Turnstyle.Prim
 import           Turnstyle.Scale         (autoScale)
+import qualified Turnstyle.Text.Parse    as Text
 
 data Options = Options
     { oCommand         :: Command
@@ -63,8 +64,12 @@ main = do
                 Failure _ -> putStrLn "errors in expression"
                 Success e -> eval e >>= print
         Compile -> do
+            contents <- getContents
+            print $ Text.parseExpr "stdin" contents
+            {-
             JP.savePngImage "a.png" $ JP.ImageRGB8 $
                 paint $ exprToShape @Int src
+            -}
   where
     opts = OA.info (parseOptions OA.<**> OA.helper)
         (OA.fullDesc <> OA.progDesc "turnstyle interpreter")

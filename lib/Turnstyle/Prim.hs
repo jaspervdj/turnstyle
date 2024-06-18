@@ -7,6 +7,7 @@ module Turnstyle.Prim
 
     , knownPrims
     , primArity
+    , primName
     , decodePrim
     , encodePrim
     ) where
@@ -53,6 +54,17 @@ primArity (PIn      _) = 1
 primArity (POut     _) = 2
 primArity (PNumOp   _) = 2
 primArity (PCompare _) = 4
+
+primName :: Prim -> String
+primName (PIn InNumber)         = "input_number"
+primName (PIn InChar)           = "input_char"
+primName (POut OutNumber)       = "output_number"
+primName (POut OutChar)         = "output_char"
+primName (PNumOp NumOpAdd)      = "add"
+primName (PNumOp NumOpSubtract) = "subtract"
+primName (PNumOp NumOpMultiply) = "multiply"
+primName (PNumOp NumOpDivide)   = "divide"
+primName (PCompare CmpLessThan) = "lt"
 
 encodePrim :: Prim -> (Int, Int)
 encodePrim (PIn InNumber)         = (1, 0)

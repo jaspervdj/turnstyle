@@ -34,13 +34,15 @@ Library
     Turnstyle.Prim
     Turnstyle.Quattern
     Turnstyle.Scale
+    Turnstyle.Text.Parse
     Turnstyle.TwoD
   Build-depends:
     base        >= 4.7 && < 5,
     containers  >= 0.6 && < 0.7,
     either      >= 5.0 && < 5.1,
     JuicyPixels >= 3.3 && < 3.4,
-    mtl         >= 2.3 && < 2.4
+    mtl         >= 2.3 && < 2.4,
+    parsec      >= 3.1 && < 3.2
 
 Executable turnstyle
   Main-is:          Main.hs
