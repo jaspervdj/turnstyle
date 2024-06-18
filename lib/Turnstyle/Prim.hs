@@ -5,10 +5,13 @@ module Turnstyle.Prim
     , NumOpMode (..)
     , CmpMode (..)
 
+    , knownPrims
     , primArity
     , decodePrim
     , encodePrim
     ) where
+
+import qualified Data.Map as M
 
 data Prim
     = PIn      InMode
@@ -38,23 +41,18 @@ data CmpMode
     = CmpLessThan
     deriving (Bounded, Enum, Eq, Show)
 
+knownPrims :: [Prim]
+knownPrims =
+    map PIn      [minBound .. maxBound] <>
+    map POut     [minBound .. maxBound] <>
+    map PNumOp   [minBound .. maxBound] <>
+    map PCompare [minBound .. maxBound]
+
 primArity :: Prim -> Int
 primArity (PIn      _) = 1
 primArity (POut     _) = 2
 primArity (PNumOp   _) = 2
 primArity (PCompare _) = 4
-
-decodePrim :: Int -> Int -> Maybe Prim
-decodePrim 1 0 = Just $ PIn InNumber
-decodePrim 1 1 = Just $ PIn InChar
-decodePrim 2 0 = Just $ POut OutNumber
-decodePrim 2 1 = Just $ POut OutChar
-decodePrim 3 0 = Just $ PNumOp NumOpAdd
-decodePrim 3 1 = Just $ PNumOp NumOpSubtract
-decodePrim 3 2 = Just $ PNumOp NumOpMultiply
-decodePrim 3 3 = Just $ PNumOp NumOpDivide
-decodePrim 4 0 = Just $ PCompare CmpLessThan
-decodePrim _ _ = Nothing
 
 encodePrim :: Prim -> (Int, Int)
 encodePrim (PIn InNumber)         = (1, 0)
@@ -66,3 +64,9 @@ encodePrim (PNumOp NumOpSubtract) = (3, 1)
 encodePrim (PNumOp NumOpMultiply) = (3, 2)
 encodePrim (PNumOp NumOpDivide)   = (3, 3)
 encodePrim (PCompare CmpLessThan) = (4, 0)
+
+decodeMap :: M.Map (Int, Int) Prim
+decodeMap = M.fromList [(encodePrim p, p) | p <- knownPrims]
+
+decodePrim :: Int -> Int -> Maybe Prim
+decodePrim opcode mode = M.lookup (opcode, mode) decodeMap

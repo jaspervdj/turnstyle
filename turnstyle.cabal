@@ -85,9 +85,11 @@ Test-suite turnstyle-test
   Default-language: Haskell2010
   Other-modules:
     Turnstyle.Compile.Tests
+    Turnstyle.Parse.Tests
     Turnstyle.Quattern.Tests
   Build-depends:
     base             >= 4.7  && < 5,
+    containers       >= 0.6  && < 0.7,
     either           >= 5.0  && < 5.1,
     tasty            >= 1.4  && < 1.5,
     tasty-hunit      >= 0.10 && < 0.11,

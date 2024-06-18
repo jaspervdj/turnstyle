@@ -23,8 +23,18 @@ data Shape = Shape
     , sConstraints :: [ColorConstraint Pos]
     } deriving (Show)
 
-rotateShapeLeft :: Shape -> (Shape, Pos -> Pos)
-rotateShapeLeft s =
+newtype Transform = Transform {unTransform :: Shape -> (Shape, Pos -> Pos)}
+
+instance Semigroup Transform where
+    Transform f <> Transform g = Transform $ \shape0 ->
+        let (shape1, posMap1) = g shape0
+            (shape2, posMap2) = f shape1 in
+        (shape2, posMap1 . posMap2)
+
+rotateShapeLeft :: Transform
+rotateShapeLeft = Transform $ \s ->
+    let rot    (Pos x y) = Pos y (sWidth s - x - 1)
+        revPos (Pos x y) = Pos (sWidth s - y - 1) x in
     ( Shape
         { sWidth       = sHeight s
         , sHeight      = sWidth s
@@ -33,15 +43,71 @@ rotateShapeLeft s =
         }
     , revPos
     )
-  where
-    rot    (Pos x y) = Pos y (sWidth s - x - 1)
-    revPos (Pos x y) = Pos (sWidth s - y - 1) x
+
+offsetShape :: Int -> Int -> Transform
+offsetShape dx dy = Transform $ \s ->
+    let fwd (Pos x y) = Pos (x + dx) (y + dy)
+        bwd (Pos x y) = Pos (x - dx) (y - dy) in
+    (s {sConstraints = fmap fwd <$> sConstraints s}, bwd)
 
 exprToShape :: (Show v, Ord v) => Expr ann Void v -> Shape
 exprToShape = exprToShape' M.empty
 
 exprToShape' :: (Ord v, Show v) => M.Map v Pos -> Expr ann Void v -> Shape
 exprToShape' ctx expr = case expr of
+    App _ lhs rhs -> Shape
+        { sWidth       = max 3 (max (sWidth lhsShape + offsetL) (sWidth rhsShape + offsetR))
+        , sHeight      = sHeight lhsShape + 3 + sHeight rhsShape
+        , sEntrance    = sHeight lhsShape + 1
+        , sConstraints =
+            -- Turnstyle shape
+            [ NotEq appL appC, NotEq appL appF, Eq appL appR
+            , NotEq appC appF
+            ] ++
+            -- Tunnel
+            [Eq appF (move x R enterL) | x <- [0 .. entrance - 1]] ++
+            [Eq appC (move x R enterC) | x <- [0 .. entrance - 1]] ++
+            [Eq appF (move x R enterR) | x <- [0 .. entrance - 1]] ++
+            [Eq appF (move 1 R appL)] ++
+            [Eq appF (move 1 R appR)] ++
+            -- Connect to LHS
+            [Eq appL (move 1 U appL)] ++
+            -- Connect to RHS
+            [Eq appR (move 1 D appR)] ++
+            -- LHS
+            sConstraints lhsShape ++
+            -- RHS
+            sConstraints rhsShape
+        }
+      where
+        lhsContext            = lhsCtxMap <$> ctx
+        (lhsShape, lhsCtxMap) = unTransform
+            (offsetShape offsetL 0 <> rotateShapeLeft)
+            (exprToShape' lhsContext lhs)
+
+        rhsContext            = rhsCtxMap <$> ctx
+        (rhsShape, rhsCtxMap) = unTransform
+            (offsetShape offsetR (sHeight lhsShape + 3) <>
+                rotateShapeLeft <>
+                rotateShapeLeft <>
+                rotateShapeLeft)
+            (exprToShape' rhsContext rhs)
+
+        entranceL = sEntrance lhsShape
+        entranceR = sWidth rhsShape - sEntrance rhsShape - 1
+        entrance  = max entranceL entranceR
+        offsetL   = entrance - entranceL
+        offsetR   = entrance - entranceR
+
+        enterL = move 1 U enterC
+        enterC = Pos 0 (sHeight lhsShape + 1)
+        enterF = move 1 R enterC
+        enterR = move 1 D enterC
+
+        appL = move entrance R enterL
+        appR = move entrance R enterR
+        appF = move entrance R enterF
+        appC = move entrance R enterC
 
     Lam _ v body -> Shape
         { sWidth       = max 3 (sWidth bodyShape)
@@ -58,6 +124,7 @@ exprToShape' ctx expr = case expr of
             [Eq lamF (move x R right)  | x <- [0 .. sEntrance bodyShape - 1]] ++
             [Eq lamF (move 1 R lamL)] ++
             [Eq lamL (move 1 U lamL)] ++
+            -- Body
             sConstraints bodyShape ++
             -- Variable uniqueness
             (case M.lookup v ctx of
@@ -69,7 +136,7 @@ exprToShape' ctx expr = case expr of
             M.insert v (Pos (-3) (sEntrance bodyShape)) $
             fmap mapCtx $ ctx
 
-        (bodyShape, mapCtx) = rotateShapeLeft (exprToShape' bodyContext body)
+        (bodyShape, mapCtx) = unTransform rotateShapeLeft (exprToShape' bodyContext body)
 
         lamL = move (sEntrance bodyShape) R left
         lamR = move (sEntrance bodyShape) R right
@@ -153,7 +220,7 @@ exprToShape' ctx expr = case expr of
             -- Left pixel should have area 1
             [ NotEq left p | p <- neighbors left ] ++
             -- Right pixel should have area 1
-            [ NotEq right p | p <- neighbors left ] ++
+            [ NotEq right p | p <- neighbors right ] ++
             -- Front "lit" part should be one color
             [ Eq front e | e <- frontExtension ] ++
             -- Areas around the front "lit" part need to be different

@@ -3,13 +3,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Turnstyle.Expr
     ( Expr (..)
+    , mapAnn
     , freeVars
     , allVars
     , normalizeVars
     , checkErrors
     ) where
 
-import           Control.Monad.State    (State, evalState, state)
 import           Data.Either.Validation (Validation (..))
 import           Data.List.NonEmpty     (NonEmpty (..))
 import qualified Data.Map               as M
@@ -26,6 +26,14 @@ data Expr ann e v
     | Err ann e
     deriving (Eq, Foldable, Functor, Show)
 
+mapAnn :: (a -> b) -> Expr a e v -> Expr b e v
+mapAnn m (App ann f x) = App  (m ann) (mapAnn m f) (mapAnn m x)
+mapAnn m (Lam ann v b) = Lam  (m ann) v (mapAnn m b)
+mapAnn m (Var ann v)   = Var  (m ann) v
+mapAnn m (Prim ann p)  = Prim (m ann) p
+mapAnn m (Lit ann l)   = Lit  (m ann) l
+mapAnn m (Err ann err) = Err  (m ann) err
+
 -- | Free variables in an expression.
 freeVars :: Ord v => Expr ann e v -> S.Set v
 freeVars (App _ f x)    = freeVars f <> freeVars x
@@ -40,20 +48,19 @@ allVars :: Ord v => Expr ann e v -> S.Set v
 allVars = foldMap S.singleton
 
 normalizeVars :: forall ann e v. Ord v => Expr ann e v -> Expr ann e Int
-normalizeVars expr = evalState (go expr) (M.empty, 0)
+normalizeVars = go 0 M.empty
   where
-    go :: Expr ann e v -> State (M.Map v Int, Int) (Expr ann e Int)
-    go (App ann x y) = App ann <$> go x <*> go y
-    go (Lam ann v x) = Lam ann <$> var v <*> go x
-    go (Var ann v)   = Var ann <$> var v
-    go (Prim ann p)  = pure $ Prim ann p
-    go (Lit ann l)   = pure $ Lit ann l
-    go (Err ann e)   = pure $ Err ann e
-
-    var :: v -> State (M.Map v Int, Int) Int
-    var v = state $ \(vars, fresh) -> case M.lookup v vars of
-        Just n  -> (n, (vars, fresh))
-        Nothing -> (fresh, (M.insert v fresh vars, fresh + 1))
+    go :: Int -> M.Map v Int -> Expr ann e v -> (Expr ann e Int)
+    go fresh vars (App ann x y) = App ann (go fresh vars x) (go fresh vars y)
+    go fresh vars (Lam ann v x) = case M.lookup v vars of
+        Just n  -> Lam ann n (go fresh vars x)
+        Nothing -> Lam ann fresh (go (fresh + 1) (M.insert v fresh vars) x)
+    go fresh vars (Var ann v)   = case M.lookup v vars of
+        Nothing -> Var ann fresh
+        Just n  -> Var ann n
+    go _ _ (Prim ann p)  = Prim ann p
+    go _ _ (Lit ann l)   = Lit ann l
+    go _ _ (Err ann e)   = Err ann e
 
 -- | Removes errors from an expression.
 checkErrors :: Expr ann e v -> Validation (NonEmpty (ann, e)) (Expr ann Void v)
