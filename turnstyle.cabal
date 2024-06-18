@@ -29,33 +29,31 @@ Library
     Turnstyle.Image
     Turnstyle.JuicyPixels
     Turnstyle.Number
+    Turnstyle.Main
     Turnstyle.Parse
-    Turnstyle.Pretty
     Turnstyle.Prim
     Turnstyle.Quattern
     Turnstyle.Scale
+    Turnstyle.Text
     Turnstyle.Text.Parse
+    Turnstyle.Text.Pretty
+    Turnstyle.Text.Sugar
     Turnstyle.TwoD
   Build-depends:
-    base        >= 4.7 && < 5,
-    containers  >= 0.6 && < 0.7,
-    either      >= 5.0 && < 5.1,
-    JuicyPixels >= 3.3 && < 3.4,
-    mtl         >= 2.3 && < 2.4,
-    parsec      >= 3.1 && < 3.2
+    base                 >= 4.7  && < 5,
+    containers           >= 0.6  && < 0.7,
+    either               >= 5.0  && < 5.1,
+    JuicyPixels          >= 3.3  && < 3.4,
+    mtl                  >= 2.3  && < 2.4,
+    optparse-applicative >= 0.18 && < 0.19,
+    parsec               >= 3.1  && < 3.2
 
 Executable turnstyle
   Main-is:          Main.hs
   Hs-source-dirs:   src
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
-  Build-depends:
-    base                 >= 4.7  && < 5,
-    containers           >= 0.6  && < 0.7,
-    either               >= 5.0  && < 5.1,
-    JuicyPixels          >= 3.3  && < 3.4,
-    optparse-applicative >= 0.18 && < 0.19,
-    turnstyle
+  Build-depends:    base, turnstyle
 
 Executable turnstyle-spec-figures
   Main-is:          SpecFigures.hs
@@ -87,8 +85,10 @@ Test-suite turnstyle-test
   Default-language: Haskell2010
   Other-modules:
     Turnstyle.Compile.Tests
+    Turnstyle.Expr.Tests
     Turnstyle.Parse.Tests
     Turnstyle.Quattern.Tests
+    Turnstyle.Text.Tests
   Build-depends:
     base             >= 4.7  && < 5,
     containers       >= 0.6  && < 0.7,

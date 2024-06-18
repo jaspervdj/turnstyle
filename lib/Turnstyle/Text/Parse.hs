@@ -1,41 +1,71 @@
 module Turnstyle.Text.Parse
-    ( parseExpr
+    ( parseSugar
     ) where
 
-import           Control.Applicative ((<|>))
-import           Data.Bifunctor      (first)
-import           Data.Char           (isAlpha)
-import qualified Data.Map            as M
-import           Data.Void           (Void)
-import qualified Text.Parsec         as P
-import qualified Text.Parsec.String  as P
-import           Turnstyle.Expr
+import           Control.Applicative  ((<|>))
+import           Control.Monad        (void)
+import           Data.Char            (isAlpha, isLower)
+import           Data.List.NonEmpty   (NonEmpty (..))
+import qualified Data.Map             as M
+import qualified Text.Parsec          as P
+import qualified Text.Parsec.String   as P
 import           Turnstyle.Prim
+import           Turnstyle.Text.Sugar
 
-parseExpr :: P.SourceName -> String -> Either String (Expr () Void String)
-parseExpr name input = first show $
-    P.parse (P.skipMany P.space *> expr <* P.eof) name input
+parseSugar :: P.SourceName -> String -> Either P.ParseError Sugar
+parseSugar name input = P.parse (P.skipMany P.space *> expr <* P.eof) name input
 
-expr :: P.Parser (Expr () Void String)
-expr =
-    (do
-        _    <- lambda
-        vars <- P.many1 var
-        _    <- dot
+expr :: P.Parser Sugar
+expr = P.choice
+    [ do
+        letTok
+        v <- var
+        equal
+        def <- expr
+        inTok
         body <- expr
-        pure $ foldr (Lam ()) body vars) <|>
-    (do
+        pure $ Let v def body
+    , do
+        e : es <- P.many1 expr1
+        pure $ case es of
+            []       -> e
+            (x : xs) -> App e (x :| xs)
+    ]
+
+expr1 :: P.Parser Sugar
+expr1 = P.choice
+    [ (P.<?> "lambda") $ do
+        lambda
+        v : vs <- P.many1 var
+        dot
+        body <- expr
+        pure $ Lam (v :| vs) body
+    , do
         ident <- identifier
         case ident of
-            VarId v  -> pure $ Var () v
-            PrimId p -> pure $ Prim () p) <|>
-    (Lit () <$> lit)
+            VarId v  -> pure $ Var v
+            PrimId p -> pure $ Prim p
+    , Lit <$> lit
+    , parens expr
+    ]
 
-lambda :: P.Parser Char
-lambda = token $ P.char '\\' <|> P.char 'λ'
+lambda :: P.Parser ()
+lambda = void $ token $ P.char '\\' <|> P.char 'λ'
 
-dot :: P.Parser Char
-dot = token $ P.char '.'
+dot :: P.Parser ()
+dot = void $ token $ P.char '.'
+
+equal :: P.Parser ()
+equal = void $ token $ P.char '='
+
+letTok :: P.Parser ()
+letTok = void $ token $ P.try $ P.string "LET"
+
+inTok :: P.Parser ()
+inTok = void $ token $ P.try $ P.string "IN"
+
+parens :: P.Parser p -> P.Parser p
+parens p = token (P.char '(') *> p <* token (P.char ')')
 
 data Identifier = VarId String | PrimId Prim
 
@@ -47,7 +77,7 @@ identifier = do
         Nothing -> pure $ VarId str
 
 var :: P.Parser String
-var = do
+var = (P.<?> "variable") $ do
     ident <- identifier
     case ident of
         VarId  v -> pure v
@@ -55,18 +85,19 @@ var = do
 
 lit :: P.Parser Int
 lit = token $ do
-    -- TODO: not 0
     decimal <- P.many1 P.digit
-    pure $ read decimal
+    case read decimal of
+        0 -> P.unexpected "zero literal"
+        n -> pure n
 
 token :: P.Parser a -> P.Parser a
-token p = p <* P.skipMany P.space
+token p = p <* P.skipMany (P.space P.<?> "")
 
 identifierStart :: P.Parser Char
-identifierStart = P.satisfy (\c -> isAlpha c && c /= 'λ')
+identifierStart = P.satisfy (\c -> isAlpha c && isLower c && c /= 'λ')
 
 identifierChar :: P.Parser Char
-identifierChar = identifierStart <|> P.digit
+identifierChar = identifierStart <|> P.digit <|> P.char '_'
 
 primsByName :: M.Map String Prim
 primsByName = M.fromList [(primName p, p) | p <- knownPrims]
