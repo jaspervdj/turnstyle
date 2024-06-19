@@ -19,13 +19,13 @@ paint s = JP.generateImage
         if x1 >= 0 && x1 < sWidth s && y1 >= 0 && y1 < sHeight s
             then M.lookup (Pos x1 y1) colors
             else Nothing)
-    (sWidth s * 2)
+    (sWidth s)
     (spacingHeight * 2 + 1)
   where
     topHeight     = sEntrance s
     bottomHeight  = sHeight s - sEntrance s - 1
     spacingHeight = max topHeight bottomHeight
-    offsetX       = sWidth s
+    offsetX       = 0
     offsetY       = spacingHeight - sEntrance s
     background    = JP.PixelRGB8 255 255 255
     colors        = fmap (palette !!) $ solve $ sConstraints s

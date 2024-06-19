@@ -25,8 +25,7 @@ inside (Pos x y) img = x >= 0 && x < width img && y >= 0 && y < height img
 initialPosition :: Image img => img -> Maybe Pos
 initialPosition img
     | width img <= 0 || height img <= 0 = Nothing
-    | otherwise                         = Just $
-        Pos (width  img `div` 2) (height img `div` 2)
+    | otherwise                         = Just $ Pos 0 (height img `div` 2)
 
 -- | Selecting single pixel from the turnstyle:
 --

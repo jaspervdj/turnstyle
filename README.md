@@ -18,9 +18,8 @@ Turnstyle programs are evaluated by reading and evaluating **expressions** from
 the image.  An expression is read using a given **position** (represented as
 integral _(x, y)_ coordinates) and **heading** (right, down, left or up).
 
-The top-level expression of a program is found at the center of the image
-_(floor(image width / 2), floor (image height / 2))_, and the initial heading is
-**right**.
+The top-level expression of a program is found at the center of the left side of
+the image _(0, floor (image height / 2))_, and the initial heading is **right**.
 
 To read an expression, we consider the **Turnstyle shape** of the pixels
 surrounding the current **position** and facing the current **heading**.
@@ -146,7 +145,7 @@ the arrow (→).  You can visualize this as following the color of the line.
 
 ![](examples/minimal-large.png)
 
-Returns exit code 0 by computing _((`subtract` 5) 5)_.
+Returns exit code 0 by computing _((`subtract` 1) 1)_.
 
 ![](examples/y-large.png)
 

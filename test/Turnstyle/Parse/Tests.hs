@@ -15,16 +15,16 @@ import           Turnstyle.Scale        (autoScale)
 tests :: TestTree
 tests = testGroup "Turnstyle.Parse"
     [ example "examples/minimal-large.png" $
-        subtract (lit 5) (lit 5)
+        subtract (lit 1) (lit 1)
 
     , example "examples/pi-large.png" $ app (prim $ POut OutNumber)
         [ divide
-            (lit 1020)
+            (lit 749)
             (app
                 (lam 0 (app
                     (lam 1 (multiply (var 1) (var 1)))
                     [divide (var 0) (lit 2)]))
-                [lit 36])
+                [lit 31])
         , subtract (lit 1) (lit 1)
         ]
 
