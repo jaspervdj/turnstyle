@@ -33,6 +33,12 @@ nav {
 
 nav a {
     margin: 0 .5em;
+    color: #222;
+}
+
+nav a.active {
+    font-weight: bold;
+    text-decoration: none;
 }
 
 h1 {

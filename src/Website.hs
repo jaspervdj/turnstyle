@@ -2,6 +2,7 @@
 module Main (main) where
 
 import           Data.Foldable  (for_)
+import Control.Applicative (empty)
 import           Hakyll
 import qualified System.Process as Process
 
@@ -23,13 +24,17 @@ main = hakyllWith config $ do
         route $ constRoute "favicon.ico"
         compile copyFileCompiler
     let pages =
-            [ ("README.md", "index.html")
-            , ("spec/README.md", "spec/index.html")
+            [ ("README.md", "index.html", Just "Turnstyle")
+            , ("spec/README.md", "spec/index.html", Nothing)
             ]
-    for_ pages $ \(src, dst) -> match src $ do
+    for_ pages $ \(src, dst, mbTitle) -> match src $ do
+        let ctx = maybe mempty (constField "title") mbTitle <>
+                functionField "active" (\args _ -> do
+                    if args == [dst] then pure "true" else empty) <>
+                defaultContext
         route $ constRoute dst
         compile $ pandocCompiler >>=
-            loadAndApplyTemplate "website/template.html" defaultContext >>=
+            loadAndApplyTemplate "website/template.html" ctx >>=
             relativizeUrls
     match "website/style.css" $ do
         route $ constRoute "style.css"

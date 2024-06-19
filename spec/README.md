@@ -1,7 +1,8 @@
 ---
 title: Turnstyle Specification
 author: Jasper Van der Jeugt
-...
+version: v0.0.1
+---
 
 The program is encoded as an image.  A **lossless** image format should be used
 so exact colors are preserved.  The use of [PNG] is recommended because of its
