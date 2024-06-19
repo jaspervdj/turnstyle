@@ -8,10 +8,10 @@ import           Diagrams.Prelude
 data Pixel = A | B | C | D deriving (Eq, Show)
 
 colorToStyle :: Pixel -> Colour Double
-colorToStyle A = mistyrose
-colorToStyle B = lightsteelblue
-colorToStyle C = greenyellow
-colorToStyle D = coral
+colorToStyle A = sRGB24read "#eeb480"
+colorToStyle B = sRGB24read "#b5decc"
+colorToStyle C = sRGB24read "#ffdd00"
+colorToStyle D = sRGB24read "#b2b73e"
 
 data Arrow
     = NoArrow
@@ -20,7 +20,8 @@ data Arrow
     deriving (Eq, Show)
 
 data Turnstyle = Turnstyle
-    { leftPixel       :: Pixel
+    { frameSize       :: Double
+    , leftPixel       :: Pixel
     , leftArrow       :: Arrow
     , leftLabel       :: Maybe String
     , leftCircle      :: Bool
@@ -40,7 +41,8 @@ data Turnstyle = Turnstyle
 
 mkTurnstyle :: Pixel -> Pixel -> Pixel -> Pixel -> Turnstyle
 mkTurnstyle u c r d = Turnstyle
-    { leftPixel       = u
+    { frameSize       = 1
+    , leftPixel       = u
     , leftArrow       = NoArrow
     , leftLabel       = Nothing
     , leftCircle      = False
@@ -64,7 +66,7 @@ turnstyle Turnstyle {..} =
     atop (moveTo (0.5 ^& (-1.0)) $ rotateBy (3/4) $ mkArrow centerArrow) $
     atop (moveTo (1.5 ^& (-1.0)) $ rotateBy (3/4) $ mkArrow frontArrow) $
     atop (moveTo (0.5 ^& (-2.0)) $ rotateBy (2/4) $ mkArrow rightArrow) $
-    frame 1 $
+    frame frameSize $
     lw none $
     alignL (tile leftLabel leftCircle leftPixel)
     ===
@@ -147,5 +149,8 @@ main = do
                 (moveTo (4 ^& (-0.5)) $ italic $ scale (2/3) $
                     alignedText 0 0.5 "A(L) ≥ A(R) ⇒ N(A(F))") <>
                 (moveTo (4 ^& (-1.5)) $ italic $ scale (2/3) $
-                    alignedText 0 0.5 "else ⇒ P(A(R)-A(L),|A(F)-A(R)|)")) ===
+                    alignedText 0 0.5 "else ⇒ P(A(R)-A(L), |A(F)-A(R)|)")) ===
             idSpec)
+
+    renderSVG "website/logo.svg" (mkHeight 400) $
+        turnstyle (mkTurnstyle A B C D) {frameSize = 0}

@@ -1,4 +1,4 @@
-# ⊦ Turnstyle Specification
+# Specification
 
 The program is encoded as an image.
 

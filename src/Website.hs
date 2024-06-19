@@ -1,16 +1,20 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
-import           Data.Foldable (for_)
+import           Data.Foldable  (for_)
 import           Hakyll
+import qualified System.Process as Process
 
 main :: IO ()
-main = hakyll $ do
+main = hakyllWith config $ do
     match "spec/*.svg" $ do
         route idRoute
         compile copyFileCompiler
     match "examples/*-large.png" $ do
         route idRoute
+        compile copyFileCompiler
+    match "website/logo.svg" $ do
+        route $ constRoute "logo.svg"
         compile copyFileCompiler
     let pages =
             [ ("README.md", "index.html")
@@ -25,3 +29,11 @@ main = hakyll $ do
         route $ constRoute "style.css"
         compile compressCssCompiler
     match "website/template.html" $ compile templateCompiler
+
+config :: Configuration
+config = defaultConfiguration
+    { deploySite = \_  -> Process.rawSystem "rsync"
+        [ "--checksum", "-ave", "ssh -p 2222"
+        , "_site/", "jaspervdj@jaspervdj.be:jaspervdj.be/turnstyle/"
+        ]
+    }

@@ -1,5 +1,3 @@
-# ⊦ Turnstyle
-
 Turnstyle is an [esoteric programming language] loosely inspired by [Piet].
 
 However, where Piet leans towards a stack machine, Turnstyle takes inspiration
@@ -8,11 +6,11 @@ from the (untyped) [Lambda calculus] instead.
 This repository contains [the language specification](spec/) and a reference
 implementation.
 
-## Cheatsheet
+# Cheatsheet
 
 ![](spec/cheatsheet.svg)
 
-## Examples
+# Examples
 
 ![](examples/minimal-large.png)
 
@@ -32,13 +30,13 @@ _(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`output_char` ((`add` 34) ((`multip
 
 Prints an approximation of _pi_ by comparing the circle to its diameter.
 
-## Open questions
+# Open questions
 
  -  How do we deal with EOF for input?  We could either have a second
     continuation; or we could have some special value (e.g. `-1`).
     The latter does not work for inputting numbers though...
 
-## Design Principles
+# Design Principles
 
  -  Lean towards pixel art but allow larger graphics as well
  -  Integers should be represented by areas, so 0 does not have a literal

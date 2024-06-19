@@ -1,8 +1,59 @@
+html {
+    font-family: sans-serif;
+    font-size: 16px;
+    line-height: 150%;
+}
+
 body {
-    max-width: 800px;
+    max-width: 720px;
     margin: auto;
 }
 
+header {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 30px;
+    margin: 1em;
+}
+
+header img {
+    max-height: 36px;
+    margin-right: 12px;
+}
+
+nav {
+    font-size: 18px;
+    text-align: center;
+    margin: 2em;
+}
+
+nav a {
+    margin: 0 .5em;
+}
+
+h1 {
+    font-size: 24px;
+}
+
+h2 {
+    font-size: 20px;
+}
+
+h3 {
+    font-size: 18px;
+}
+
 img {
-    max-width: 800px;
+    max-width: 720px;
+}
+
+th, td {
+    padding: 0em 2em;
+}
+
+blockquote {
+    border-left: 4px solid #bbb;
+    padding-left: 1em;
+    margin-left: 0;
 }
