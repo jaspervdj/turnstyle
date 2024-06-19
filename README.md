@@ -1,6 +1,6 @@
 # ⊦ Turnstyle
 
-Turnstyle is an [esoteric] programming language loosely inspired by [Piet].
+Turnstyle is an [esoteric programming language] loosely inspired by [Piet].
 
 However, where Piet leans towards a stack machine, Turnstyle takes inspiration
 from the (untyped) [Lambda calculus] instead.
@@ -50,6 +50,6 @@ Prints an approximation of _pi_ by comparing the circle to its diameter.
     actually write real programs.  This lead to using at least two numbers
     for primops.
 
-[esoteric]: https://en.wikipedia.org/wiki/Esoteric_programming_language
+[esoteric programming language]: https://en.wikipedia.org/wiki/Esoteric_programming_language
 [Lambda calculus]: https://en.wikipedia.org/wiki/Lambda_calculus
 [Piet]: https://www.dangermouse.net/esoteric/piet.html
