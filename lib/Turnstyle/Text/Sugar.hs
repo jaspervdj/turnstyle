@@ -16,7 +16,7 @@ data Sugar
     | Var String
     | Prim Prim
     | Lit Int
-    deriving (Show)
+    deriving (Eq, Show)
 
 sugarToExpr :: Sugar -> E.Expr () Void String
 sugarToExpr (Let v d b) = E.App () (E.Lam () v (sugarToExpr b)) (sugarToExpr d)

@@ -2,11 +2,13 @@ module Turnstyle.Text.Tests
     ( tests
     ) where
 
-import           Test.Tasty             (TestTree, testGroup)
-import qualified Test.Tasty.QuickCheck  as QC
+import           Test.Tasty            (TestTree, testGroup)
+import           Test.Tasty.HUnit      (testCase, (@?=))
+import qualified Test.Tasty.QuickCheck as QC
 import           Turnstyle.Expr
 import           Turnstyle.Expr.Tests
 import           Turnstyle.Text
+import qualified Turnstyle.Text.Sugar  as Sugar
 
 tests :: TestTree
 tests = testGroup "Turnstyle.Text"
@@ -14,4 +16,15 @@ tests = testGroup "Turnstyle.Text"
         case parseExpr "test iput" (prettyExpr expr) of
             Left  _      -> False
             Right parsed -> expr == normalizeVars parsed
+
+    , testCase "comments" $
+        let input = unlines
+                [ "# Leading comment"
+                , "1 # EOL comment"
+                , "# Trailing comment"
+                ] in
+        Right (Sugar.Lit 1) @?= parseSugar "test input" input
+
+    , testCase "comment EOF" $
+        Right (Sugar.Lit 1) @?= parseSugar "test input" "1 # Trailing comment"
     ]

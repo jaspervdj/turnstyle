@@ -4,7 +4,7 @@ module Turnstyle.Text
     ( parseExpr
     , prettyExpr
 
-    , Sugar (..)
+    , Sugar
     , sugarToExpr
     , exprToSugar
     , parseSugar

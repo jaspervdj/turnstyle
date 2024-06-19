@@ -13,7 +13,7 @@ import           Turnstyle.Prim
 import           Turnstyle.Text.Sugar
 
 parseSugar :: P.SourceName -> String -> Either P.ParseError Sugar
-parseSugar name input = P.parse (P.skipMany P.space *> expr <* P.eof) name input
+parseSugar name input = P.parse (spaceOrComments *> expr <* P.eof) name input
 
 expr :: P.Parser Sugar
 expr = P.choice
@@ -91,13 +91,18 @@ lit = token $ do
         n -> pure n
 
 token :: P.Parser a -> P.Parser a
-token p = p <* P.skipMany (P.space P.<?> "")
+token p = p <* spaceOrComments
 
 identifierStart :: P.Parser Char
 identifierStart = P.satisfy (\c -> isAlpha c && isLower c && c /= 'λ')
 
 identifierChar :: P.Parser Char
 identifierChar = identifierStart <|> P.digit <|> P.char '_'
+
+spaceOrComments :: P.Parser ()
+spaceOrComments = P.skipMany (comment <|> P.space P.<?> "")
+  where
+    comment = P.char '#' <* P.manyTill P.anyChar (void P.newline <|> P.eof)
 
 primsByName :: M.Map String Prim
 primsByName = M.fromList [(primName p, p) | p <- knownPrims]
