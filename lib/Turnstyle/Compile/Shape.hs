@@ -65,11 +65,10 @@ exprToShape' ctx expr = case expr of
             , NotEq appC appF
             ] ++
             -- Tunnel
-            [Eq appF (move x R enterL) | x <- [0 .. entrance - 1]] ++
+            [Eq (move x R enterL) (move x R enterR) | x <- [0 .. entrance - 1]] ++
             [Eq appC (move x R enterC) | x <- [0 .. entrance - 1]] ++
-            [Eq appF (move x R enterR) | x <- [0 .. entrance - 1]] ++
-            [Eq appF (move 1 R appL)] ++
-            [Eq appF (move 1 R appR)] ++
+            [Eq (move 1 L appR) (move 1 R appL)] ++
+            [Eq (move 1 L appR) (move 1 R appR)] ++
             -- Connect to LHS
             [Eq appL (move 1 U appL)] ++
             -- Connect to RHS
@@ -119,10 +118,10 @@ exprToShape' ctx expr = case expr of
             , NotEq lamF lamR
             ] ++
             -- Tunnel
-            [Eq lamF (move x R left)   | x <- [0 .. sEntrance bodyShape - 1]] ++
+            [Eq (move x R right) (move x R left)   | x <- [0 .. sEntrance bodyShape - 1]] ++
             [Eq lamC (move x R center) | x <- [0 .. sEntrance bodyShape - 1]] ++
-            [Eq lamF (move x R right)  | x <- [0 .. sEntrance bodyShape - 1]] ++
-            [Eq lamF (move 1 R lamL)] ++
+            [Eq (move 1 L lamL) (move 1 R lamL)] ++
+            -- Connect to body
             [Eq lamL (move 1 U lamL)] ++
             -- Body
             sConstraints bodyShape ++
