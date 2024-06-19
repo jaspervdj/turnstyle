@@ -1,8 +1,13 @@
-# Specification
+---
+title: Turnstyle Specification
+author: Jasper Van der Jeugt
+...
 
-The program is encoded as an image.
+The program is encoded as an image.  A **lossless** image format should be used
+so exact colors are preserved.  The use of [PNG] is recommended because of its
+wide support and decent compression.
 
-## Syntax
+# Syntax
 
 Turnstyle programs are evaluated by reading and evaluating **expressions** from
 the image.  An expression is read using a given **position** (represented as
@@ -79,7 +84,7 @@ side of the application.
 Symbols encode literals in the program.  We compare the relative **areas** of
 the left, front and right pixels.
 
-An **area** is defined as the number of pixels a contiguous color region.
+An **area** is defined as the number of pixels in a contiguous color region.
 Pixels of the same color that only touch diagonally are **not** considered
 contiguous.
 
@@ -87,7 +92,7 @@ contiguous.
 
  -  If _area(L) ≥ area(R)_, the Turnstyle evaluates to a **numeric** literal
     of the integer value _area(F)_.
- -  Otherwise, _area(L) < area(R)_.  the Turnstyle evaluates to a
+ -  Otherwise, _area(L) < area(R)_.  The Turnstyle evaluates to a
     **primitive function**.
     In this case, _area(R) - area(L)_ determines the **primitive opcode**,
     and _abs(area(F) - area(R))_ determines the **primitive mode**.
@@ -131,13 +136,20 @@ the arrow (→).  You can visualize this as following the color of the line.
 
 ![](id.svg)
 
-## Semantics
+# Semantics
 
-### Precision
+## Precision
 
-[Scheme Exactness]
+Turnstyle borrows its numeric precision concepts from [Scheme][Scheme
+Exactness]:
 
-> Scheme numbers are either exact or inexact. A number is exact if it was written as an exact constant or was derived from exact numbers using only exact operations. A number is inexact if it was written as an inexact constant, if it was derived using inexact ingredients, or if it was derived using inexact operations. Thus inexactness is a contagious property of a number.
+> Scheme numbers are either exact or inexact. A number is exact if it was
+> written as an exact constant or was derived from exact numbers using only
+> exact operations. A number is inexact if it was written as an inexact
+> constant, if it was derived using inexact ingredients, or if it was derived
+> using inexact operations. Thus inexactness is a contagious property of a
+> number.
 
 [Church encoding]: https://en.wikipedia.org/wiki/Church_encoding
+[PNG]: http://libpng.org/pub/png/
 [Scheme Exactness]: https://www.cs.cmu.edu/Groups/AI/html/r4rs/r4rs_8.html#SEC52
