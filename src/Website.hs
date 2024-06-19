@@ -13,8 +13,14 @@ main = hakyllWith config $ do
     match "examples/*-large.png" $ do
         route idRoute
         compile copyFileCompiler
-    match "website/logo.svg" $ do
-        route $ constRoute "logo.svg"
+    match "website/turnstyle.svg" $ do
+        route $ constRoute "turnstyle.svg"
+        compile copyFileCompiler
+    match "website/turnstyle.png" $ do
+        route $ constRoute "turnstyle.png"
+        compile copyFileCompiler
+    match "website/favicon.ico" $ do
+        route $ constRoute "favicon.ico"
         compile copyFileCompiler
     let pages =
             [ ("README.md", "index.html")

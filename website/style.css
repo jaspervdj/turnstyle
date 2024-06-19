@@ -2,6 +2,9 @@ html {
     font-family: sans-serif;
     font-size: 16px;
     line-height: 150%;
+    margin: 12px;
+    background: #f9f6ec;
+    color: #222;
 }
 
 body {
@@ -45,7 +48,7 @@ h3 {
 }
 
 img {
-    max-width: 720px;
+    max-width: 90%;
 }
 
 th, td {
