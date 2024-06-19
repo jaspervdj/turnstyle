@@ -97,16 +97,16 @@ contiguous.
 This is an overview of the different primitive functions and what they do.
 
 | Opcode | Mode | Primitive       |
-| ------ | ---- | --------------- |
-|      1 |    0 | `input_number`  |
-|      1 |    1 | `input_char`    |
-|      2 |    0 | `output_number` |
-|      2 |    1 | `output_char`   |
-|      3 |    0 | `add`           |
-|      3 |    1 | `subtract`      |
-|      3 |    2 | `multiply`      |
-|      3 |    3 | `divide`        |
-|      4 |    0 | `lt`            |
+| :----- | :--- | :-------------- |
+| 1      | 0    | `input_number`  |
+| 1      | 1    | `input_char`    |
+| 2      | 0    | `output_number` |
+| 2      | 1    | `output_char`   |
+| 3      | 0    | `add`           |
+| 3      | 1    | `subtract`      |
+| 3      | 2    | `multiply`      |
+| 3      | 3    | `divide`        |
+| 4      | 0    | `lt`            |
 
  -  _(`input_number` k)_ reads a number `x` from `stdin`, and then evaluates
     _(k x)_.
