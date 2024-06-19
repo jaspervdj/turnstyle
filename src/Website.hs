@@ -16,8 +16,8 @@ main = hakyllWith config $ do
     match "website/turnstyle.svg" $ do
         route $ constRoute "turnstyle.svg"
         compile copyFileCompiler
-    match "website/turnstyle.png" $ do
-        route $ constRoute "turnstyle.png"
+    match "website/preview.png" $ do
+        route $ constRoute "preview.png"
         compile copyFileCompiler
     match "website/favicon.ico" $ do
         route $ constRoute "favicon.ico"
