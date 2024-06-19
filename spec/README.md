@@ -131,4 +131,13 @@ the arrow (→).  You can visualize this as following the color of the line.
 
 ![](id.svg)
 
+## Semantics
+
+### Precision
+
+[Scheme Exactness]
+
+> Scheme numbers are either exact or inexact. A number is exact if it was written as an exact constant or was derived from exact numbers using only exact operations. A number is inexact if it was written as an inexact constant, if it was derived using inexact ingredients, or if it was derived using inexact operations. Thus inexactness is a contagious property of a number.
+
 [Church encoding]: https://en.wikipedia.org/wiki/Church_encoding
+[Scheme Exactness]: https://www.cs.cmu.edu/Groups/AI/html/r4rs/r4rs_8.html#SEC52
