@@ -53,12 +53,20 @@ h2 {
     margin: 1em 0em 0.5em 0em;
 }
 
+h3 {
+    font-size: 18px;
+    font-style: italic;
+    font-weight: normal;
+    margin: 1em 0em 0.5em 0em;
+}
+
 img {
     max-width: 90%;
 }
 
 th, td {
     padding: 0em 0.5em;
+    vertical-align: top;
 }
 
 figure {

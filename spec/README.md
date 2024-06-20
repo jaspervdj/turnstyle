@@ -44,11 +44,11 @@ for (in-)equality.  This gives us **15 unique patterns**.  Here is a cheatsheet:
 The pattern determines the expression that we read evaluate.  There are five
 different kinds supports five expressions:
 
-1.  Variables
-2.  Lambda abstraction
-3.  Function application
-4.  Symbols (primitive operations and numeric literals)
-5.  Identity (no-ops)
+1.  [Variables](#variables)
+2.  [Lambda abstraction](#lambda-abstraction)
+3.  [Function application](#function-application)
+4.  [Symbols](#symbols) ([primitive operations](#primitives) and numeric literals)
+5.  [Identity](#identity) (no-ops)
 
 ## Variables
 
@@ -97,40 +97,9 @@ contiguous.
     **primitive function**.
     In this case, _area(R) - area(L)_ determines the **primitive opcode**,
     and _abs(area(F) - area(R))_ determines the **primitive mode**.
+    See also [Primitives](#primitives).
 
-## Primitives
-
-This is an overview of the different primitive functions and what they do.
-
-| Opcode | Mode | Primitive       |
-| :----- | :--- | :-------------- |
-| 1      | 0    | `input_number`  |
-| 1      | 1    | `input_char`    |
-| 2      | 0    | `output_number` |
-| 2      | 1    | `output_char`   |
-| 3      | 0    | `add`           |
-| 3      | 1    | `subtract`      |
-| 3      | 2    | `multiply`      |
-| 3      | 3    | `divide`        |
-| 4      | 0    | `lt`            |
-
- -  _(`input_number` k)_ reads a number `x` from `stdin`, and then evaluates
-    _(k x)_.
- -  _(`input_char` k)_ reads a character `c` from `stdin`, and then evaluates
-    _(k c)_.
- -  _(`output_number` x k)_ outputs `x` as a number to `stdout`, and then
-    evaluates _k_.
- -  _(`output_char` x k)_ outputs `x` as an Unicode character to `stdout`, and
-    then evaluates _k_.
- -  _((`add` x) y)_ evaluates to _x + y_.
- -  _((`subtract` x) y)_ evaluates to _x - y_.
- -  _((`multiply` x) y)_ evaluates to _x * y_.
- -  _((`divide` x) y)_ evaluates to _x / y_.
- -  _((((`lt` x) y) k) l)_ evaluates _k_ if _x < y_, and _l_ otherwise.
-    You can also consider this as _((`lt` x) y)_ evaluating to a
-    [church-encoded][Church encoding] boolean.
-
-## Identity (no-op)
+## Identity
 
 For all other patterns, we evaluate the expression at the Turnstyle indicated by
 the arrow (→).  You can visualize this as following the color of the line.
@@ -138,6 +107,42 @@ the arrow (→).  You can visualize this as following the color of the line.
 ![Identity](id.svg)
 
 # Semantics
+
+## Primitives
+
+This is an overview of the different primitive functions and what they do.
+
+### Input (opcode=1)
+
+| Mode | Description                                                                    |
+| :--- | :----------------------------------------------------------------------------- |
+| 0    | _(`input_number` k)_ reads a number `x` from `stdin`, then evaluates _(k x)_.  |
+| 1    | _(`input_char` k)_ reads a character `c` from `stdin`, then evaluates _(k c)_. |
+
+### Output (opcode=2)
+
+| Mode | Primitive                                                                                      |
+| :--- | :--------------------------------------------------------------------------------------------- |
+| 0    | _(`output_number` x k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
+| 1    | _(`output_char` x k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
+
+### Numerical operations (opcode=3)
+
+| Mode | Primitive                                  |
+| :--- | :----------------------------------------- |
+| 0    | _((`add` x) y)_ evaluates to _x + y_.      |
+| 1    | _((`subtract` x) y)_ evaluates to _x - y_. |
+| 2    | _((`multiply` x) y)_ evaluates to _x * y_. |
+| 3    | _((`divide` x) y)_ evaluates to _x / y_.   |
+
+### Comparisons (opcode=4)
+
+| Mode | Primitive                                                           |
+| :--- | :------------------------------------------------------------------ |
+| 0    | _((((`lt` x) y) k) l)_ evaluates _k_ if _x < y_, and _l_ otherwise. |
+
+Turnstyle has no primitive boolean type, and uses [Church encoding] instead,
+i.e. _true = λxy.x_ and _false = λxy.y_.
 
 ## Precision
 
