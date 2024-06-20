@@ -77,6 +77,17 @@ Executable turnstyle-enlarge-examples
     filepath    >= 1.4 && < 1.5,
     JuicyPixels >= 3.3 && < 3.4
 
+Executable turnstyle-recolor
+  Main-is:          Recolor.hs
+  Hs-source-dirs:   src
+  Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  Default-language: Haskell2010
+  Build-depends:
+    base                 >= 4.7  && < 5,
+    containers           >= 0.6  && < 0.7,
+    JuicyPixels          >= 3.3  && < 3.4,
+    optparse-applicative >= 0.18 && < 0.19
+
 Executable turnstyle-website
   Main-is:          Website.hs
   Hs-source-dirs:   src
