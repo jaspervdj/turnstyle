@@ -8,7 +8,7 @@ implementation.
 
 # Cheatsheet
 
-![](spec/cheatsheet.svg)
+![Cheatsheet](spec/cheatsheet.svg)
 
 # Examples
 
