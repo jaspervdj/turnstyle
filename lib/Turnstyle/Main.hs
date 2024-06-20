@@ -86,7 +86,7 @@ main = do
                 Right sugar -> do
                     putStrLn $ Text.prettySugar sugar
                     let expr = Text.sugarToExpr sugar
-                    case paint $ exprToShape $ normalizeVars expr of
+                    case paint $ exprToShape $ defaultLayout $ normalizeVars expr of
                         Left cerr -> IO.hPutStrLn IO.stderr $ show cerr
                         Right img -> JP.savePngImage out $ JP.ImageRGB8 img
   where
