@@ -12,23 +12,23 @@ implementation.
 
 # Examples
 
-![](examples/minimal-large.png)
+Returns exit code 0. _((`subtract` 1) 1)_:
 
-Returns exit code 0 by computing _((`subtract` 1) 1)_.
+![0](examples/minimal-large.png)
 
-![](examples/y-large.png)
+A somewhat symmetrical, reusable Y combinator.
+_λf. (λx. f (x x)) (λx. f (x x))_:
 
-A somewhat symmetrical, reusable Y combinator:
-_λf. (λx. f (x x)) (λx. f (x x))_.
+![Y](examples/y-large.png)
 
-![](examples/turnstyle-large.png)
+This reuses the Y combinator above to continuously print ⊦ to the terminal.
+_(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`output_char` ((`add` 34) ((`multiply` 94) 94))) f)_:
 
-This reuses the Y combinator above to continuously print ⊦ to the terminal:
-_(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`output_char` ((`add` 34) ((`multiply` 94) 94))) f)_.
+![⊦](examples/turnstyle-large.png)
 
-![](examples/pi-large.png)
+Prints an approximation of _pi_ by comparing the circle to its diameter:
 
-Prints an approximation of _pi_ by comparing the circle to its diameter.
+![π](examples/pi-large.png)
 
 # Open questions
 

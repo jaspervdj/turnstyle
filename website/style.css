@@ -61,6 +61,10 @@ th, td {
     padding: 0em 0.5em;
 }
 
+figure {
+    text-align: center;
+}
+
 blockquote {
     border-left: 4px solid #bbb;
     padding-left: 1em;

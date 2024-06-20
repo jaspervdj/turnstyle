@@ -26,7 +26,7 @@ Here is the Turnstyle shape illustrated for all four headings, with the current
 position indicated by the small circle, and the heading represented using an
 arrow:
 
-![](enter.svg)
+![Headings](enter.svg)
 
 For brevity, in all further illustrations in the specification we will assume we
 are heading right.
@@ -34,12 +34,12 @@ are heading right.
 We use the following names to refer to the four pixels that make up the
 Turnstyle shape: **L**eft, **C**enter, **F**ront, and **R**ight.
 
-![](label.svg)
+![Pixel names](label.svg)
 
 Turnstyle programs can use _any colors_, as long as we can compare two colors
 for (in-)equality.  This gives us **15 unique patterns**.  Here is a cheatsheet:
 
-![](cheatsheet.svg)
+![Cheatsheet](cheatsheet.svg)
 
 The pattern determines the expression that we read evaluate.  There are five
 different kinds supports five expressions:
@@ -55,7 +55,7 @@ different kinds supports five expressions:
 In Turnstyle, we use _colors_ as variable names.  Depending on the pattern,
 we pick the color of the pixel indicated by the letters LCFR:
 
-![](var.svg)
+![Variables](var.svg)
 
 This evaluates to the value assigned to the variable.  If the variable is
 unassigned, the program should terminate with an error.
@@ -66,7 +66,7 @@ Lambda abstraction evaluates to the anonymous function _(λv.e)_, where the
 variable _v_ is the color of the pixel indicated with the letters LCR, and _e_
 is the expression at the Turnstyle shape indicated by the arrow.
 
-![](lam.svg)
+![Lambda abstraction](lam.svg)
 
 ## Function application
 
@@ -74,7 +74,7 @@ Function application evaluates the expression _(f x)_,
 where _f_ is the Turnstyle shape indicated by the solid arrow (→)
 and _x_ is the Turnstyle shape indicated by the dashed arrow (⇢).
 
-![](app.svg)
+![Function application](app.svg)
 
 If you visualize standing on the image and looking towards the front, the
 left-hand side of the application will always be to the left of the right-hand
@@ -89,7 +89,7 @@ An **area** is defined as the number of pixels in a contiguous color region.
 Pixels of the same color that only touch diagonally are **not** considered
 contiguous.
 
-![](symbol.svg)
+![Symbols](symbol.svg)
 
  -  If _area(L) ≥ area(R)_, the Turnstyle evaluates to a **numeric** literal
     of the integer value _area(F)_.
@@ -135,7 +135,7 @@ This is an overview of the different primitive functions and what they do.
 For all other patterns, we evaluate the expression at the Turnstyle indicated by
 the arrow (→).  You can visualize this as following the color of the line.
 
-![](id.svg)
+![Identity](id.svg)
 
 # Semantics
 
