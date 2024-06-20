@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DeriveFoldable #-}
+{-# LANGUAGE DeriveFunctor  #-}
 module Turnstyle.Compile.Shape
     ( ColorConstraint (..)
     , Shape (..)
@@ -14,7 +15,7 @@ import           Turnstyle.TwoD
 data ColorConstraint p
     = Eq p p
     | NotEq p p
-    deriving (Functor, Show)
+    deriving (Foldable, Functor, Show)
 
 data Shape = Shape
     { sWidth       :: Int
@@ -127,7 +128,7 @@ exprToShape' ctx expr = case expr of
             sConstraints bodyShape ++
             -- Variable uniqueness
             (case M.lookup v ctx of
-                Just p -> [Eq lamR p]
+                Just p  -> [Eq lamR p]
                 Nothing -> [NotEq lamR q | (_, q) <- M.toList ctx])
         }
       where

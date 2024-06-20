@@ -86,8 +86,9 @@ main = do
                 Right sugar -> do
                     putStrLn $ Text.prettySugar sugar
                     let expr = Text.sugarToExpr sugar
-                    JP.savePngImage out $ JP.ImageRGB8 $
-                        paint $ exprToShape $ normalizeVars expr
+                    case paint $ exprToShape $ normalizeVars expr of
+                        Left cerr -> IO.hPutStrLn IO.stderr $ show cerr
+                        Right img -> JP.savePngImage out $ JP.ImageRGB8 img
   where
     opts = OA.info (parseOptions OA.<**> OA.helper)
         (OA.fullDesc <> OA.progDesc "Turnstyle")

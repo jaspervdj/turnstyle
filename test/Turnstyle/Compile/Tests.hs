@@ -18,8 +18,9 @@ removeAnn = mapAnn (const ())
 tests :: TestTree
 tests = testGroup "Turnstyle.Compile"
     [ QC.testProperty "parse . compile" $ \(GenExpr expr) ->
-        let img = paint (exprToShape expr) in
-        case checkErrors (parseImage Nothing (JuicyPixels img)) of
-            Failure _      -> False
-            Success parsed -> expr == normalizeVars (removeAnn parsed)
+        case paint (exprToShape expr) of
+            Left err -> error $ "compile error: " ++ show err
+            Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
+                Failure err    -> error $ "parse error: " ++ show err
+                Success parsed -> expr == normalizeVars (removeAnn parsed)
     ]

@@ -7,7 +7,7 @@ module Turnstyle.TwoD
     , rotateRight
     ) where
 
-data Pos = Pos Int Int deriving (Eq, Ord, Show)
+data Pos = Pos {-# UNPACK #-} !Int {-# UNPACK #-} !Int deriving (Eq, Ord, Show)
 
 neighbors :: Pos -> [Pos]
 neighbors p = [move 1 d p | d <- [R, D, L, U]]
