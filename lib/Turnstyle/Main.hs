@@ -2,20 +2,19 @@ module Turnstyle.Main
     ( main
     ) where
 
-import qualified Codec.Picture           as JP
-import           Data.Either.Validation  (Validation (..))
-import           Data.Maybe              (fromMaybe)
-import qualified Options.Applicative     as OA
-import qualified System.IO               as IO
-import           Text.Read               (readMaybe)
-import           Turnstyle.Compile.Paint
-import           Turnstyle.Compile.Shape
-import           Turnstyle.Eval          (eval)
+import qualified Codec.Picture          as JP
+import           Data.Either.Validation (Validation (..))
+import           Data.Maybe             (fromMaybe)
+import qualified Options.Applicative    as OA
+import qualified System.IO              as IO
+import           Text.Read              (readMaybe)
+import qualified Turnstyle.Compile      as Compile
+import           Turnstyle.Eval         (eval)
 import           Turnstyle.Expr
-import           Turnstyle.JuicyPixels   (loadImage)
-import           Turnstyle.Parse         (Pos (..), parseImage)
-import           Turnstyle.Scale         (autoScale)
-import qualified Turnstyle.Text          as Text
+import           Turnstyle.JuicyPixels  (loadImage)
+import           Turnstyle.Parse        (Pos (..), parseImage)
+import           Turnstyle.Scale        (autoScale)
+import qualified Turnstyle.Text         as Text
 
 data Options = Options
     { oCommand         :: Command
@@ -86,11 +85,12 @@ main = do
                 Right sugar -> do
                     putStrLn $ Text.prettySugar sugar
                     let expr = Text.sugarToExpr sugar
-                    case checkErrors (checkVars expr) of
-                        Failure err -> IO.hPutStrLn IO.stderr $ "unbound variables: " ++ show err
-                        Success expr1 -> case paint $ exprToShape $ defaultLayout $ normalizeVars expr1 of
-                            Left cerr -> IO.hPutStrLn IO.stderr $ show cerr
-                            Right img -> JP.savePngImage out $ JP.ImageRGB8 img
+                        compileOptions = Compile.defaultCompileOptions
+                            { Compile.coOptimize = True
+                            }
+                    case Compile.compile compileOptions expr of
+                        Left cerr -> IO.hPutStrLn IO.stderr $ show cerr
+                        Right img -> JP.savePngImage out $ JP.ImageRGB8 img
   where
     opts = OA.info (parseOptions OA.<**> OA.helper)
         (OA.fullDesc <> OA.progDesc "Turnstyle")

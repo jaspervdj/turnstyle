@@ -1,35 +1,24 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Turnstyle.Compile.Paint
-    ( CompileError (..)
-    , SolveError (..)
-
-    , paint
+    ( paint
     ) where
 
 import qualified Codec.Picture           as JP
-import           Data.Bifunctor          (first)
 import           Data.List               (transpose)
 import           Data.Maybe              (fromMaybe)
 import           Turnstyle.Compile.Shape
-import           Turnstyle.Compile.Solve
 import           Turnstyle.TwoD
 
-data CompileError
-    = SolveError (SolveError Pos)
-    deriving (Show)
-
-paint :: Shape -> Either CompileError (JP.Image JP.PixelRGB8)
-paint s = do
-    colors <- first SolveError (solve $ sConstraints s)
-    pure $ JP.generateImage
-        (\x0 y0 -> fromMaybe background $
-            let x1 = x0 - offsetX
-                y1 = y0 - offsetY in
-            if x1 >= 0 && x1 < sWidth s && y1 >= 0 && y1 < sHeight s
-                then (palette !!) <$> colors (Pos x1 y1)
-                else Nothing)
-        (sWidth s)
-        (spacingHeight * 2 + 1)
+paint :: (Pos -> Maybe Int) -> Shape -> JP.Image JP.PixelRGB8
+paint colors s = JP.generateImage
+    (\x0 y0 -> fromMaybe background $
+        let x1 = x0 - offsetX
+            y1 = y0 - offsetY in
+        if x1 >= 0 && x1 < sWidth s && y1 >= 0 && y1 < sHeight s
+            then (palette !!) <$> colors (Pos x1 y1)
+            else Nothing)
+    (sWidth s)
+    (spacingHeight * 2 + 1)
   where
     topHeight     = sEntrance s
     bottomHeight  = sHeight s - sEntrance s - 1

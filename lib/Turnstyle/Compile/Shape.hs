@@ -72,10 +72,10 @@ defaultLayout (Prim _ p) = Prim NoLayout p
 defaultLayout (Lit _ l) = Lit NoLayout l
 defaultLayout (Err _ e) = Err NoLayout e
 
-exprToShape :: (Show v, Ord v) => Expr Layout Void v -> Shape
+exprToShape :: Ord v => Expr Layout Void v -> Shape
 exprToShape = exprToShape' M.empty
 
-exprToShape' :: (Ord v, Show v) => M.Map v Pos -> Expr Layout Void v -> Shape
+exprToShape' :: Ord v => M.Map v Pos -> Expr Layout Void v -> Shape
 exprToShape' ctx expr = case expr of
     App _ lhs rhs -> Shape
         { sWidth       = max 3 (max (sWidth lhsShape + offsetL) (sWidth rhsShape + offsetR))

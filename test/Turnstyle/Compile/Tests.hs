@@ -5,8 +5,7 @@ module Turnstyle.Compile.Tests
 import           Data.Either.Validation  (Validation (..))
 import           Test.Tasty              (TestTree, testGroup)
 import qualified Test.Tasty.QuickCheck   as QC
-import           Turnstyle.Compile.Paint
-import           Turnstyle.Compile.Shape
+import           Turnstyle.Compile
 import           Turnstyle.Expr
 import           Turnstyle.Expr.Tests
 import           Turnstyle.JuicyPixels
@@ -15,7 +14,7 @@ import           Turnstyle.Parse
 tests :: TestTree
 tests = testGroup "Turnstyle.Compile"
     [ QC.testProperty "parse . compile" $ \(GenExpr expr) ->
-        case paint $ exprToShape $ defaultLayout expr of
+        case compile defaultCompileOptions expr of
             Left err -> error $ "compile error: " ++ show err
             Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
                 Failure err    -> error $ "parse error: " ++ show err
