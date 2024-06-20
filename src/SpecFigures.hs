@@ -146,10 +146,10 @@ main = do
             lamSpec ===
             appSpec ===
             (atop symbolSpec $
-                (moveTo (4 ^& (-0.5)) $ italic $ scale (2/3) $
-                    alignedText 0 0.5 "A(L) ≥ A(R) ⇒ N(A(F))") <>
-                (moveTo (4 ^& (-1.5)) $ italic $ scale (2/3) $
-                    alignedText 0 0.5 "else ⇒ P(A(R)-A(L), |A(F)-A(R)|)")) ===
+                (moveTo (3 ^& (-0.5)) $ italic $ scale (2/3) $
+                    alignedText 0 0.5 "a(L) ≥ a(R) ⇒ Num(a(F))") <>
+                (moveTo (3 ^& (-1.5)) $ italic $ scale (2/3) $
+                    alignedText 0 0.5 "else ⇒ Prim(a(R)-a(L), |a(F)-a(R)|)")) ===
             idSpec)
 
     renderSVG "website/one.svg" (mkHeight 400) $
