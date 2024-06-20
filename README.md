@@ -12,17 +12,17 @@ implementation.
 
 # Examples
 
-Returns exit code 0. _((`subtract` 1) 1)_:
+_((`subtract` 1) 1)_ -- returns exit code 0:
 
 ![0](examples/minimal-large.png)
 
-A somewhat symmetrical, reusable Y combinator.
-_λf. (λx. f (x x)) (λx. f (x x))_:
+_λf. (λx. f (x x)) (λx. f (x x))_ -- a somewhat symmetrical, reusable Y
+combinator:
 
 ![Y](examples/y-large.png)
 
-This reuses the Y combinator above to continuously print ⊦ to the terminal.
-_(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`output_char` ((`add` 34) ((`multiply` 94) 94))) f)_:
+_(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`output_char` ((`add` 34) ((`multiply` 94) 94))) f)_
+-- this reuses the Y combinator above to continuously print ⊦ to the terminal:
 
 ![⊦](examples/turnstyle-large.png)
 
