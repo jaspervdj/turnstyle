@@ -12,7 +12,7 @@ implementation.
 
 # Examples
 
-_((`subtract` 1) 1)_ -- returns exit code 0:
+_((`num_sub` 1) 1)_ -- returns exit code 0:
 
 ![0](examples/minimal-large.png)
 
@@ -21,7 +21,7 @@ combinator:
 
 ![Y](examples/y-large.png)
 
-_(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`output_char` ((`add` 34) ((`multiply` 94) 94))) f)_
+_(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`out_char` ((`add` 34) ((`num_mul` 94) 94))) f)_
 -- this reuses the Y combinator above to continuously print ⊦ to the terminal:
 
 ![⊦](examples/turnstyle-large.png)

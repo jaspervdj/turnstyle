@@ -91,4 +91,6 @@ prim _ (PCompare cmp) [xE, yE, fE, gE] = do
     Lit x <- whnf xE
     Lit y <- whnf yE
     case cmp of
-        CmpLessThan -> if x < y then whnf fE else whnf gE
+        CmpEq          -> if x == y then whnf fE else whnf gE
+        CmpLessThan    -> if x < y  then whnf fE else whnf gE
+        CmpGreaterThan -> if x > y  then whnf fE else whnf gE

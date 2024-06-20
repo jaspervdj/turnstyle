@@ -55,9 +55,9 @@ h2 {
 
 h3 {
     font-size: 18px;
-    font-style: italic;
     font-weight: normal;
     margin: 1em 0em 0.5em 0em;
+    opacity: 70%;
 }
 
 img {
@@ -67,6 +67,11 @@ img {
 th, td {
     padding: 0em 0.5em;
     vertical-align: top;
+}
+
+th {
+    opacity: 70%;
+    font-weight: normal;
 }
 
 figure {

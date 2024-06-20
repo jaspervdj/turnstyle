@@ -42,7 +42,7 @@ for (in-)equality.  This gives us **15 unique patterns**.  Here is a cheatsheet:
 ![Cheatsheet](cheatsheet.svg)
 
 The pattern determines the expression that we read evaluate.  There are five
-different kinds supports five expressions:
+kinds of expressions:
 
 1.  [Variables](#variables)
 2.  [Lambda abstraction](#lambda-abstraction)
@@ -114,35 +114,37 @@ This is an overview of the different primitive functions and what they do.
 
 ### Input (opcode=1)
 
-| Mode | Description                                                                    |
-| :--- | :----------------------------------------------------------------------------- |
-| 0    | _(`input_number` k)_ reads a number `x` from `stdin`, then evaluates _(k x)_.  |
-| 1    | _(`input_char` k)_ reads a character `c` from `stdin`, then evaluates _(k c)_. |
+| Mode | Description                                                                 |
+| :--- | :-------------------------------------------------------------------------- |
+| 0    | _(`in_num` k)_ reads a number `x` from `stdin`, then evaluates _(k x)_.     |
+| 1    | _(`in_char` k)_ reads a character `c` from `stdin`, then evaluates _(k c)_. |
 
 ### Output (opcode=2)
 
-| Mode | Primitive                                                                                      |
-| :--- | :--------------------------------------------------------------------------------------------- |
-| 0    | _(`output_number` x k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
-| 1    | _(`output_char` x k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
+| Mode | Primitive                                                                                   |
+| :--- | :------------------------------------------------------------------------------------------ |
+| 0    | _(`out_number` x k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
+| 1    | _(`out_char` x k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
 
 ### Numerical operations (opcode=3)
 
 | Mode | Primitive                                  |
 | :--- | :----------------------------------------- |
-| 0    | _((`add` x) y)_ evaluates to _x + y_.      |
-| 1    | _((`subtract` x) y)_ evaluates to _x - y_. |
-| 2    | _((`multiply` x) y)_ evaluates to _x * y_. |
-| 3    | _((`divide` x) y)_ evaluates to _x / y_.   |
+| 0    | _((`num_add` x) y)_ evaluates to _x + y_.  |
+| 1    | _((`num_sub` x) y)_ evaluates to _x - y_.  |
+| 2    | _((`num_mul` x) y)_ evaluates to _x * y_.  |
+| 3    | _((`num_div` x) y)_ evaluates to _x / y_.  |
 
 ### Comparisons (opcode=4)
 
-| Mode | Primitive                                                           |
-| :--- | :------------------------------------------------------------------ |
-| 0    | _((((`lt` x) y) k) l)_ evaluates _k_ if _x < y_, and _l_ otherwise. |
-
 Turnstyle has no primitive boolean type, and uses [Church encoding] instead,
 i.e. _true = λxy.x_ and _false = λxy.y_.
+
+| Mode | Primitive                                                               |
+| :--- | :---------------------------------------------------------------------- |
+| 0    | _((((`cmp_eq` x) y) k) l)_ evaluates _k_ if _x = y_, and _l_ otherwise. |
+| 1    | _((((`cmp_lt` x) y) k) l)_ evaluates _k_ if _x < y_, and _l_ otherwise. |
+| 2    | _((((`cmp_gt` x) y) k) l)_ evaluates _k_ if _x > y_, and _l_ otherwise. |
 
 ## Precision
 
