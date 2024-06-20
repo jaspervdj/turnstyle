@@ -152,5 +152,5 @@ main = do
                     alignedText 0 0.5 "else ⇒ Prim(a(R)-a(L), |a(F)-a(R)|)")) ===
             idSpec)
 
-    renderSVG "website/one.svg" (mkHeight 400) $
+    renderSVG "website/turnstyle.svg" (mkHeight 400) $
         turnstyle (mkTurnstyle A B C D) {frameSize = 0}
