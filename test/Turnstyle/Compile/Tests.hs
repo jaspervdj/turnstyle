@@ -12,9 +12,6 @@ import           Turnstyle.Expr.Tests
 import           Turnstyle.JuicyPixels
 import           Turnstyle.Parse
 
-removeAnn :: Expr ann e v -> Expr () e v
-removeAnn = mapAnn (const ())
-
 tests :: TestTree
 tests = testGroup "Turnstyle.Compile"
     [ QC.testProperty "parse . compile" $ \(GenExpr expr) ->

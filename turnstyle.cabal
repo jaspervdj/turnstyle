@@ -24,6 +24,7 @@ Library
   Exposed-modules:
     Turnstyle.Compile.Paint
     Turnstyle.Compile.Shape
+    Turnstyle.Compile.Solve
     Turnstyle.Eval
     Turnstyle.Expr
     Turnstyle.Image

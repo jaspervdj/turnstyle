@@ -18,7 +18,9 @@ import           Turnstyle.Text.Parse
 import           Turnstyle.Text.Pretty
 import           Turnstyle.Text.Sugar
 
-parseExpr :: P.SourceName -> String -> Either P.ParseError (Expr () Void String)
+parseExpr
+    :: P.SourceName -> String
+    -> Either P.ParseError (Expr P.SourcePos Void String)
 parseExpr name input = sugarToExpr <$> parseSugar name input
 
 stringify :: forall ann e v. Ord v => Expr ann e v -> Expr ann e String

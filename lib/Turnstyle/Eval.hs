@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 module Turnstyle.Eval
     ( Id (..)
     , Whnf (..)
@@ -5,11 +6,12 @@ module Turnstyle.Eval
     , eval
     ) where
 
-import           Data.Char        (chr, ord)
-import qualified Data.Set         as S
-import           Data.Void        (Void, absurd)
-import qualified Turnstyle.Expr   as Expr
-import           Turnstyle.Expr   (Expr)
+import           Control.Exception (IOException, catch)
+import           Data.Char         (chr, ord)
+import qualified Data.Set          as S
+import           Data.Void         (Void, absurd)
+import qualified Turnstyle.Expr    as Expr
+import           Turnstyle.Expr    (Expr)
 import           Turnstyle.Number
 import           Turnstyle.Prim
 
@@ -66,11 +68,13 @@ subst x s b = sub b
 
 prim
     :: Ord v => ann -> Prim -> [Expr ann Void (Id v)] -> IO (Whnf ann v)
-prim ann (PIn inMode) [k] = do
-    lit <- case inMode of
-        InNumber -> readLn :: IO Int
-        InChar   -> ord <$> getChar
-    whnf $ Expr.App ann k (Expr.Lit ann lit)
+prim ann (PIn inMode) [k, l] = catch @IOException
+    (do
+        lit <- case inMode of
+            InNumber -> readLn :: IO Int
+            InChar   -> ord <$> getChar
+        whnf $ Expr.App ann k (Expr.Lit ann lit))
+    (\_ -> whnf l)
 prim _ (POut outMode) [outE, kE] = do
     Lit out <- whnf outE
     case outMode of

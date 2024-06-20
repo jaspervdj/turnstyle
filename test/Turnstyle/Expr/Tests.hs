@@ -1,5 +1,6 @@
 module Turnstyle.Expr.Tests
     ( GenExpr (..)
+    , removeAnn
     ) where
 
 import qualified Data.Set              as S
@@ -31,3 +32,6 @@ genExpr fresh = QC.oneof $
     , Lit () <$> QC.choose (1, 20)
     ] ++
     if fresh > 0 then [Var () <$> QC.choose (0, fresh - 1)] else []
+
+removeAnn :: Expr ann e v -> Expr () e v
+removeAnn = mapAnn (const ())

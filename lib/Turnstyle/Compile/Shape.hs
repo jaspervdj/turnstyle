@@ -66,7 +66,7 @@ data LamLayout
 
 defaultLayout :: Expr ann e v -> Expr Layout e v
 defaultLayout (App _ f x) = App NoLayout (defaultLayout f) (defaultLayout x)
-defaultLayout (Lam _ v b) = Lam (LamLayout LamRight) v (defaultLayout b)
+defaultLayout (Lam _ v b) = Lam (LamLayout LamLeft) v (defaultLayout b)
 defaultLayout (Var _ v) = Var NoLayout v
 defaultLayout (Prim _ p) = Prim NoLayout p
 defaultLayout (Lit _ l) = Lit NoLayout l
@@ -131,7 +131,7 @@ exprToShape' ctx expr = case expr of
         appC = move entrance R enterC
 
     Lam layout v body -> case layout of
-        LamLayout LamLeft -> undefined $ Shape
+        LamLayout LamLeft -> Shape
             { sWidth       = max 3 (sWidth bodyShape)
             , sHeight      = sHeight bodyShape + 3
             , sEntrance    = entrance

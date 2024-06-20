@@ -7,6 +7,7 @@ module Turnstyle.Expr
     , freeVars
     , allVars
     , normalizeVars
+    , checkVars
     , checkErrors
     ) where
 
@@ -14,7 +15,7 @@ import           Data.Either.Validation (Validation (..))
 import           Data.List.NonEmpty     (NonEmpty (..))
 import qualified Data.Map               as M
 import qualified Data.Set               as S
-import           Data.Void              (Void)
+import           Data.Void              (Void, absurd)
 import           Turnstyle.Prim
 
 data Expr ann e v
@@ -61,6 +62,16 @@ normalizeVars = go 0 M.empty
     go _ _ (Prim ann p)  = Prim ann p
     go _ _ (Lit ann l)   = Lit ann l
     go _ _ (Err ann e)   = Err ann e
+
+checkVars :: Ord v => Expr ann Void v -> Expr ann v v
+checkVars = go S.empty
+  where
+    go vars (App ann f x) = App ann (go vars f) (go vars x)
+    go vars (Lam ann v b) = Lam ann v $ go (S.insert v vars) b
+    go vars (Var ann v)   = if S.member v vars then Var ann v else Err ann v
+    go _    (Prim ann p)  = Prim ann p
+    go _    (Lit ann l)   = Lit ann l
+    go _    (Err _ err)   = absurd err
 
 -- | Removes errors from an expression.
 checkErrors :: Expr ann e v -> Validation (NonEmpty (ann, e)) (Expr ann Void v)

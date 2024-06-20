@@ -12,40 +12,44 @@ import qualified Text.Parsec.String   as P
 import           Turnstyle.Prim
 import           Turnstyle.Text.Sugar
 
-parseSugar :: P.SourceName -> String -> Either P.ParseError Sugar
+parseSugar :: P.SourceName -> String -> Either P.ParseError (Sugar P.SourcePos)
 parseSugar name input = P.parse (spaceOrComments *> expr <* P.eof) name input
 
-expr :: P.Parser Sugar
+expr :: P.Parser (Sugar P.SourcePos)
 expr = P.choice
     [ do
+        pos <- P.getPosition
         letTok
         v <- var
         equal
         def <- expr
         inTok
         body <- expr
-        pure $ Let v def body
+        pure $ Let pos v def body
     , do
+        pos <- P.getPosition
         e : es <- P.many1 expr1
         pure $ case es of
             []       -> e
-            (x : xs) -> App e (x :| xs)
+            (x : xs) -> App pos e (x :| xs)
     ]
 
-expr1 :: P.Parser Sugar
+expr1 :: P.Parser (Sugar P.SourcePos)
 expr1 = P.choice
     [ (P.<?> "lambda") $ do
+        pos <- P.getPosition
         lambda
         v : vs <- P.many1 var
         dot
         body <- expr
-        pure $ Lam (v :| vs) body
+        pure $ Lam pos (v :| vs) body
     , do
+        pos <- P.getPosition
         ident <- identifier
         case ident of
-            VarId v  -> pure $ Var v
-            PrimId p -> pure $ Prim p
-    , Lit <$> lit
+            VarId v  -> pure $ Var pos v
+            PrimId p -> pure $ Prim pos p
+    , Lit <$> P.getPosition <*> lit
     , parens expr
     ]
 

@@ -52,7 +52,7 @@ knownPrims =
     map PCompare [minBound .. maxBound]
 
 primArity :: Prim -> Int
-primArity (PIn      _) = 1
+primArity (PIn      _) = 2
 primArity (POut     _) = 2
 primArity (PNumOp   _) = 2
 primArity (PCompare _) = 4

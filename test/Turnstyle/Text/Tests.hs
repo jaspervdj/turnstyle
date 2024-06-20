@@ -3,7 +3,7 @@ module Turnstyle.Text.Tests
     ) where
 
 import           Test.Tasty            (TestTree, testGroup)
-import           Test.Tasty.HUnit      (testCase, (@?=))
+import           Test.Tasty.HUnit      (testCase, (@=?))
 import qualified Test.Tasty.QuickCheck as QC
 import           Turnstyle.Expr
 import           Turnstyle.Expr.Tests
@@ -15,7 +15,7 @@ tests = testGroup "Turnstyle.Text"
     [ QC.testProperty "parse . pretty" $ \(GenExpr expr) ->
         case parseExpr "test iput" (prettyExpr expr) of
             Left  _      -> False
-            Right parsed -> expr == normalizeVars parsed
+            Right parsed -> expr == normalizeVars (removeAnn parsed)
 
     , testCase "comments" $
         let input = unlines
@@ -23,8 +23,10 @@ tests = testGroup "Turnstyle.Text"
                 , "1 # EOL comment"
                 , "# Trailing comment"
                 ] in
-        Right (Sugar.Lit 1) @?= parseSugar "test input" input
+        Right (Sugar.Lit () 1) @=?
+            fmap (const ()) <$> (parseSugar "test input" input)
 
     , testCase "comment EOF" $
-        Right (Sugar.Lit 1) @?= parseSugar "test input" "1 # Trailing comment"
+        Right (Sugar.Lit () 1) @=?
+            fmap (const ()) <$> parseSugar "test input" "1 # Trailing comment"
     ]
