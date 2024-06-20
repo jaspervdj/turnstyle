@@ -20,12 +20,15 @@ paint s = JP.generateImage
             then M.lookup (Pos x1 y1) colors
             else Nothing)
     (sWidth s * 2)
-    (sHeight s * 2)
+    (spacingHeight * 2 + 1)
   where
-    offsetX    = sWidth s
-    offsetY    = sHeight s - sEntrance s
-    background = JP.PixelRGB8 255 255 255
-    colors     = fmap (palette !!) $ solve $ sConstraints s
+    topHeight     = sEntrance s
+    bottomHeight  = sHeight s - sEntrance s - 1
+    spacingHeight = max topHeight bottomHeight
+    offsetX       = sWidth s
+    offsetY       = spacingHeight - sEntrance s
+    background    = JP.PixelRGB8 255 255 255
+    colors        = fmap (palette !!) $ solve $ sConstraints s
 
 palette :: [JP.PixelRGB8]
 palette = concat $ transpose

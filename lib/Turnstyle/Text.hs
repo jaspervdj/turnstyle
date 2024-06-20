@@ -3,6 +3,12 @@
 module Turnstyle.Text
     ( parseExpr
     , prettyExpr
+
+    , Sugar (..)
+    , sugarToExpr
+    , exprToSugar
+    , parseSugar
+    , prettySugar
     ) where
 
 import           Data.Void             (Void)

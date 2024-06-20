@@ -81,10 +81,13 @@ main = do
         Compile copts -> do
             let out = fromMaybe "a.png" (coOut copts)
             contents <- readFile $ coFilePath copts
-            case Text.parseExpr (coFilePath copts) contents of
+            case Text.parseSugar (coFilePath copts) contents of
                 Left err  -> IO.hPutStrLn IO.stderr $ show err
-                Right src -> JP.savePngImage out $ JP.ImageRGB8 $
-                    paint $ exprToShape $ normalizeVars src
+                Right sugar -> do
+                    putStrLn $ Text.prettySugar sugar
+                    let expr = Text.sugarToExpr sugar
+                    JP.savePngImage out $ JP.ImageRGB8 $
+                        paint $ exprToShape $ normalizeVars expr
   where
     opts = OA.info (parseOptions OA.<**> OA.helper)
         (OA.fullDesc <> OA.progDesc "Turnstyle")
