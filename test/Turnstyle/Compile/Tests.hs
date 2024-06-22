@@ -19,4 +19,10 @@ tests = testGroup "Turnstyle.Compile"
             Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
                 Failure err    -> error $ "parse error: " ++ show err
                 Success parsed -> expr == normalizeVars (removeAnn parsed)
+    , QC.testProperty "parse . compile (opt)" $ \(GenExpr expr) ->
+        case compile defaultCompileOptions {coOptimize = True, coBudget = 100} expr of
+            Left err -> error $ "compile error: " ++ show err
+            Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
+                Failure err    -> error $ "parse error: " ++ show err
+                Success parsed -> expr == normalizeVars (removeAnn parsed)
     ]

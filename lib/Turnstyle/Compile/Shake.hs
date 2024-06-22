@@ -29,9 +29,10 @@ shakeOnce shakeChild = go id
             Err _ _ -> []
 
 shakeExpr :: Expr Layout e v -> [Expr Layout e v]
-shakeExpr (Lam (LamLayout LamLeft) v b)  = [Lam (LamLayout LamRight) v b]
-shakeExpr (Lam (LamLayout LamRight) v b) = [Lam (LamLayout LamLeft) v b]
-shakeExpr _                              = []
+shakeExpr (Lam (LamLayout LamLeft)     v b) = [Lam (LamLayout l) v b | l <- [LamRight, LamStraight]]
+shakeExpr (Lam (LamLayout LamRight)    v b) = [Lam (LamLayout l) v b | l <- [LamLeft, LamStraight]]
+shakeExpr (Lam (LamLayout LamStraight) v b) = [Lam (LamLayout l) v b | l <- [LamLeft, LamRight]]
+shakeExpr _                                 = []
 
 shake :: RandomGen g => Expr Layout e v -> g -> Maybe (Expr Layout e v, g)
 shake expr0 gen0 = case shakeOnce shakeExpr expr0 of

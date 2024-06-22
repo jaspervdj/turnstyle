@@ -12,7 +12,6 @@ import qualified Codec.Picture           as JP
 import           Data.Bifunctor          (first)
 import           Data.Either.Validation  (Validation (..))
 import           Data.List.NonEmpty      (NonEmpty)
-import           Data.Maybe              (fromMaybe)
 import           Data.Ord                (Down (..))
 import           Data.Void               (Void)
 import           System.Random           (mkStdGen)
@@ -49,7 +48,11 @@ compile opts expr = do
             | otherwise = fst $ hillWalk
                 (coBudget opts)
                 (Down . scoreLayout)
-                (\l g -> fromMaybe (l, g) $ shake l g)
+                (\l g -> case shake l g of
+                     Just (l', g')
+                         | Right _ <- solve $ sConstraints (exprToShape l') ->
+                             (l', g')
+                     _ -> (l, g))
                 expr0
                 (mkStdGen 10)
         shape = exprToShape expr1

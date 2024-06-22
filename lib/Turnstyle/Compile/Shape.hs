@@ -62,6 +62,7 @@ data Layout
 data LamLayout
     = LamLeft
     | LamRight
+    | LamStraight
     deriving (Eq, Show)
 
 defaultLayout :: Expr ann e v -> Expr Layout e v
@@ -130,61 +131,33 @@ exprToShape' ctx expr = case expr of
         appF = move entrance R enterF
         appC = move entrance R enterC
 
-    Lam layout v body -> case layout of
-        LamLayout LamLeft -> Shape
-            { sWidth       = max 3 (sWidth bodyShape)
-            , sHeight      = sHeight bodyShape + 3
-            , sEntrance    = entrance
-            , sConstraints =
-                -- Turnstyle shape
-                [ Eq lamL lamC, NotEq lamL lamF, NotEq lamL lamR
-                , NotEq lamF lamR
-                ] ++
-                -- Tunnel
-                [Eq (move x R enterR) (move x R enterL)   | x <- [0 .. bodyEntrance - 1]] ++
-                [Eq lamC (move x R enterC) | x <- [0 .. bodyEntrance - 1]] ++
-                [Eq (move 1 L lamL) (move 1 R lamL)] ++
-                -- Connect to body
-                [Eq lamL (move 1 U lamL)] ++
-                -- Body
-                sConstraints bodyShape ++
-                -- Variable uniqueness
-                (case M.lookup v ctx of
-                    Just p  -> [Eq lamR p]
-                    Nothing -> [NotEq lamR q | (_, q) <- M.toList ctx])
-            }
-        LamLayout LamRight -> Shape
-            { sWidth       = max 3 (sWidth bodyShape)
-            , sHeight      = sHeight bodyShape + 3
-            , sEntrance    = entrance
-            , sConstraints =
-                -- Turnstyle shape
-                [ Eq lamR lamC, NotEq lamR lamF, NotEq lamR lamL
-                , NotEq lamF lamL
-                ] ++
-                -- Tunnel
-                [Eq (move x R enterR) (move x R enterL)   | x <- [0 .. bodyEntrance - 1]] ++
-                [Eq lamC (move x R enterC) | x <- [0 .. bodyEntrance - 1]] ++
-                [Eq (move 1 L lamR) (move 1 R lamR)] ++
-                -- Connect to body
-                [Eq lamR (move 1 D lamR)] ++
-                -- Body
-                sConstraints bodyShape ++
-                -- Variable uniqueness
-                (case M.lookup v ctx of
-                    Just p  -> [Eq lamL p]
-                    Nothing -> [NotEq lamL q | (_, q) <- M.toList ctx])
-            }
+    Lam (LamLayout LamLeft) v body -> Shape
+        { sWidth       = max 3 (sWidth bodyShape)
+        , sHeight      = sHeight bodyShape + 3
+        , sEntrance    = entrance
+        , sConstraints =
+            -- Turnstyle shape
+            [ Eq lamL lamC, NotEq lamL lamF, NotEq lamL lamR
+            , NotEq lamF lamR
+            ] ++
+            -- Tunnel
+            [Eq (move x R enterR) (move x R enterL)   | x <- [0 .. bodyEntrance - 1]] ++
+            [Eq lamC (move x R enterC) | x <- [0 .. bodyEntrance - 1]] ++
+            [Eq (move 1 L lamL) (move 1 R lamL)] ++
+            -- Connect to body
+            [Eq lamL (move 1 U lamL)] ++
+            -- Body
+            sConstraints bodyShape ++
+            -- Variable uniqueness
+            (case M.lookup v ctx of
+                Just p  -> [Eq lamR p]
+                Nothing -> [NotEq lamR q | (_, q) <- M.toList ctx])
+        }
       where
         bodyContext =
             M.insert v (Pos (-3) (sEntrance bodyShape)) $
             fmap mapCtx $ ctx
-
-        (bodyShape, mapCtx) = unTransform
-            (case layout of
-                LamLayout LamLeft  -> rotateShapeLeft
-                LamLayout LamRight -> offsetShape 0 3 <>
-                    rotateShapeLeft <> rotateShapeLeft <> rotateShapeLeft)
+        (bodyShape, mapCtx) = unTransform rotateShapeLeft
             (exprToShape' bodyContext body)
 
         lamL = move bodyEntrance R enterL
@@ -192,17 +165,90 @@ exprToShape' ctx expr = case expr of
         lamF = move bodyEntrance R enterF
         lamC = move bodyEntrance R enterC
 
-        entrance = case layout of
-            LamLayout LamLeft -> sHeight bodyShape + 1
-            LamLayout LamRight -> 1
-        bodyEntrance = case layout of
-            LamLayout LamLeft -> sEntrance bodyShape
-            LamLayout LamRight -> sWidth bodyShape - sEntrance bodyShape - 1
+        entrance = sHeight bodyShape + 1
+        bodyEntrance = sEntrance bodyShape
 
         enterL = move 1 U enterC
         enterC = Pos 0 entrance
         enterF = move 1 R enterC
         enterR = move 1 D enterC
+
+    Lam (LamLayout LamRight) v body -> Shape
+        { sWidth       = max 3 (sWidth bodyShape)
+        , sHeight      = sHeight bodyShape + 3
+        , sEntrance    = entrance
+        , sConstraints =
+            -- Turnstyle shape
+            [ Eq lamR lamC, NotEq lamR lamF, NotEq lamR lamL
+            , NotEq lamF lamL
+            ] ++
+            -- Tunnel
+            [Eq (move x R enterR) (move x R enterL) | x <- [0 .. bodyEntrance - 1]] ++
+            [Eq lamC (move x R enterC) | x <- [0 .. bodyEntrance - 1]] ++
+            [Eq (move 1 L lamR) (move 1 R lamR)] ++
+            -- Connect to body
+            [Eq lamR (move 1 D lamR)] ++
+            -- Body
+            sConstraints bodyShape ++
+            -- Variable uniqueness
+            (case M.lookup v ctx of
+                Just p  -> [Eq lamL p]
+                Nothing -> [NotEq lamL q | (_, q) <- M.toList ctx])
+        }
+      where
+        bodyContext =
+            M.insert v (Pos (-3) (sEntrance bodyShape)) $
+            fmap mapCtx $ ctx
+
+        (bodyShape, mapCtx) = unTransform
+            (offsetShape 0 3 <>
+                rotateShapeLeft <> rotateShapeLeft <> rotateShapeLeft)
+            (exprToShape' bodyContext body)
+
+        lamL = move bodyEntrance R enterL
+        lamR = move bodyEntrance R enterR
+        lamF = move bodyEntrance R enterF
+        lamC = move bodyEntrance R enterC
+
+        entrance = 1
+        bodyEntrance = sWidth bodyShape - sEntrance bodyShape - 1
+
+        enterL = move 1 U enterC
+        enterC = Pos 0 entrance
+        enterF = move 1 R enterC
+        enterR = move 1 D enterC
+
+    Lam (LamLayout LamStraight) v body -> Shape
+        { sWidth       = 1 + sWidth bodyShape
+        , sHeight      = sHeight bodyShape
+        , sEntrance    = entrance
+        , sConstraints =
+            -- Turnstyle shape
+            [ Eq lamC lamF, NotEq lamC lamL, NotEq lamC lamR
+            , NotEq lamL lamR
+            ] ++
+            -- Body
+            sConstraints bodyShape ++
+            -- Variable uniqueness
+            (case M.lookup v ctx of
+                Just p  -> [Eq lamC p]
+                Nothing -> [NotEq lamC q | (_, q) <- M.toList ctx])
+        }
+      where
+        bodyContext =
+            M.insert v (Pos (-1) entrance) $
+            fmap mapCtx $ ctx
+
+        (bodyShape, mapCtx) = unTransform
+            (offsetShape 1 0)
+            (exprToShape' bodyContext body)
+
+        entrance = sEntrance bodyShape
+
+        lamL = move 1 U lamC
+        lamC = Pos 0 entrance
+        lamF = move 1 R lamC
+        lamR = move 1 D lamC
 
     Var _ v -> case M.lookup v ctx of
         Nothing  -> error "exprToShape: unbound variable"
