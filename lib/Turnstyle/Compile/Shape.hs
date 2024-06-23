@@ -64,6 +64,7 @@ data Layout
 data AppLayout
     = AppLeftRight
     | AppLeftFront
+    | AppFrontRight
     deriving (Eq, Show)
 
 data LamLayout
@@ -178,7 +179,6 @@ exprToShape' ctx expr = case expr of
 
         entrance  = max (sHeight lhsShape + 1) (sEntrance rhsShape)
         entranceL = sEntrance lhsShape
-        -- entranceR = sWidth rhsShape - sEntrance rhsShape - 1
         offsetR   = entrance - sEntrance rhsShape
 
         enterL = move 1 U enterC
@@ -190,6 +190,56 @@ exprToShape' ctx expr = case expr of
         appR = move entranceL R enterR
         appF = move entranceL R enterF
         appC = move entranceL R enterC
+
+    App (AppLayout AppFrontRight) lhs rhs -> Shape
+        { sWidth       = max 3 (sWidth rhsShape) + sWidth lhsShape
+        , sHeight      = max (sHeight lhsShape) (entrance + 2 + sHeight rhsShape)
+        , sEntrance    = entrance
+        , sConstraints =
+            -- Turnstyle shape
+            [ Eq appR appF, NotEq appR appC, NotEq appR appL
+            , NotEq appC appL
+            ] ++
+            -- Tunnel from entrance to app
+            [Eq (move x R enterL) (move x R enterR) | x <- [0 .. entranceR - 1]] ++
+            [Eq appC (move x R enterC) | x <- [0 .. entranceR - 1]] ++
+            -- Connect to RHS
+            [Eq appR (move 1 D appR)] ++
+            -- Tunnel to LHS
+            [Eq (move x R enterL) (move x R enterR) | x <- [entranceR + 1 .. lhsX - 1]] ++
+            [Eq appF (move x R enterC) | x <- [entranceR + 1 .. lhsX - 1]] ++
+            -- Connect to LHS
+            [Eq appF (move lhsX R enterC)] ++
+            -- LHS
+            sConstraints lhsShape ++
+            -- RHS
+            sConstraints rhsShape
+        }
+      where
+        lhsContext            = lhsCtxMap <$> ctx
+        (lhsShape, lhsCtxMap) = unTransform
+            (offsetShape lhsX 0)
+            (exprToShape' lhsContext lhs)
+
+        rhsContext            = rhsCtxMap <$> ctx
+        (rhsShape, rhsCtxMap) = unTransform
+            (offsetShape 0 (entrance + 2) <>
+                rotateShapeLeft <> rotateShapeLeft <> rotateShapeLeft)
+            (exprToShape' rhsContext rhs)
+
+        entrance  = sEntrance lhsShape
+        entranceR = sWidth rhsShape - sEntrance rhsShape - 1
+        lhsX      = sWidth rhsShape
+
+        enterL = move 1 U enterC
+        enterC = Pos 0 entrance
+        enterF = move 1 R enterC
+        enterR = move 1 D enterC
+
+        appL = move entranceR R enterL
+        appR = move entranceR R enterR
+        appF = move entranceR R enterF
+        appC = move entranceR R enterC
 
     Lam (LamLayout LamLeft) v body -> Shape
         { sWidth       = max 3 (sWidth bodyShape)

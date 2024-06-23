@@ -24,11 +24,12 @@ import           Turnstyle.TwoD
 
 data CompileOptions = CompileOptions
     { coOptimize :: Bool
+    , coSeed     :: Int
     , coBudget   :: Int
     }
 
 defaultCompileOptions :: CompileOptions
-defaultCompileOptions = CompileOptions False 10000
+defaultCompileOptions = CompileOptions False 12345 10000
 
 data CompileError ann v
     = UnboundVars (NonEmpty (ann, v))
@@ -54,7 +55,7 @@ compile opts expr = do
                              (l', g')
                      _ -> (l, g))
                 expr0
-                (mkStdGen 10)
+                (mkStdGen (coSeed opts))
         shape = exprToShape expr1
     colors <- first SolveError (solve $ sConstraints shape)
     pure $ paint colors shape

@@ -31,7 +31,8 @@ data RunOptions = RunOptions
     } deriving (Show)
 
 data CompileOptions = CompileOptions
-    { coOut      :: Maybe FilePath
+    { coSeed     :: Maybe Int
+    , coOut      :: Maybe FilePath
     , coFilePath :: FilePath
     } deriving (Show)
 
@@ -59,7 +60,8 @@ parseRunOptions = RunOptions
 
 parseCompileOptions :: OA.Parser CompileOptions
 parseCompileOptions = CompileOptions
-    <$> OA.optional (OA.strOption
+    <$> OA.optional (OA.option OA.auto (OA.long "seed" <> OA.metavar "SEED"))
+    <*> OA.optional (OA.strOption
             (OA.long "out" <> OA.short 'o' <> OA.metavar "IMAGE.PNG"))
     <*> OA.argument OA.str (OA.metavar "PROGRAM.TXT")
 

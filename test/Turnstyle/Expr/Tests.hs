@@ -15,10 +15,13 @@ instance QC.Arbitrary GenExpr where
     arbitrary = GenExpr <$> genExpr 0
 
     shrink (GenExpr expr) = case expr of
-        App _ f x -> [GenExpr f, GenExpr x]
-        Lam _ v b
-            | v `S.member` freeVars b -> []
-            | otherwise               -> [GenExpr b]
+        App ann f x -> map GenExpr $
+            [f, x] ++
+            [App ann f' x | f' <- unGenExpr <$> QC.shrink (GenExpr f)] ++
+            [App ann f x' | x' <- unGenExpr <$> QC.shrink (GenExpr x)]
+        Lam ann v b -> map GenExpr $
+            [b | not (v `S.member` freeVars b)] ++
+            [Lam ann v b' | b' <- unGenExpr <$> QC.shrink (GenExpr b)]
         _ -> []
 
 genExpr :: Int -> QC.Gen (Expr () Void Int)
