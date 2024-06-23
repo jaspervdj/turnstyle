@@ -30,12 +30,6 @@ Prints an approximation of _pi_ by comparing the circle to its diameter:
 
 ![π](examples/pi-large.png)
 
-# Open questions
-
- -  How do we deal with EOF for input?  We could either have a second
-    continuation; or we could have some special value (e.g. `-1`).
-    The latter does not work for inputting numbers though...
-
 # Design Principles
 
  -  Lean towards pixel art but allow larger graphics as well

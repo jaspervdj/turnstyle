@@ -114,10 +114,10 @@ This is an overview of the different primitive functions and what they do.
 
 ### Input (opcode=1)
 
-| Mode | Description                                                                 |
-| :--- | :-------------------------------------------------------------------------- |
-| 0    | _(`in_num` k)_ reads a number `x` from `stdin`, then evaluates _(k x)_.     |
-| 1    | _(`in_char` k)_ reads a character `c` from `stdin`, then evaluates _(k c)_. |
+| Mode | Description                                                                                                                                          |
+| :--- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | _(`in_num` k l)_ reads a number `x` from `stdin`, then evaluates _(k x)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead.     |
+| 1    | _(`in_char` k l)_ reads a character `c` from `stdin`, then evaluates _(k c)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead. |
 
 ### Output (opcode=2)
 
