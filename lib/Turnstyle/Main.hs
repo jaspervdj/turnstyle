@@ -78,6 +78,8 @@ main = do
                     IO.hPutStrLn IO.stderr $ show err
                 Success e   -> do
                     putStrLn $ Text.prettyExpr e
+                    IO.hSetBuffering IO.stdin IO.NoBuffering
+                    IO.hSetBuffering IO.stdout IO.NoBuffering
                     eval e >>= print
         Compile copts -> do
             let out = fromMaybe "a.png" (coOut copts)

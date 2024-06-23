@@ -114,17 +114,17 @@ This is an overview of the different primitive functions and what they do.
 
 ### Input (opcode=1)
 
-| Mode | Description                                                                                                                                          |
-| :--- | :--------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | _(`in_num` k l)_ reads a number `x` from `stdin`, then evaluates _(k x)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead.     |
-| 1    | _(`in_char` k l)_ reads a character `c` from `stdin`, then evaluates _(k c)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead. |
+| Mode | Description                                                                                                                                            |
+| :--- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0    | _((`in_num` k) l)_ reads a number `x` from `stdin`, then evaluates _(k x)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead.     |
+| 1    | _((`in_char` k) l)_ reads a character `c` from `stdin`, then evaluates _(k c)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead. |
 
 ### Output (opcode=2)
 
-| Mode | Primitive                                                                                   |
-| :--- | :------------------------------------------------------------------------------------------ |
-| 0    | _(`out_number` x k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
-| 1    | _(`out_char` x k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
+| Mode | Primitive                                                                                     |
+| :--- | :-------------------------------------------------------------------------------------------- |
+| 0    | _((`out_number` x) k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
+| 1    | _((`out_char` x) k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
 
 ### Numerical operations (opcode=3)
 
