@@ -1,7 +1,11 @@
-Turnstyle is an [esoteric programming language] loosely inspired by [Piet].
+Turnstyle is a graphical [esoteric programming language] loosely inspired by
+[Piet].  Both encode programs as images, however, the similarities end at the
+syntax level.
 
-However, where Piet leans towards a stack machine, Turnstyle takes inspiration
-from the (untyped) [Lambda calculus] instead.
+Where Piet is really a stack machine in disguise, Turnstyle is an encoding of
+the (untyped) [Lambda calculus].  This allows for building more reusable images
+at a higher level of abstraction, while still keeping the specification small,
+making it relatively easy to develop new interpreters.
 
 This repository contains [the language specification](spec/) and a reference
 implementation.
