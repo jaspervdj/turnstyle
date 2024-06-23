@@ -4,6 +4,7 @@ module Turnstyle.Compile.Shape
     ( ColorConstraint (..)
     , Shape (..)
     , Layout (..)
+    , AppLayout (..)
     , LamLayout (..)
     , defaultLayout
     , exprToShape
@@ -55,8 +56,14 @@ offsetShape dx dy = Transform $ \s ->
     (s {sConstraints = fmap fwd <$> sConstraints s}, bwd)
 
 data Layout
-    = LamLayout LamLayout
+    = AppLayout AppLayout
+    | LamLayout LamLayout
     | NoLayout
+    deriving (Eq, Show)
+
+data AppLayout
+    = AppLeftRight
+    | AppLeftFront
     deriving (Eq, Show)
 
 data LamLayout
@@ -66,7 +73,8 @@ data LamLayout
     deriving (Eq, Show)
 
 defaultLayout :: Expr ann e v -> Expr Layout e v
-defaultLayout (App _ f x) = App NoLayout (defaultLayout f) (defaultLayout x)
+defaultLayout (App _ f x) =
+    App (AppLayout AppLeftRight) (defaultLayout f) (defaultLayout x)
 defaultLayout (Lam _ v b) = Lam (LamLayout LamLeft) v (defaultLayout b)
 defaultLayout (Var _ v) = Var NoLayout v
 defaultLayout (Prim _ p) = Prim NoLayout p
@@ -78,7 +86,7 @@ exprToShape = exprToShape' M.empty
 
 exprToShape' :: Ord v => M.Map v Pos -> Expr Layout Void v -> Shape
 exprToShape' ctx expr = case expr of
-    App _ lhs rhs -> Shape
+    App (AppLayout AppLeftRight) lhs rhs -> Shape
         { sWidth       = max 3 (max (sWidth lhsShape + offsetL) (sWidth rhsShape + offsetR))
         , sHeight      = sHeight lhsShape + 3 + sHeight rhsShape
         , sEntrance    = sHeight lhsShape + 1
@@ -90,8 +98,8 @@ exprToShape' ctx expr = case expr of
             -- Tunnel
             [Eq (move x R enterL) (move x R enterR) | x <- [0 .. entrance - 1]] ++
             [Eq appC (move x R enterC) | x <- [0 .. entrance - 1]] ++
-            [Eq (move 1 L appR) (move 1 R appL)] ++
-            [Eq (move 1 L appR) (move 1 R appR)] ++
+            [Eq (move 1 L appR) (move 1 R appL)] ++  -- Fishy
+            [Eq (move 1 L appR) (move 1 R appR)] ++  -- Fishy
             -- Connect to LHS
             [Eq appL (move 1 U appL)] ++
             -- Connect to RHS
@@ -130,6 +138,58 @@ exprToShape' ctx expr = case expr of
         appR = move entrance R enterR
         appF = move entrance R enterF
         appC = move entrance R enterC
+
+    App (AppLayout AppLeftFront) lhs rhs -> Shape
+        { sWidth       = max 3 (sWidth lhsShape) + sWidth rhsShape
+        , sHeight      = max (sHeight lhsShape + 3) (offsetR + sHeight rhsShape)
+        , sEntrance    = entrance
+        , sConstraints =
+            -- Turnstyle shape
+            [ NotEq appL appC, Eq appL appF, NotEq appL appR
+            , NotEq appC appR
+            ] ++
+            -- Tunnel from entrance to app
+            [Eq (move x R enterL) (move x R enterR) | x <- [0 .. entranceL - 1]] ++
+            [Eq appC (move x R enterC) | x <- [0 .. entranceL - 1]] ++
+            -- Connect to LHS
+            [Eq appL (move 1 U appL)] ++
+            -- Tunnel to RHS
+            [Eq (move x R enterL) (move x R enterR) | x <- [entranceL + 1 .. rhsX - 1]] ++
+            [Eq appF (move x R enterC) | x <- [entranceL + 1 .. rhsX - 1]] ++
+            -- Connect to RHS
+            [Eq appF (move rhsX R enterC)] ++
+            -- LHS
+            sConstraints lhsShape ++
+            -- RHS
+            sConstraints rhsShape
+        }
+      where
+        lhsContext            = lhsCtxMap <$> ctx
+        (lhsShape, lhsCtxMap) = unTransform
+            (offsetShape 0 (entrance - sHeight lhsShape - 1) <> rotateShapeLeft)
+            (exprToShape' lhsContext lhs)
+
+        rhsContext            = rhsCtxMap <$> ctx
+        (rhsShape, rhsCtxMap) = unTransform
+            (offsetShape (sWidth lhsShape) offsetR)
+            (exprToShape' rhsContext rhs)
+
+        rhsX = sWidth lhsShape
+
+        entrance  = max (sHeight lhsShape + 1) (sEntrance rhsShape)
+        entranceL = sEntrance lhsShape
+        -- entranceR = sWidth rhsShape - sEntrance rhsShape - 1
+        offsetR   = entrance - sEntrance rhsShape
+
+        enterL = move 1 U enterC
+        enterC = Pos 0 entrance
+        enterF = move 1 R enterC
+        enterR = move 1 D enterC
+
+        appL = move entranceL R enterL
+        appR = move entranceL R enterR
+        appF = move entranceL R enterF
+        appC = move entranceL R enterC
 
     Lam (LamLayout LamLeft) v body -> Shape
         { sWidth       = max 3 (sWidth bodyShape)

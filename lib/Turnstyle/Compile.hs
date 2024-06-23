@@ -62,7 +62,12 @@ compile opts expr = do
 scoreLayout :: Ord v => Expr Layout Void v -> Int
 scoreLayout expr =
     let shape = exprToShape expr in
-    sWidth shape * sHeight shape + abs (sWidth shape - sHeight shape)
+    -- Minimize area
+    (sWidth shape * sHeight shape `div` 2) +
+    -- Try to get a square
+    abs (sWidth shape - sHeight shape) +
+    -- Align entrance near center
+    3 * abs (sEntrance shape - sHeight shape `div` 2)
 
 hillWalk
     :: Ord n
