@@ -136,7 +136,7 @@ main = do
     renderSVG "spec/symbol.svg" (mkHeight 400) symbolSpec
     renderSVG "spec/id.svg" (mkHeight 400) idSpec
 
-    renderSVG "spec/cheatsheet.svg" (mkHeight 800) $
+    renderSVG "spec/cheatsheet.svg" (mkHeight 1600) $
         ((moveTo (0 ^& (-1)) $ frame 2 $ italic $ text "x") <>
             (moveTo (0 ^& (-6)) $ frame 2 $ italic $ text "(λv.e)") <>
             (moveTo (0 ^& (-11)) $ frame 2 $ italic $ text "(f x)") <>
