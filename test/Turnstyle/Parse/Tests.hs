@@ -13,10 +13,10 @@ import           Turnstyle.Scale        (autoScale)
 
 tests :: TestTree
 tests = testGroup "Turnstyle.Parse"
-    [ example "examples/minimal-large.png" $
+    [ example "examples/minimal.png" $
         num_sub (lit 1) (lit 1)
 
-    , example "examples/pi-large.png" $ out_num
+    , example "examples/pi.png" $ out_num
         (num_div
             (lit 749)
             (app
@@ -26,9 +26,9 @@ tests = testGroup "Turnstyle.Parse"
                 [lit 31]))
         (num_sub (lit 1) (lit 1))
 
-    , example "examples/y-large.png" yc
+    , example "examples/y.png" yc
 
-    , example "examples/turnstyle-large.png" $ app
+    , example "examples/turnstyle.png" $ app
         yc
         [ lam 0 $ out_char
             (num_add (lit 34) (num_mul (lit 94) (lit 94)))
