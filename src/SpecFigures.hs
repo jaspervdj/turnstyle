@@ -149,7 +149,7 @@ main = do
                 (moveTo (3 ^& (-0.5)) $ italic $ scale (2/3) $
                     alignedText 0 0.5 "a(L) ≥ a(R) ⇒ Num(a(F))") <>
                 (moveTo (3 ^& (-1.5)) $ italic $ scale (2/3) $
-                    alignedText 0 0.5 "else ⇒ Prim(a(R)-a(L), |a(F)-a(R)|)")) ===
+                    alignedText 0 0.5 "else ⇒ Prim(a(R)-a(L), |a(R)-a(F)|)")) ===
             idSpec)
 
     renderSVG "website/turnstyle.svg" (mkHeight 400) $
