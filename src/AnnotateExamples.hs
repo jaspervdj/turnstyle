@@ -10,28 +10,29 @@ import qualified System.IO                    as IO
 import           Text.Blaze.Svg.Renderer.Utf8 (renderSvg)
 import qualified Text.Blaze.Svg11             as Svg
 import qualified Text.Blaze.Svg11.Attributes  as A
-import qualified Text.Blaze.Html5.Attributes as HA
 
 annotate :: Int -> JP.Image JP.PixelRGBA8 -> Svg.Svg
 annotate factor ref = Svg.docTypeSvg
         Svg.! A.version "1.1"
         Svg.! A.width (Svg.toValue width)
-        Svg.! A.height (Svg.toValue height) $ linky $ do
+        Svg.! A.height (Svg.toValue height) $ do
 
     for_ [0 .. JP.imageHeight ref - 1] $ \y ->
         for_ [0 .. JP.imageWidth ref - 1] $ \x -> do
             case JP.pixelAt ref x y of
                 JP.PixelRGBA8 _ _ _ 0 -> mempty :: Svg.Svg
                 JP.PixelRGBA8 r g b _ -> Svg.rect
-                    Svg.! A.x (Svg.toValue (x * factor))
-                    Svg.! A.y (Svg.toValue (y * factor))
+                    Svg.! A.x (Svg.toValue (padding + x * factor))
+                    Svg.! A.y (Svg.toValue (padding + y * factor))
                     Svg.! A.width (Svg.toValue factor)
                     Svg.! A.height (Svg.toValue factor)
                     Svg.! A.fill (Svg.toValue $ hexColor r g b)
 
-    let cx = factor `div` 2
-        cy = initialY * factor + factor `div` 2
+    let cx = padding + factor `div` 2
+        cy = padding + initialY * factor + factor `div` 2
         cr = factor `div` 6
+        ox = padding
+        oy = padding + initialY * factor
         tw = cr
     Svg.circle
         Svg.! A.cx (Svg.toValue cx)
@@ -51,12 +52,28 @@ annotate factor ref = Svg.docTypeSvg
             , (cx + factor - tw, cy + tw)
             ]
     Svg.polygon
-        Svg.! A.points (Svg.toValue $ unwords
-            [show x ++ "," ++ show y | (x, y) <- triangle])
-        Svg.! A.stroke "#000"
+        Svg.! A.points (pointsValue triangle)
+        Svg.! A.fill "#000"
+    let outline =
+            [ (ox, oy - factor)
+            , (ox + factor, oy - factor)
+            , (ox + factor, oy)
+            , (ox + factor + factor, oy)
+            , (ox + factor + factor, oy + factor)
+            , (ox + factor, oy + factor)
+            , (ox + factor, oy + factor + factor)
+            , (ox, oy + factor + factor)
+            , (ox, oy - factor)
+            ]
+    Svg.polyline
+        Svg.! A.points (pointsValue outline)
+        Svg.! A.stroke "#0008"
+        Svg.! A.fill "none"
+        Svg.! A.strokeWidth "1"
   where
-    width  = factor * JP.imageWidth ref
-    height = factor * JP.imageHeight ref
+    padding = factor `div` 10
+    width  = factor * JP.imageWidth ref + padding * 2
+    height = factor * JP.imageHeight ref + padding * 2
 
     hexColor r g b = "#" ++ hexWord r ++ hexWord g ++ hexWord b
     hexWord w = case showHex w "" of
@@ -65,7 +82,8 @@ annotate factor ref = Svg.docTypeSvg
 
     initialY = JP.imageHeight ref `div` 2
 
-    linky b = Svg.a Svg.! HA.href "examples/minimal.png" $ b
+    pointsValue points = Svg.toValue $ unwords
+        [show x ++ "," ++ show y | (x, y) <- points]
 
 main :: IO ()
 main = do
