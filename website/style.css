@@ -74,6 +74,10 @@ th {
     font-weight: normal;
 }
 
+p:has(a[href^="examples/"]) {
+    text-align: center;
+}
+
 figure {
     text-align: center;
     margin-bottom: 2em;

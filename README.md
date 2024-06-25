@@ -16,23 +16,31 @@ implementation.
 
 # Examples
 
+## 0
+
 _((`num_sub` 1) 1)_ -- returns exit code 0:
 
-![0](examples/minimal-large.png)
+[![](examples/minimal.svg)](examples/minimal.png)
+
+## Y
 
 _λf. (λx. f (x x)) (λx. f (x x))_ -- a somewhat symmetrical, reusable Y
 combinator:
 
-![Y](examples/y-large.png)
+[![](examples/y.svg)](examples/y.png)
+
+## ⊦
 
 _(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`out_char` ((`add` 34) ((`num_mul` 94) 94))) f)_
 -- this reuses the Y combinator above to continuously print ⊦ to the terminal:
 
-![⊦](examples/turnstyle-large.png)
+[![](examples/turnstyle.svg)](examples/turnstyle.png)
+
+## π
 
 Prints an approximation of _pi_ by comparing the circle to its diameter:
 
-![π](examples/pi-large.png)
+[![](examples/pi.svg)](examples/pi.png)
 
 # Design Principles
 
