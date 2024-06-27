@@ -36,6 +36,7 @@ data NumOpMode
     | NumOpSubtract
     | NumOpMultiply
     | NumOpDivide
+    | NumOpModulo
     deriving (Bounded, Enum, Eq, Show)
 
 data CmpMode
@@ -66,6 +67,7 @@ primName (PNumOp NumOpAdd)         = "num_add"
 primName (PNumOp NumOpSubtract)    = "num_sub"
 primName (PNumOp NumOpMultiply)    = "num_mul"
 primName (PNumOp NumOpDivide)      = "num_div"
+primName (PNumOp NumOpModulo)      = "num_mod"
 primName (PCompare CmpEq)          = "cmp_eq"
 primName (PCompare CmpLessThan)    = "cmp_lt"
 primName (PCompare CmpGreaterThan) = "cmp_gt"
@@ -79,6 +81,7 @@ encodePrim (PNumOp NumOpAdd)         = (3, 0)
 encodePrim (PNumOp NumOpSubtract)    = (3, 1)
 encodePrim (PNumOp NumOpMultiply)    = (3, 2)
 encodePrim (PNumOp NumOpDivide)      = (3, 3)
+encodePrim (PNumOp NumOpModulo)      = (3, 4)
 encodePrim (PCompare CmpEq)          = (4, 0)
 encodePrim (PCompare CmpLessThan)    = (4, 1)
 encodePrim (PCompare CmpGreaterThan) = (4, 2)

@@ -128,12 +128,13 @@ This is an overview of the different primitive functions and what they do.
 
 ### Numerical operations (opcode=3)
 
-| Mode | Primitive                                  |
-| :--- | :----------------------------------------- |
-| 0    | _((`num_add` x) y)_ evaluates to _x + y_.  |
-| 1    | _((`num_sub` x) y)_ evaluates to _x - y_.  |
-| 2    | _((`num_mul` x) y)_ evaluates to _x * y_.  |
-| 3    | _((`num_div` x) y)_ evaluates to _x / y_.  |
+| Mode | Primitive                                                                          |
+| :--- | :--------------------------------------------------------------------------------- |
+| 0    | _((`num_add` x) y)_ evaluates to _x + y_.                                          |
+| 1    | _((`num_sub` x) y)_ evaluates to _x - y_.                                          |
+| 2    | _((`num_mul` x) y)_ evaluates to _x * y_.                                          |
+| 3    | _((`num_div` x) y)_ evaluates to _x / y_.                                          |
+| 4    | _((`num_mod` x) y)_ evaluates to _x % y_.  Both operands must be integral numbers. |
 
 ### Comparisons (opcode=4)
 

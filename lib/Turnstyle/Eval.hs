@@ -6,7 +6,7 @@ module Turnstyle.Eval
     , eval
     ) where
 
-import           Control.Exception (IOException, catch)
+import           Control.Exception (Exception, IOException, catch, throwIO)
 import           Data.Char         (chr, ord)
 import qualified Data.Set          as S
 import           Data.Void         (Void, absurd)
@@ -14,6 +14,34 @@ import qualified Turnstyle.Expr    as Expr
 import           Turnstyle.Expr    (Expr)
 import           Turnstyle.Number
 import           Turnstyle.Prim
+
+data Type
+    = ApplicationTy
+    | LambdaTy
+    | VariableTy
+    | PrimitiveTy
+    | NumberTy
+    | IntegralTy
+
+instance Show Type where
+    show ApplicationTy = "function application"
+    show LambdaTy      = "lambda"
+    show VariableTy    = "variable"
+    show PrimitiveTy   = "primitive"
+    show NumberTy      = "number"
+    show IntegralTy    = "integral"
+
+data EvalException
+    = PrimBadArg Prim Int Type Type
+    | DivideByZero
+
+instance Show EvalException where
+    show (PrimBadArg p n expected actual) =
+        "primitive " ++ primName p ++ " bad argument #" ++ show n ++
+        ": expected " ++ show expected ++ " but got " ++ show actual
+    show DivideByZero = "division by zero"
+
+instance Exception EvalException
 
 eval :: Ord v => Expr ann Void v -> IO (Whnf ann v)
 eval = whnf . fmap Id
@@ -75,26 +103,43 @@ prim ann (PIn inMode) [k, l] = catch @IOException
             InChar   -> ord <$> getChar
         whnf $ Expr.App ann k (Expr.Lit ann lit))
     (\_ -> whnf l)
-prim _ (POut outMode) [outE, kE] = do
-    Lit out <- whnf outE
+prim _ p@(POut outMode) [outE, kE] = do
+    out <- whnf outE >>= castArgNumber p 1
     case outMode of
         OutNumber -> print out
         OutChar -> case numberToInt out of
-            Nothing -> fail $ "cannot print rational as char: " ++ show out
+            Nothing -> throwIO $ PrimBadArg p 1 IntegralTy NumberTy
             Just n  -> putChar $ chr n
     whnf kE
-prim _ (PNumOp numOp) [xE, yE] = do
-    Lit x <- whnf xE
-    Lit y <- whnf yE
-    pure $ Lit $ case numOp of
-        NumOpAdd      -> x + y
-        NumOpSubtract -> x - y
-        NumOpDivide   -> x / y
-        NumOpMultiply -> x * y
-prim _ (PCompare cmp) [xE, yE, fE, gE] = do
-    Lit x <- whnf xE
-    Lit y <- whnf yE
+prim _ p@(PNumOp numOp) [xE, yE] = do
+    x <- whnf xE >>= castArgNumber p 1
+    y <- whnf yE >>= castArgNumber p 2
+    fmap Lit $ case numOp of
+        NumOpAdd             -> pure $ x + y
+        NumOpSubtract        -> pure $ x - y
+        NumOpDivide | y == 0 -> throwIO DivideByZero
+        NumOpDivide          -> pure $ x / y
+        NumOpMultiply        -> pure $ x * y
+        NumOpModulo          -> do
+            xi <- maybe (throwIO (PrimBadArg p 1 IntegralTy NumberTy)) pure $ numberToInteger x
+            yi <- maybe (throwIO (PrimBadArg p 1 IntegralTy NumberTy)) pure $ numberToInteger y
+            pure $ fromInteger $ xi `mod` yi
+prim _ p@(PCompare cmp) [xE, yE, fE, gE] = do
+    x <- whnf xE >>= castArgNumber p 1
+    y <- whnf yE >>= castArgNumber p 2
     case cmp of
         CmpEq          -> if x == y then whnf fE else whnf gE
         CmpLessThan    -> if x < y  then whnf fE else whnf gE
         CmpGreaterThan -> if x > y  then whnf fE else whnf gE
+
+castArgNumber :: Prim -> Int -> Whnf ann v -> IO Number
+castArgNumber p narg e = case e of
+    Lit x -> pure x
+    _     -> throwIO $ PrimBadArg p narg NumberTy (typeOf e)
+
+typeOf :: Whnf ann v -> Type
+typeOf (App _ _)         = ApplicationTy
+typeOf (Lam _ _)         = LambdaTy
+typeOf (Var _)           = VariableTy
+typeOf (UnsatPrim _ _ _) = PrimitiveTy
+typeOf (Lit _)           = NumberTy
