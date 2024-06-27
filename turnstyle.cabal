@@ -26,6 +26,7 @@ Library
     Turnstyle.Compile.Paint
     Turnstyle.Compile.Shake
     Turnstyle.Compile.Shape
+    Turnstyle.Compile.SimulatedAnnealing
     Turnstyle.Compile.Solve
     Turnstyle.Eval
     Turnstyle.Expr

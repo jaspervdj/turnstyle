@@ -15,6 +15,7 @@ import           Data.List.NonEmpty      (NonEmpty)
 import           Data.Ord                (Down (..))
 import           Data.Void               (Void)
 import           System.Random           (mkStdGen)
+import qualified Turnstyle.Compile.SimulatedAnnealing as SA
 import           Turnstyle.Compile.Paint
 import           Turnstyle.Compile.Shake
 import           Turnstyle.Compile.Shape
@@ -23,13 +24,14 @@ import           Turnstyle.Expr
 import           Turnstyle.TwoD
 
 data CompileOptions = CompileOptions
-    { coOptimize :: Bool
-    , coSeed     :: Int
-    , coBudget   :: Int
+    { coOptimize  :: Bool
+    , coSeed      :: Int
+    , coBudget    :: Int
+    , coHillClimb :: Bool
     }
 
 defaultCompileOptions :: CompileOptions
-defaultCompileOptions = CompileOptions False 12345 10000
+defaultCompileOptions = CompileOptions False 12345 1000 False
 
 data CompileError ann v
     = UnboundVars (NonEmpty (ann, v))
@@ -44,16 +46,27 @@ compile _ expr | Failure err <- checkErrors (checkVars expr) = do
     Left $ UnboundVars err
 compile opts expr = do
     let expr0 = defaultLayout expr
+
+        neighbour l g = case shake l g of
+             Just (l', g')
+                 | Right _ <- solve $ sConstraints (exprToShape l') ->
+                     (l', g')
+             _ -> (l, g)
+
         expr1
             | not (coOptimize opts) = expr0
-            | otherwise = fst $ hillWalk
+            | coHillClimb opts = fst $ hillWalk
                 (coBudget opts)
                 (Down . scoreLayout)
-                (\l g -> case shake l g of
-                     Just (l', g')
-                         | Right _ <- solve $ sConstraints (exprToShape l') ->
-                             (l', g')
-                     _ -> (l, g))
+                neighbour
+                expr0
+                (mkStdGen (coSeed opts))
+            | otherwise = fst $ SA.run
+                SA.defaultOptions
+                    { SA.oGiveUp    = Just (coBudget opts)
+                    , SA.oScore     = fromIntegral . negate . scoreLayout
+                    , SA.oNeighbour = neighbour
+                    }
                 expr0
                 (mkStdGen (coSeed opts))
         shape = exprToShape expr1
@@ -68,7 +81,7 @@ scoreLayout expr =
     -- Try to get a square
     abs (sWidth shape - sHeight shape) +
     -- Align entrance near center
-    3 * abs (sEntrance shape - sHeight shape `div` 2)
+    4 * abs (sHeight shape `div` 2 - sEntrance shape)
 
 hillWalk
     :: Ord n
