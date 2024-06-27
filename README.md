@@ -10,11 +10,16 @@ making it relatively easy to develop new interpreters.
 This repository contains [the language specification](spec/) and a reference
 implementation.
 
-# Cheatsheet
+# Specification
+
+The cheatsheet below provides a high-level overview, for more details please
+consult [the Turnstyle Language Specification](spec/).
 
 ![Cheatsheet](spec/cheatsheet.svg)
 
 # Examples
+
+The starting Turnstyle shape is outlined.
 
 ## 0
 
