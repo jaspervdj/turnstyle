@@ -152,6 +152,7 @@ exprToShape' ctx expr = case expr of
             -- Tunnel from entrance to app
             [Eq (move x R enterL) (move x R enterR) | x <- [0 .. entranceL - 1]] ++
             [Eq appC (move x R enterC) | x <- [0 .. entranceL - 1]] ++
+            [Eq (move 1 L appL) (move 1 R appL)] ++
             -- Connect to LHS
             [Eq appL (move 1 U appL)] ++
             -- Tunnel to RHS
@@ -203,6 +204,7 @@ exprToShape' ctx expr = case expr of
             -- Tunnel from entrance to app
             [Eq (move x R enterL) (move x R enterR) | x <- [0 .. entranceR - 1]] ++
             [Eq appC (move x R enterC) | x <- [0 .. entranceR - 1]] ++
+            [Eq (move 1 L appR) (move 1 R appR)] ++
             -- Connect to RHS
             [Eq appR (move 1 D appR)] ++
             -- Tunnel to LHS
