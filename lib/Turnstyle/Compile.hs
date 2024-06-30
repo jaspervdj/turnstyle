@@ -28,10 +28,11 @@ data CompileOptions = CompileOptions
     , coSeed      :: Int
     , coBudget    :: Int
     , coHillClimb :: Bool
+    , coRestarts  :: Int
     }
 
 defaultCompileOptions :: CompileOptions
-defaultCompileOptions = CompileOptions False 12345 1000 False
+defaultCompileOptions = CompileOptions False 12345 1000 False 5
 
 data CompileError ann v
     = UnboundVars (NonEmpty (ann, v))
@@ -55,20 +56,21 @@ compile opts expr = do
 
         expr1
             | not (coOptimize opts) = expr0
-            | coHillClimb opts = fst $ hillWalk
-                (coBudget opts)
+            | otherwise = fst $ withRestarts
+                (coRestarts opts)
                 (Down . scoreLayout)
-                neighbour
-                expr0
-                (mkStdGen (coSeed opts))
-            | otherwise = fst $ SA.run
-                SA.defaultOptions
-                    { SA.oGiveUp    = Just (coBudget opts)
-                    , SA.oScore     = fromIntegral . negate . scoreLayout
-                    , SA.oNeighbour = neighbour
-                    }
-                expr0
-                (mkStdGen (coSeed opts))
+                (case coHillClimb opts of
+                    True -> hillWalk
+                        (coBudget opts)
+                        (Down . scoreLayout)
+                        neighbour
+                    False -> SA.run
+                        SA.defaultOptions
+                            { SA.oGiveUp    = Just (coBudget opts)
+                            , SA.oScore     = fromIntegral . negate . scoreLayout
+                            , SA.oNeighbour = neighbour
+                            })
+                expr0 (mkStdGen (coSeed opts))
         shape = exprToShape expr1
     colors <- first SolveError (solve $ sConstraints shape)
     pure $ paint colors shape
@@ -77,11 +79,29 @@ scoreLayout :: Ord v => Expr Layout Void v -> Int
 scoreLayout expr =
     let shape = exprToShape expr in
     -- Minimize area
-    (sWidth shape * sHeight shape `div` 2) +
+    2 * (sWidth shape + sHeight shape) +
     -- Try to get a square
     abs (sWidth shape - sHeight shape) +
     -- Align entrance near center
     4 * abs (sHeight shape `div` 2 - sEntrance shape)
+
+withRestarts
+    :: Ord n
+    => Int
+    -> (a -> n)
+    -> (a -> g -> (a, g))
+    -> a -> g -> (a, g)
+withRestarts n score f x0 g0 =
+    let (x1, g1) = f x0 g0 in
+    go 0 x1 (score x1) g1
+  where
+    go i best bestScore gen0
+        | i >= n                 = (best, gen0)
+        | nextScore >= bestScore = go (i + 1) next nextScore gen1
+        | otherwise              = go (i + 1) best bestScore gen1
+      where
+        (next, gen1) = f x0 gen0
+        nextScore    = score next
 
 hillWalk
     :: Ord n
