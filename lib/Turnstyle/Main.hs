@@ -31,7 +31,8 @@ data RunOptions = RunOptions
     } deriving (Show)
 
 data CompileOptions = CompileOptions
-    { coSeed     :: Maybe Int
+    { coOptimize :: Bool
+    , coSeed     :: Maybe Int
     , coOut      :: Maybe FilePath
     , coFilePath :: FilePath
     } deriving (Show)
@@ -60,7 +61,8 @@ parseRunOptions = RunOptions
 
 parseCompileOptions :: OA.Parser CompileOptions
 parseCompileOptions = CompileOptions
-    <$> OA.optional (OA.option OA.auto (OA.long "seed" <> OA.metavar "SEED"))
+    <$> OA.switch (OA.long "optimize" <> OA.short 'O')
+    <*> OA.optional (OA.option OA.auto (OA.long "seed" <> OA.metavar "SEED"))
     <*> OA.optional (OA.strOption
             (OA.long "out" <> OA.short 'o' <> OA.metavar "IMAGE.PNG"))
     <*> OA.argument OA.str (OA.metavar "PROGRAM.TXT")
@@ -90,7 +92,7 @@ main = do
                     putStrLn $ Text.prettySugar sugar
                     let expr = Text.sugarToExpr sugar
                         compileOptions = Compile.defaultCompileOptions
-                            { Compile.coOptimize = True
+                            { Compile.coOptimize = coOptimize copts
                             }
                     case Compile.compile compileOptions expr of
                         Left cerr -> IO.hPutStrLn IO.stderr $ show cerr
