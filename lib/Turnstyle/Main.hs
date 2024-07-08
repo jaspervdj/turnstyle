@@ -74,15 +74,11 @@ main = do
         Run ropts -> do
             img <- loadImage $ roFilePath ropts
             let expr = parseImage (roInitialPosition ropts) (autoScale img)
-            case checkErrors expr of
-                Failure err -> do
-                    IO.hPutStrLn IO.stderr "errors in expression"
-                    IO.hPutStrLn IO.stderr $ show err
-                Success e   -> do
-                    putStrLn $ Text.prettyExpr e
-                    IO.hSetBuffering IO.stdin IO.NoBuffering
-                    IO.hSetBuffering IO.stdout IO.NoBuffering
-                    eval e >>= print
+            -- TODO: only if recursion check works.
+            -- putStrLn $ Text.prettyExpr expr
+            IO.hSetBuffering IO.stdin IO.NoBuffering
+            IO.hSetBuffering IO.stdout IO.NoBuffering
+            eval expr >>= print
         Compile copts -> do
             let out = fromMaybe "a.png" (coOut copts)
             contents <- readFile $ coFilePath copts

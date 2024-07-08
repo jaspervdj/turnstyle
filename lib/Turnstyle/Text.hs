@@ -26,5 +26,5 @@ parseExpr name input = sugarToExpr <$> parseSugar name input
 stringify :: forall ann e v. Ord v => Expr ann e v -> Expr ann e String
 stringify expr = (map pure ['a' ..] !!) <$> normalizeVars expr
 
-prettyExpr :: forall ann v. Ord v => Expr ann Void v -> String
+prettyExpr :: forall ann err v. (Show err, Ord v) => Expr ann err v -> String
 prettyExpr = prettySugar . exprToSugar . stringify

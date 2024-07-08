@@ -6,7 +6,7 @@ import           Data.Foldable        (toList)
 import           Turnstyle.Prim
 import           Turnstyle.Text.Sugar
 
-prettySugar :: Sugar ann -> String
+prettySugar :: Show err => Sugar err ann -> String
 prettySugar = go
   where
     go expr = case expr of
@@ -16,6 +16,7 @@ prettySugar = go
         Var _ v    -> v
         Prim _ p   -> primName p
         Lit _ l    -> show l
+        Err _ e    -> "<" ++ show e ++ ">"
 
     parens expr = case expr of
         Lam _ _ _ -> "(" ++ go expr ++ ")"

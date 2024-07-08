@@ -43,21 +43,21 @@ instance Show EvalException where
 
 instance Exception EvalException
 
-eval :: Ord v => Expr ann Void v -> IO (Whnf ann v)
+eval :: (Exception err, Ord v) => Expr ann err v -> IO (Whnf ann err v)
 eval = whnf . fmap Id
 
 data Id v = Id v | Fresh Int deriving (Eq, Ord, Show)
 
 -- | An expression in WHNF.
-data Whnf ann v
-    = App (Whnf ann v) (Expr ann Void (Id v))
-    | Lam (Id v) (Expr ann Void (Id v))
+data Whnf ann err v
+    = App (Whnf ann err v) (Expr ann err (Id v))
+    | Lam (Id v) (Expr ann err (Id v))
     | Var (Id v)
-    | UnsatPrim Int Prim [Expr ann Void (Id v)]
+    | UnsatPrim Int Prim [Expr ann err (Id v)]
     | Lit Number
     deriving (Show)
 
-whnf :: (Ord v) => Expr ann Void (Id v) -> IO (Whnf ann v)
+whnf :: (Exception err, Ord v) => Expr ann err (Id v) -> IO (Whnf ann err v)
 whnf (Expr.App ann f x) = do
     fv <- whnf f
     case fv of
@@ -69,7 +69,7 @@ whnf (Expr.Lam _ v body) = pure $ Lam v body
 whnf (Expr.Var _ v) = pure $ Var v
 whnf (Expr.Prim _ p) = pure $ UnsatPrim (primArity p) p []
 whnf (Expr.Lit _ lit) = pure $ Lit $ fromIntegral lit
-whnf (Expr.Err _ err) = absurd err
+whnf (Expr.Err _ err) = throwIO err
 
 subst
     :: Ord v
@@ -95,7 +95,8 @@ subst x s b = sub b
     vs  = fvs <> Expr.allVars b
 
 prim
-    :: Ord v => ann -> Prim -> [Expr ann Void (Id v)] -> IO (Whnf ann v)
+    :: (Exception err, Ord v)
+    => ann -> Prim -> [Expr ann err (Id v)] -> IO (Whnf ann err v)
 prim ann (PIn inMode) [k, l] = catch @IOException
     (do
         lit <- case inMode of
@@ -132,12 +133,12 @@ prim _ p@(PCompare cmp) [xE, yE, fE, gE] = do
         CmpLessThan    -> if x < y  then whnf fE else whnf gE
         CmpGreaterThan -> if x > y  then whnf fE else whnf gE
 
-castArgNumber :: Prim -> Int -> Whnf ann v -> IO Number
+castArgNumber :: Prim -> Int -> Whnf ann err v -> IO Number
 castArgNumber p narg e = case e of
     Lit x -> pure x
     _     -> throwIO $ PrimBadArg p narg NumberTy (typeOf e)
 
-typeOf :: Whnf ann v -> Type
+typeOf :: Whnf err ann v -> Type
 typeOf (App _ _)         = ApplicationTy
 typeOf (Lam _ _)         = LambdaTy
 typeOf (Var _)           = VariableTy

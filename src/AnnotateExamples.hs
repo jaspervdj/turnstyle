@@ -91,7 +91,7 @@ main = do
         listDirectory "examples"
     for_ examples $ \example -> do
         let path = "examples" </> example
-        IO.hPutStrLn IO.stderr $ "Enlarging " ++ path ++ "..."
+        IO.hPutStrLn IO.stderr $ "Annotating " ++ path ++ "..."
         img <- JP.readImage path >>= either fail pure
         let base = dropExtension example
         BL.writeFile ("examples" </> base ++ ".svg") $ renderSvg $

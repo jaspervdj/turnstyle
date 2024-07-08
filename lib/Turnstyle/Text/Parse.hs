@@ -7,15 +7,17 @@ import           Control.Monad        (void)
 import           Data.Char            (isAlpha, isLower)
 import           Data.List.NonEmpty   (NonEmpty (..))
 import qualified Data.Map             as M
+import           Data.Void            (Void)
 import qualified Text.Parsec          as P
 import qualified Text.Parsec.String   as P
 import           Turnstyle.Prim
 import           Turnstyle.Text.Sugar
 
-parseSugar :: P.SourceName -> String -> Either P.ParseError (Sugar P.SourcePos)
+parseSugar
+    :: P.SourceName -> String -> Either P.ParseError (Sugar Void P.SourcePos)
 parseSugar name input = P.parse (spaceOrComments *> expr <* P.eof) name input
 
-expr :: P.Parser (Sugar P.SourcePos)
+expr :: P.Parser (Sugar Void P.SourcePos)
 expr = P.choice
     [ do
         pos <- P.getPosition
@@ -34,7 +36,7 @@ expr = P.choice
             (x : xs) -> App pos e (x :| xs)
     ]
 
-expr1 :: P.Parser (Sugar P.SourcePos)
+expr1 :: P.Parser (Sugar Void P.SourcePos)
 expr1 = P.choice
     [ (P.<?> "lambda") $ do
         pos <- P.getPosition
