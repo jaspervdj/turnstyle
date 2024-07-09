@@ -41,6 +41,15 @@ _(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`out_char` ((`add` 34) ((`num_mul` 
 
 [![](examples/turnstyle.svg)](examples/turnstyle.png)
 
+## ∞
+
+Of course, fixed-point combinators are a primitive tool necessary to compensate
+for the limitations of 1D programs.  In 2D programs, we can achieve recursion
+using a more natural approach.  This program prints the sequence of natural
+numbers:
+
+[![](examples/loop.svg)](examples/loop.png)
+
 ## π
 
 Prints an approximation of _pi_ by comparing the circle to its diameter:
