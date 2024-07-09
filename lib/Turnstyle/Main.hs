@@ -3,7 +3,6 @@ module Turnstyle.Main
     ) where
 
 import qualified Codec.Picture          as JP
-import           Data.Either.Validation (Validation (..))
 import           Data.Maybe             (fromMaybe)
 import qualified Options.Applicative    as OA
 import qualified System.IO              as IO
@@ -12,7 +11,7 @@ import qualified Turnstyle.Compile      as Compile
 import           Turnstyle.Eval         (eval)
 import           Turnstyle.Expr
 import           Turnstyle.JuicyPixels  (loadImage)
-import           Turnstyle.Parse        (Pos (..), parseImage)
+import           Turnstyle.Parse
 import           Turnstyle.Scale        (autoScale)
 import qualified Turnstyle.Text         as Text
 
@@ -67,6 +66,11 @@ parseCompileOptions = CompileOptions
             (OA.long "out" <> OA.short 'o' <> OA.metavar "IMAGE.PNG"))
     <*> OA.argument OA.str (OA.metavar "PROGRAM.TXT")
 
+data Error
+    = ParseError ParseError
+    | CycleError
+    deriving (Show)
+
 main :: IO ()
 main = do
     args <- OA.execParser opts
@@ -74,8 +78,8 @@ main = do
         Run ropts -> do
             img <- loadImage $ roFilePath ropts
             let expr = parseImage (roInitialPosition ropts) (autoScale img)
-            -- TODO: only if recursion check works.
-            -- putStrLn $ Text.prettyExpr expr
+            putStrLn $ Text.prettyExpr $ checkCycles (const CycleError) $
+                mapErr ParseError expr
             IO.hSetBuffering IO.stdin IO.NoBuffering
             IO.hSetBuffering IO.stdout IO.NoBuffering
             eval expr >>= print

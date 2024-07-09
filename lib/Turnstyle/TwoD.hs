@@ -12,7 +12,7 @@ data Pos = Pos {-# UNPACK #-} !Int {-# UNPACK #-} !Int deriving (Eq, Ord, Show)
 neighbors :: Pos -> [Pos]
 neighbors p = [move 1 d p | d <- [R, D, L, U]]
 
-data Dir = R | D | L | U deriving (Eq, Show)
+data Dir = R | D | L | U deriving (Eq, Ord, Show)
 
 move :: Int -> Dir -> Pos -> Pos
 move n R (Pos x y) = Pos (x + n) (y    )

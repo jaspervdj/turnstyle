@@ -3,6 +3,7 @@ module Turnstyle.Parse.Tests
     ) where
 
 import           Data.Either.Validation (Validation (..))
+import           Data.List.NonEmpty     (NonEmpty (..))
 import           Test.Tasty             (TestTree, testGroup)
 import           Test.Tasty.HUnit       (testCase, (@?=))
 import           Turnstyle.Expr
@@ -10,6 +11,8 @@ import           Turnstyle.JuicyPixels  (loadImage)
 import           Turnstyle.Parse        (parseImage)
 import           Turnstyle.Prim
 import           Turnstyle.Scale        (autoScale)
+
+data Error = ParseError | CycleError
 
 tests :: TestTree
 tests = testGroup "Turnstyle.Parse"
@@ -34,6 +37,13 @@ tests = testGroup "Turnstyle.Parse"
             (num_add (lit 34) (num_mul (lit 94) (lit 94)))
             (var 0)
         ]
+
+    , testCase "examples/loop.png" $ do
+        img <- autoScale <$> loadImage "examples/loop.png"
+        let parsed = mapErr (const ParseError) (parseImage Nothing img)
+        case checkErrors (checkCycles (const CycleError) parsed) of
+            Failure ((_, CycleError) :| []) -> pure ()
+            _                               -> error "expected a CycleError"
     ]
   where
     example path expected = testCase path $ do

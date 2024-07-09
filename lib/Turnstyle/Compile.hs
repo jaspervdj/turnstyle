@@ -8,17 +8,17 @@ module Turnstyle.Compile
     , compile
     ) where
 
-import qualified Codec.Picture           as JP
-import           Data.Bifunctor          (first)
-import           Data.Either.Validation  (Validation (..))
-import           Data.List.NonEmpty      (NonEmpty)
-import           Data.Ord                (Down (..))
-import           Data.Void               (Void)
-import           System.Random           (mkStdGen)
-import qualified Turnstyle.Compile.SimulatedAnnealing as SA
+import qualified Codec.Picture                        as JP
+import           Data.Bifunctor                       (first)
+import           Data.Either.Validation               (Validation (..))
+import           Data.List.NonEmpty                   (NonEmpty)
+import           Data.Ord                             (Down (..))
+import           Data.Void                            (Void, absurd)
+import           System.Random                        (mkStdGen)
 import           Turnstyle.Compile.Paint
 import           Turnstyle.Compile.Shake
 import           Turnstyle.Compile.Shape
+import qualified Turnstyle.Compile.SimulatedAnnealing as SA
 import           Turnstyle.Compile.Solve
 import           Turnstyle.Expr
 import           Turnstyle.TwoD
@@ -43,7 +43,8 @@ compile
     :: Ord v
     => CompileOptions -> Expr ann Void v
     -> Either (CompileError ann v) (JP.Image JP.PixelRGB8)
-compile _ expr | Failure err <- checkErrors (checkVars expr) = do
+compile _ expr
+        | Failure err <- checkErrors (checkVars id (mapErr absurd expr)) = do
     Left $ UnboundVars err
 compile opts expr = do
     let expr0 = defaultLayout expr
