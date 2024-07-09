@@ -34,7 +34,7 @@ combinator:
 
 [![](examples/y.svg)](examples/y.png)
 
-## ∞
+## ⥁
 
 Of course, fixed-point combinators are a primitive tool necessary to compensate
 for the limitations of one-dimensional programming.  In two-dimensional
