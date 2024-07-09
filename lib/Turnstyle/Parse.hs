@@ -10,6 +10,7 @@ module Turnstyle.Parse
 
   , RelPos (..)
   , relPos
+  , contiguous
 
   , initialPosition
   ) where
@@ -90,13 +91,13 @@ parse pos dir img = case pattern of
 
     -- Int/Prim
     ABCD
-        | floodLeft >= floodRight -> Lit ann $ floodFront
+        | areaLeft >= areaRight -> Lit ann $ areaFront
         | otherwise               -> case decodePrim p mode of
             Nothing   -> Err ann $ UnknownPrim p mode
             Just prim -> Prim ann prim
       where
-        p    = floodRight - floodLeft
-        mode = abs (floodFront - floodRight)
+        p    = areaRight - areaLeft
+        mode = abs (areaFront - areaRight)
 
     -- Id
     AAAA -> Id ann $ parseFront
@@ -118,9 +119,9 @@ parse pos dir img = case pattern of
     parseFront = parse (relPos' FrontPos) dir img
     parseRight = parse (relPos' RightPos) (rotateRight dir) img
 
-    floodLeft  = S.size $ flood (relPos' LeftPos) img
-    floodFront = S.size $ flood (relPos' FrontPos) img
-    floodRight = S.size $ flood (relPos' RightPos) img
+    areaLeft  = S.size $ contiguous (relPos' LeftPos) img
+    areaFront = S.size $ contiguous (relPos' FrontPos) img
+    areaRight = S.size $ contiguous (relPos' RightPos) img
 
 parseImage
   :: forall img. (Image img, Eq (Pixel img), Show (Pixel img))
@@ -130,8 +131,8 @@ parseImage Nothing img = case initialPosition img of
     Nothing  -> Err (Pos 0 0, R, AAAA) EmptyImage
     Just pos -> parse pos R img
 
-flood :: (Image img, Eq (Pixel img)) => Pos -> img -> S.Set Pos
-flood pos0@(Pos x0 y0) img = go (S.singleton pos0) (S.singleton pos0)
+contiguous :: (Image img, Eq (Pixel img)) => Pos -> img -> S.Set Pos
+contiguous pos0@(Pos x0 y0) img = go (S.singleton pos0) (S.singleton pos0)
   where
     pixel0 = pixel x0 y0 img
     go acc frontier
@@ -141,7 +142,5 @@ flood pos0@(Pos x0 y0) img = go (S.singleton pos0) (S.singleton pos0)
                     S.filter (\(Pos x y) -> pixel x y img == pixel0) $
                     (`S.difference` acc) $
                     S.filter (`inside` img) $
-                    S.fromList . concatMap neighbours $ S.toList frontier in
+                    S.fromList . concatMap neighbors $ S.toList frontier in
             go (S.union acc nbs) (S.difference nbs acc)
-
-    neighbours pos = [move 1 d pos | d <- [U, R, D, L]]
