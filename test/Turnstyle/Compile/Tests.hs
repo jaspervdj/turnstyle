@@ -18,11 +18,13 @@ tests = testGroup "Turnstyle.Compile"
             Left err -> error $ "compile error: " ++ show err
             Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
                 Failure err    -> error $ "parse error: " ++ show err
-                Success parsed -> expr == normalizeVars (removeAnn parsed)
+                Success parsed ->
+                    removeId expr == normalizeVars (removeAnn (removeId parsed))
     , QC.testProperty "parse . compile (opt)" $ \(GenExpr expr) ->
-        case compile defaultCompileOptions {coOptimize = True, coBudget = 100} expr of
+        case compile defaultCompileOptions {coOptimize = True, coBudget = 10} expr of
             Left err -> error $ "compile error: " ++ show err
             Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
                 Failure err    -> error $ "parse error: " ++ show err
-                Success parsed -> expr == normalizeVars (removeAnn parsed)
+                Success parsed ->
+                    removeId expr == normalizeVars (removeAnn (removeId parsed))
     ]

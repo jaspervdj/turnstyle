@@ -94,7 +94,8 @@ Executable turnstyle-recolor
     base                 >= 4.7  && < 5,
     containers           >= 0.6  && < 0.7,
     JuicyPixels          >= 3.3  && < 3.4,
-    optparse-applicative >= 0.18 && < 0.19
+    optparse-applicative >= 0.18 && < 0.19,
+    turnstyle
 
 Executable turnstyle-website
   Main-is:          Website.hs

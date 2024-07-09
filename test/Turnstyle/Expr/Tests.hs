@@ -1,6 +1,7 @@
 module Turnstyle.Expr.Tests
     ( GenExpr (..)
     , removeAnn
+    , removeId
     ) where
 
 import qualified Data.Set              as S
@@ -33,8 +34,18 @@ genExpr fresh = QC.oneof $
         pure $ Lam () v body
     , Prim () <$> QC.elements knownPrims
     , Lit () <$> QC.choose (1, 20)
+    , Id () <$> genExpr fresh
     ] ++
     if fresh > 0 then [Var () <$> QC.choose (0, fresh - 1)] else []
 
 removeAnn :: Expr ann e v -> Expr () e v
 removeAnn = mapAnn (const ())
+
+removeId :: Expr ann err v -> Expr ann err v
+removeId (App ann f x) = App ann (removeId f) (removeId x)
+removeId (Lam ann v b) = Lam ann v (removeId b)
+removeId (Var ann v)   = Var ann v
+removeId (Prim ann p)  = Prim ann p
+removeId (Lit ann l)   = Lit ann l
+removeId (Id _ e)      = removeId e
+removeId (Err ann err) = Err ann err

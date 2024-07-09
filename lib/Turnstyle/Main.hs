@@ -96,7 +96,7 @@ main = do
                             }
                     case Compile.compile compileOptions expr of
                         Left cerr -> IO.hPutStrLn IO.stderr $ show cerr
-                        Right img -> JP.savePngImage out $ JP.ImageRGB8 img
+                        Right img -> JP.savePngImage out $ JP.ImageRGBA8 img
   where
     opts = OA.info (parseOptions OA.<**> OA.helper)
         (OA.fullDesc <> OA.progDesc "Turnstyle")

@@ -80,6 +80,7 @@ defaultLayout (Lam _ v b) = Lam (LamLayout LamLeft) v (defaultLayout b)
 defaultLayout (Var _ v) = Var NoLayout v
 defaultLayout (Prim _ p) = Prim NoLayout p
 defaultLayout (Lit _ l) = Lit NoLayout l
+defaultLayout (Id _ e) = Id NoLayout (defaultLayout e)
 defaultLayout (Err _ e) = Err NoLayout e
 
 exprToShape :: Ord v => Expr Layout Void v -> Shape
@@ -451,5 +452,6 @@ exprToShape' ctx expr = case expr of
         front  = move 1 R center
         right  = move 1 D center
 
+    Id NoLayout expr' -> exprToShape' ctx expr'
 
     Err _ void -> absurd void

@@ -15,7 +15,7 @@ tests = testGroup "Turnstyle.Text"
     [ QC.testProperty "parse . pretty" $ \(GenExpr expr) ->
         case parseExpr "test iput" (prettyExpr expr) of
             Left  _      -> False
-            Right parsed -> expr == normalizeVars (removeAnn parsed)
+            Right parsed -> removeId expr == normalizeVars (removeAnn parsed)
 
     , testCase "comments" $
         let input = unlines

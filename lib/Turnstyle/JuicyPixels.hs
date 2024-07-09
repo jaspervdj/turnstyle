@@ -9,10 +9,10 @@ import qualified Codec.Picture   as JP
 
 import           Turnstyle.Image (Image (..))
 
-newtype JuicyPixels = JuicyPixels (JP.Image JP.PixelRGB8)
+newtype JuicyPixels = JuicyPixels (JP.Image JP.PixelRGBA8)
 
 instance Image JuicyPixels where
-    type Pixel JuicyPixels       = JP.PixelRGB8
+    type Pixel JuicyPixels       = JP.PixelRGBA8
     width      (JuicyPixels img) = JP.imageWidth img
     height     (JuicyPixels img) = JP.imageHeight img
     pixel  x y (JuicyPixels img) = JP.pixelAt img x y
@@ -20,4 +20,4 @@ instance Image JuicyPixels where
 loadImage :: FilePath -> IO JuicyPixels
 loadImage path =
     JP.readImage path >>=
-    either fail (pure . JuicyPixels . JP.convertRGB8)
+    either fail (pure . JuicyPixels . JP.convertRGBA8)

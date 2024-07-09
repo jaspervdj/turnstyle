@@ -7,6 +7,7 @@ import           Data.List.NonEmpty     (NonEmpty (..))
 import           Test.Tasty             (TestTree, testGroup)
 import           Test.Tasty.HUnit       (testCase, (@?=))
 import           Turnstyle.Expr
+import           Turnstyle.Expr.Tests
 import           Turnstyle.JuicyPixels  (loadImage)
 import           Turnstyle.Parse        (parseImage)
 import           Turnstyle.Prim
@@ -50,7 +51,8 @@ tests = testGroup "Turnstyle.Parse"
         img <- autoScale <$> loadImage path
         case checkErrors (parseImage Nothing img) of
             Failure errs -> fail $ show errs
-            Success expr -> mapAnn (const ()) (normalizeVars expr) @?= expected
+            Success expr ->
+                mapAnn (const ()) (normalizeVars (removeId expr)) @?= expected
 
     app f xs = foldl (App ()) f xs
     lam      = Lam ()

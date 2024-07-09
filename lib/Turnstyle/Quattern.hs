@@ -22,7 +22,7 @@ data Quattern
     | ABCB
     | ABCC
     | ABCD
-    deriving (Bounded, Enum, Eq, Show)
+    deriving (Bounded, Enum, Eq, Ord, Show)
 
 quattern :: Eq a => a -> a -> a -> a -> Quattern
 quattern a x y z = if

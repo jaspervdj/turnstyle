@@ -53,4 +53,5 @@ exprToSugar expr = case expr of
     E.Var ann v -> Var ann v
     E.Prim ann p -> Prim ann p
     E.Lit ann l -> Lit ann l
+    E.Id  _ e -> exprToSugar e
     E.Err ann e -> Err ann e

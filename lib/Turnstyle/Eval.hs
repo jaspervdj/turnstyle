@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeApplications #-}
 module Turnstyle.Eval
-    ( Id (..)
+    ( Var (..)
     , Whnf (..)
     , whnf
     , eval
@@ -9,7 +9,6 @@ module Turnstyle.Eval
 import           Control.Exception (Exception, IOException, catch, throwIO)
 import           Data.Char         (chr, ord)
 import qualified Data.Set          as S
-import           Data.Void         (Void, absurd)
 import qualified Turnstyle.Expr    as Expr
 import           Turnstyle.Expr    (Expr)
 import           Turnstyle.Number
@@ -44,20 +43,20 @@ instance Show EvalException where
 instance Exception EvalException
 
 eval :: (Exception err, Ord v) => Expr ann err v -> IO (Whnf ann err v)
-eval = whnf . fmap Id
+eval = whnf . fmap User
 
-data Id v = Id v | Fresh Int deriving (Eq, Ord, Show)
+data Var v = User v | Fresh Int deriving (Eq, Ord, Show)
 
 -- | An expression in WHNF.
 data Whnf ann err v
-    = App (Whnf ann err v) (Expr ann err (Id v))
-    | Lam (Id v) (Expr ann err (Id v))
-    | Var (Id v)
-    | UnsatPrim Int Prim [Expr ann err (Id v)]
+    = App (Whnf ann err v) (Expr ann err (Var v))
+    | Lam (Var v) (Expr ann err (Var v))
+    | Var (Var v)
+    | UnsatPrim Int Prim [Expr ann err (Var v)]
     | Lit Number
     deriving (Show)
 
-whnf :: (Exception err, Ord v) => Expr ann err (Id v) -> IO (Whnf ann err v)
+whnf :: (Exception err, Ord v) => Expr ann err (Var v) -> IO (Whnf ann err v)
 whnf (Expr.App ann f x) = do
     fv <- whnf f
     case fv of
@@ -69,11 +68,12 @@ whnf (Expr.Lam _ v body) = pure $ Lam v body
 whnf (Expr.Var _ v) = pure $ Var v
 whnf (Expr.Prim _ p) = pure $ UnsatPrim (primArity p) p []
 whnf (Expr.Lit _ lit) = pure $ Lit $ fromIntegral lit
+whnf (Expr.Id _ e) = whnf e
 whnf (Expr.Err _ err) = throwIO err
 
 subst
     :: Ord v
-    => Id v -> Expr ann e (Id v) -> Expr ann e (Id v) -> Expr ann e (Id v)
+    => Var v -> Expr ann e (Var v) -> Expr ann e (Var v) -> Expr ann e (Var v)
 subst x s b = sub b
   where
     sub e@(Expr.Var _ v)
@@ -89,6 +89,7 @@ subst x s b = sub b
     sub (Expr.App ann f a) = Expr.App ann (sub f) (sub a)
     sub e@(Expr.Lit _ _) = e
     sub e@(Expr.Prim _ _) = e
+    sub (Expr.Id ann e) = Expr.Id ann (sub e)
     sub e@(Expr.Err _ _) = e
 
     fvs = Expr.freeVars s
@@ -96,7 +97,7 @@ subst x s b = sub b
 
 prim
     :: (Exception err, Ord v)
-    => ann -> Prim -> [Expr ann err (Id v)] -> IO (Whnf ann err v)
+    => ann -> Prim -> [Expr ann err (Var v)] -> IO (Whnf ann err v)
 prim ann (PIn inMode) [k, l] = catch @IOException
     (do
         lit <- case inMode of

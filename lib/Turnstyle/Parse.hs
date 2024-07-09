@@ -8,6 +8,9 @@ module Turnstyle.Parse
   , ParseError (..)
   , parseImage
 
+  , RelPos (..)
+  , relPos
+
   , initialPosition
   ) where
 
@@ -35,22 +38,22 @@ initialPosition img
 --
 data RelPos = LeftPos | CenterPos | FrontPos | RightPos deriving (Eq, Show)
 
-rel :: Pos -> Dir -> RelPos -> Pos
-rel (Pos x y) _ CenterPos = Pos (x    ) (y    )
-rel (Pos x y) R LeftPos   = Pos (x    ) (y - 1)
-rel (Pos x y) R FrontPos  = Pos (x + 1) (y    )
-rel (Pos x y) R RightPos  = Pos (x    ) (y + 1)
-rel (Pos x y) D LeftPos   = Pos (x + 1) (y    )
-rel (Pos x y) D FrontPos  = Pos (x    ) (y + 1)
-rel (Pos x y) D RightPos  = Pos (x - 1) (y    )
-rel (Pos x y) L LeftPos   = Pos (x    ) (y + 1)
-rel (Pos x y) L FrontPos  = Pos (x - 1) (y    )
-rel (Pos x y) L RightPos  = Pos (x    ) (y - 1)
-rel (Pos x y) U LeftPos   = Pos (x - 1) (y    )
-rel (Pos x y) U FrontPos  = Pos (x    ) (y - 1)
-rel (Pos x y) U RightPos  = Pos (x + 1) (y    )
+relPos :: Pos -> Dir -> RelPos -> Pos
+relPos (Pos x y) _ CenterPos = Pos (x    ) (y    )
+relPos (Pos x y) R LeftPos   = Pos (x    ) (y - 1)
+relPos (Pos x y) R FrontPos  = Pos (x + 1) (y    )
+relPos (Pos x y) R RightPos  = Pos (x    ) (y + 1)
+relPos (Pos x y) D LeftPos   = Pos (x + 1) (y    )
+relPos (Pos x y) D FrontPos  = Pos (x    ) (y + 1)
+relPos (Pos x y) D RightPos  = Pos (x - 1) (y    )
+relPos (Pos x y) L LeftPos   = Pos (x    ) (y + 1)
+relPos (Pos x y) L FrontPos  = Pos (x - 1) (y    )
+relPos (Pos x y) L RightPos  = Pos (x    ) (y - 1)
+relPos (Pos x y) U LeftPos   = Pos (x - 1) (y    )
+relPos (Pos x y) U FrontPos  = Pos (x    ) (y - 1)
+relPos (Pos x y) U RightPos  = Pos (x + 1) (y    )
 
-type Ann = (Pos, Dir)
+type Ann = (Pos, Dir, Quattern)
 
 data ParseError
     = OutOfBounds
@@ -64,10 +67,10 @@ parse
   :: forall img. (Image img, Eq (Pixel img), Show (Pixel img))
   => Pos -> Dir -> img -> Expr Ann ParseError (Pixel img)
 parse pos dir img = case pattern of
-    _ | not (inside (rel pos dir LeftPos) img)   -> Err ann OutOfBounds
-    _ | not (inside (rel pos dir CenterPos) img) -> Err ann OutOfBounds
-    _ | not (inside (rel pos dir FrontPos) img)  -> Err ann OutOfBounds
-    _ | not (inside (rel pos dir RightPos) img)  -> Err ann OutOfBounds
+    _ | not (inside (relPos pos dir LeftPos) img)   -> Err ann OutOfBounds
+    _ | not (inside (relPos pos dir CenterPos) img) -> Err ann OutOfBounds
+    _ | not (inside (relPos pos dir FrontPos) img)  -> Err ann OutOfBounds
+    _ | not (inside (relPos pos dir RightPos) img)  -> Err ann OutOfBounds
 
     -- App
     ABCA -> App ann parseLeft  parseRight
@@ -95,15 +98,15 @@ parse pos dir img = case pattern of
         p    = floodRight - floodLeft
         mode = abs (floodFront - floodRight)
 
-    -- Steer
-    AAAA -> parseFront
-    ABBA -> parseFront
-    AABB -> parseLeft
-    ABAB -> parseRight
+    -- Id
+    AAAA -> Id ann $ parseFront
+    ABBA -> Id ann $ parseFront
+    AABB -> Id ann $ parseLeft
+    ABAB -> Id ann $ parseRight
  where
-    ann        = (pos, dir)
-    relPos     = rel pos dir
-    relPixel r = let (Pos px py) = relPos r in pixel px py img
+    ann        = (pos, dir, pattern)
+    relPos'    = relPos pos dir
+    relPixel r = let (Pos px py) = relPos' r in pixel px py img
 
     pattern = quattern
         (relPixel LeftPos)
@@ -111,20 +114,20 @@ parse pos dir img = case pattern of
         (relPixel FrontPos)
         (relPixel RightPos)
 
-    parseLeft  = parse (relPos LeftPos) (rotateLeft dir) img
-    parseFront = parse (relPos FrontPos) dir img
-    parseRight = parse (relPos RightPos) (rotateRight dir) img
+    parseLeft  = parse (relPos' LeftPos) (rotateLeft dir) img
+    parseFront = parse (relPos' FrontPos) dir img
+    parseRight = parse (relPos' RightPos) (rotateRight dir) img
 
-    floodLeft  = S.size $ flood (relPos LeftPos) img
-    floodFront = S.size $ flood (relPos FrontPos) img
-    floodRight = S.size $ flood (relPos RightPos) img
+    floodLeft  = S.size $ flood (relPos' LeftPos) img
+    floodFront = S.size $ flood (relPos' FrontPos) img
+    floodRight = S.size $ flood (relPos' RightPos) img
 
 parseImage
   :: forall img. (Image img, Eq (Pixel img), Show (Pixel img))
   => Maybe Pos -> img -> Expr Ann ParseError (Pixel img)
 parseImage (Just (Pos x y)) img = parse (Pos x y) R img
 parseImage Nothing img = case initialPosition img of
-    Nothing  -> Err (Pos 0 0, R) EmptyImage
+    Nothing  -> Err (Pos 0 0, R, AAAA) EmptyImage
     Just pos -> parse pos R img
 
 flood :: (Image img, Eq (Pixel img)) => Pos -> img -> S.Set Pos

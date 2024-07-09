@@ -42,7 +42,7 @@ data CompileError ann v
 compile
     :: Ord v
     => CompileOptions -> Expr ann Void v
-    -> Either (CompileError ann v) (JP.Image JP.PixelRGB8)
+    -> Either (CompileError ann v) (JP.Image JP.PixelRGBA8)
 compile _ expr
         | Failure err <- checkErrors (checkVars id (mapErr absurd expr)) = do
     Left $ UnboundVars err
@@ -74,7 +74,7 @@ compile opts expr = do
                 expr0 (mkStdGen (coSeed opts))
         shape = exprToShape expr1
     colors <- first SolveError (solve $ sConstraints shape)
-    pure $ paint colors shape
+    pure $ paint defaultPalette colors shape
 
 scoreLayout :: Ord v => Expr Layout Void v -> Int
 scoreLayout expr =

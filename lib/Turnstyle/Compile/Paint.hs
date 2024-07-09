@@ -1,6 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Turnstyle.Compile.Paint
     ( paint
+    , defaultPalette
     ) where
 
 import qualified Codec.Picture           as JP
@@ -9,8 +10,21 @@ import           Data.Maybe              (fromMaybe)
 import           Turnstyle.Compile.Shape
 import           Turnstyle.TwoD
 
-paint :: (Pos -> Maybe Int) -> Shape -> JP.Image JP.PixelRGB8
-paint colors s = JP.generateImage
+defaultPalette :: [JP.PixelRGBA8]
+defaultPalette = concat $ transpose
+    [ [JP.PixelRGBA8 c 0 0 255 | c <- steps]
+    , [JP.PixelRGBA8 0 c 0 255 | c <- steps]
+    , [JP.PixelRGBA8 0 0 c 255 | c <- steps]
+    , [JP.PixelRGBA8 c c 0 255 | c <- steps]
+    , [JP.PixelRGBA8 0 c c 255 | c <- steps]
+    , [JP.PixelRGBA8 c 0 c 255 | c <- steps]
+    ]
+  where
+    steps = reverse $ [63, 127 .. 255]
+
+paint
+    :: [JP.PixelRGBA8] -> (Pos -> Maybe Int) -> Shape -> JP.Image JP.PixelRGBA8
+paint palette colors s = JP.generateImage
     (\x0 y0 -> fromMaybe background $
         let x1 = x0 - offsetX
             y1 = y0 - offsetY in
@@ -25,16 +39,4 @@ paint colors s = JP.generateImage
     spacingHeight = max topHeight bottomHeight
     offsetX       = 0
     offsetY       = spacingHeight - sEntrance s
-    background    = JP.PixelRGB8 255 255 255
-
-palette :: [JP.PixelRGB8]
-palette = concat $ transpose
-    [ [JP.PixelRGB8 c 0 0 | c <- steps]
-    , [JP.PixelRGB8 0 c 0 | c <- steps]
-    , [JP.PixelRGB8 0 0 c | c <- steps]
-    , [JP.PixelRGB8 c c 0 | c <- steps]
-    , [JP.PixelRGB8 0 c c | c <- steps]
-    , [JP.PixelRGB8 c 0 c | c <- steps]
-    ]
-  where
-    steps = reverse $ [63, 127 .. 255]
+    background    = JP.PixelRGBA8 0 0 0 0

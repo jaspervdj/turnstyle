@@ -26,6 +26,7 @@ shakeOnce shakeChild = go id
             Var _ _ -> []
             Prim _ _ -> []
             Lit _ _ -> []
+            Id _ _ -> []
             Err _ _ -> []
 
 shakeExpr :: Expr Layout e v -> [Expr Layout e v]
