@@ -34,19 +34,12 @@ combinator:
 
 [![](examples/y.svg)](examples/y.png)
 
-## ⊦
-
-_(λf. (λx. f (x x)) (λx. f (x x))) (λf. (`out_char` ((`add` 34) ((`num_mul` 94) 94))) f)_
--- this reuses the Y combinator above to continuously print ⊦ to the terminal:
-
-[![](examples/turnstyle.svg)](examples/turnstyle.png)
-
 ## ∞
 
 Of course, fixed-point combinators are a primitive tool necessary to compensate
-for the limitations of 1D programs.  In 2D programs, we can achieve recursion
-using a more natural approach.  This program prints the sequence of natural
-numbers:
+for the limitations of one-dimensional programming.  In two-dimensional
+programs, we can achieve recursion using a more visually intuitive approach.
+This program prints the sequence of natural numbers:
 
 [![](examples/loop.svg)](examples/loop.png)
 
