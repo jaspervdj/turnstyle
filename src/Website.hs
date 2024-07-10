@@ -1,10 +1,25 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import           Data.Foldable  (for_)
-import Control.Applicative (empty)
+import           Control.Applicative (empty)
+import           Data.Foldable       (for_)
 import           Hakyll
-import qualified System.Process as Process
+import qualified System.Process      as Process
+import qualified Text.Pandoc         as Pandoc
+
+data Page = Page
+    { pageSrc            :: Pattern
+    , pageDst            :: String
+    , pageTitle          :: Maybe String
+    , pageNumberSections :: Bool
+    }
+
+pages :: [Page]
+pages =
+    [ Page "README.md"      "index.html"      (Just "Turnstyle") False
+    , Page "spec/README.md" "spec/index.html" (Nothing)          True
+    ]
 
 main :: IO ()
 main = hakyllWith config $ do
@@ -23,17 +38,17 @@ main = hakyllWith config $ do
     match "website/favicon.ico" $ do
         route $ constRoute "favicon.ico"
         compile copyFileCompiler
-    let pages =
-            [ ("README.md", "index.html", Just "Turnstyle")
-            , ("spec/README.md", "spec/index.html", Nothing)
-            ]
-    for_ pages $ \(src, dst, mbTitle) -> match src $ do
-        let ctx = maybe mempty (constField "title") mbTitle <>
+    for_ pages $ \Page {..} -> match pageSrc $ do
+        let ctx = maybe mempty (constField "title") pageTitle <>
                 functionField "active" (\args _ -> do
-                    if args == [dst] then pure "true" else empty) <>
+                    if args == [pageDst] then pure "true" else empty) <>
                 defaultContext
-        route $ constRoute dst
-        compile $ pandocCompiler >>=
+            readerOpts = defaultHakyllReaderOptions
+            writerOpts = defaultHakyllWriterOptions
+                { Pandoc.writerNumberSections = pageNumberSections
+                }
+        route $ constRoute pageDst
+        compile $ pandocCompilerWith readerOpts writerOpts >>=
             loadAndApplyTemplate "website/template.html" ctx >>=
             relativizeUrls
     match "website/style.css" $ do

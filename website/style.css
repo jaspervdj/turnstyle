@@ -60,6 +60,10 @@ h3 {
     opacity: 70%;
 }
 
+.header-section-number:after {
+    content: ".";
+}
+
 img {
     max-width: 90%;
 }
