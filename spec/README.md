@@ -8,6 +8,12 @@ The program is encoded as an image.  A **lossless** image format should be used
 so exact colors are preserved.  The use of [PNG] is recommended because of its
 wide support and decent compression.
 
+We assume that the reader is somewhat familiar with Lambda Calculus.
+If you want to learn more about Lambda Calculus, we recommend
+[this video with Graham Hutton](https://www.youtube.com/watch?v=eis11j_iGMs) or
+[this paper by Raúl Rojas](https://personal.utdallas.edu/~gupta/courses/apl/lambda.pdf)
+for a good introduction.
+
 # Syntax
 
 Turnstyle programs are evaluated by reading and evaluating **expressions** from
@@ -143,13 +149,19 @@ i.e. _true = λxy.x_ and _false = λxy.y_.
 
 | Mode | Primitive                                                                |
 | :--- | :----------------------------------------------------------------------- |
-| 0    | _((((`cmp_eq` x) y) k) l)_ evaluates _k_ if _x = y_, and _l_ otherwise.  |
-| 1    | _((((`cmp_lt` x) y) k) l)_ evaluates _k_ if _x < y_, and _l_ otherwise.  |
-| 2    | _((((`cmp_gt` x) y) k) l)_ evaluates _k_ if _x > y_, and _l_ otherwise.  |
-| 3    | _((((`cmp_lte` x) y) k) l)_ evaluates _k_ if _x ≤ y_, and _l_ otherwise. |
-| 4    | _((((`cmp_gte` x) y) k) l)_ evaluates _k_ if _x ≥ y_, and _l_ otherwise. |
+| 0    | _((((`cmp_eq` x) y) t) f)_ evaluates _t_ if _x = y_, and _f_ otherwise.  |
+| 1    | _((((`cmp_lt` x) y) t) f)_ evaluates _t_ if _x < y_, and _f_ otherwise.  |
+| 2    | _((((`cmp_gt` x) y) t) f)_ evaluates _t_ if _x > y_, and _f_ otherwise.  |
+| 3    | _((((`cmp_lte` x) y) t) f)_ evaluates _t_ if _x ≤ y_, and _f_ otherwise. |
+| 4    | _((((`cmp_gte` x) y) t) f)_ evaluates _t_ if _x ≥ y_, and _f_ otherwise. |
 
-## Cyclic Programs
+## Evaluation order
+
+Turnstyle does not require a specific evaluation order, although the semantics
+of the [primitives](#primitives) must be respected (e.g. evaluating
+`((((cpm_eq 1) 2) t) f)` should not evaluate `t`).
+
+## Cyclic programs
 
 The Turnstyle position and direction can be manipulated in a way that it ends up
 in a previously visited shape.  In that case, there is no finite corresponding
