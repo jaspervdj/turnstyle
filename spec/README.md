@@ -141,11 +141,19 @@ This is an overview of the different primitive functions and what they do.
 Turnstyle has no primitive boolean type, and uses [Church encoding] instead,
 i.e. _true = λxy.x_ and _false = λxy.y_.
 
-| Mode | Primitive                                                               |
-| :--- | :---------------------------------------------------------------------- |
-| 0    | _((((`cmp_eq` x) y) k) l)_ evaluates _k_ if _x = y_, and _l_ otherwise. |
-| 1    | _((((`cmp_lt` x) y) k) l)_ evaluates _k_ if _x < y_, and _l_ otherwise. |
-| 2    | _((((`cmp_gt` x) y) k) l)_ evaluates _k_ if _x > y_, and _l_ otherwise. |
+| Mode | Primitive                                                                |
+| :--- | :----------------------------------------------------------------------- |
+| 0    | _((((`cmp_eq` x) y) k) l)_ evaluates _k_ if _x = y_, and _l_ otherwise.  |
+| 1    | _((((`cmp_lt` x) y) k) l)_ evaluates _k_ if _x < y_, and _l_ otherwise.  |
+| 2    | _((((`cmp_gt` x) y) k) l)_ evaluates _k_ if _x > y_, and _l_ otherwise.  |
+| 3    | _((((`cmp_lte` x) y) k) l)_ evaluates _k_ if _x ≤ y_, and _l_ otherwise. |
+| 4    | _((((`cmp_gte` x) y) k) l)_ evaluates _k_ if _x ≥ y_, and _l_ otherwise. |
+
+## Cyclic Programs
+
+The Turnstyle position and direction can be manipulated in a way that it ends up
+in a previously visited shape.  In that case, there is no finite corresponding
+expression in the lambda calculus.
 
 ## Precision
 

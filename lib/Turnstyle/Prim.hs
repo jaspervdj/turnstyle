@@ -43,6 +43,8 @@ data CmpMode
     = CmpEq
     | CmpLessThan
     | CmpGreaterThan
+    | CmpLessThanOrEqual
+    | CmpGreaterThanOrEqual
     deriving (Bounded, Enum, Eq, Show)
 
 knownPrims :: [Prim]
@@ -59,32 +61,36 @@ primArity (PNumOp   _) = 2
 primArity (PCompare _) = 4
 
 primName :: Prim -> String
-primName (PIn InNumber)            = "in_num"
-primName (PIn InChar)              = "in_char"
-primName (POut OutNumber)          = "out_num"
-primName (POut OutChar)            = "out_char"
-primName (PNumOp NumOpAdd)         = "num_add"
-primName (PNumOp NumOpSubtract)    = "num_sub"
-primName (PNumOp NumOpMultiply)    = "num_mul"
-primName (PNumOp NumOpDivide)      = "num_div"
-primName (PNumOp NumOpModulo)      = "num_mod"
-primName (PCompare CmpEq)          = "cmp_eq"
-primName (PCompare CmpLessThan)    = "cmp_lt"
-primName (PCompare CmpGreaterThan) = "cmp_gt"
+primName (PIn InNumber)                   = "in_num"
+primName (PIn InChar)                     = "in_char"
+primName (POut OutNumber)                 = "out_num"
+primName (POut OutChar)                   = "out_char"
+primName (PNumOp NumOpAdd)                = "num_add"
+primName (PNumOp NumOpSubtract)           = "num_sub"
+primName (PNumOp NumOpMultiply)           = "num_mul"
+primName (PNumOp NumOpDivide)             = "num_div"
+primName (PNumOp NumOpModulo)             = "num_mod"
+primName (PCompare CmpEq)                 = "cmp_eq"
+primName (PCompare CmpLessThan)           = "cmp_lt"
+primName (PCompare CmpGreaterThan)        = "cmp_gt"
+primName (PCompare CmpLessThanOrEqual)    = "cmp_lte"
+primName (PCompare CmpGreaterThanOrEqual) = "cmp_gte"
 
 encodePrim :: Prim -> (Int, Int)
-encodePrim (PIn InNumber)            = (1, 0)
-encodePrim (PIn InChar)              = (1, 1)
-encodePrim (POut OutNumber)          = (2, 0)
-encodePrim (POut OutChar)            = (2, 1)
-encodePrim (PNumOp NumOpAdd)         = (3, 0)
-encodePrim (PNumOp NumOpSubtract)    = (3, 1)
-encodePrim (PNumOp NumOpMultiply)    = (3, 2)
-encodePrim (PNumOp NumOpDivide)      = (3, 3)
-encodePrim (PNumOp NumOpModulo)      = (3, 4)
-encodePrim (PCompare CmpEq)          = (4, 0)
-encodePrim (PCompare CmpLessThan)    = (4, 1)
-encodePrim (PCompare CmpGreaterThan) = (4, 2)
+encodePrim (PIn InNumber)                   = (1, 0)
+encodePrim (PIn InChar)                     = (1, 1)
+encodePrim (POut OutNumber)                 = (2, 0)
+encodePrim (POut OutChar)                   = (2, 1)
+encodePrim (PNumOp NumOpAdd)                = (3, 0)
+encodePrim (PNumOp NumOpSubtract)           = (3, 1)
+encodePrim (PNumOp NumOpMultiply)           = (3, 2)
+encodePrim (PNumOp NumOpDivide)             = (3, 3)
+encodePrim (PNumOp NumOpModulo)             = (3, 4)
+encodePrim (PCompare CmpEq)                 = (4, 0)
+encodePrim (PCompare CmpLessThan)           = (4, 1)
+encodePrim (PCompare CmpGreaterThan)        = (4, 2)
+encodePrim (PCompare CmpLessThanOrEqual)    = (4, 3)
+encodePrim (PCompare CmpGreaterThanOrEqual) = (4, 4)
 
 decodeMap :: M.Map (Int, Int) Prim
 decodeMap = M.fromList [(encodePrim p, p) | p <- knownPrims]

@@ -130,9 +130,11 @@ prim _ p@(PCompare cmp) [xE, yE, fE, gE] = do
     x <- whnf xE >>= castArgNumber p 1
     y <- whnf yE >>= castArgNumber p 2
     case cmp of
-        CmpEq          -> if x == y then whnf fE else whnf gE
-        CmpLessThan    -> if x < y  then whnf fE else whnf gE
-        CmpGreaterThan -> if x > y  then whnf fE else whnf gE
+        CmpEq                 -> if x == y then whnf fE else whnf gE
+        CmpLessThan           -> if x < y  then whnf fE else whnf gE
+        CmpGreaterThan        -> if x > y  then whnf fE else whnf gE
+        CmpLessThanOrEqual    -> if x <= y  then whnf fE else whnf gE
+        CmpGreaterThanOrEqual -> if x >= y  then whnf fE else whnf gE
 
 castArgNumber :: Prim -> Int -> Whnf ann err v -> IO Number
 castArgNumber p narg e = case e of
