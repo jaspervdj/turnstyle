@@ -59,6 +59,7 @@ type Ann = (Pos, Dir, Quattern)
 data ParseError
     = OutOfBounds
     | EmptyImage
+    | UnknownSym Int
     | UnknownPrim Int Int
     deriving (Show)
 
@@ -90,14 +91,12 @@ parse pos dir img = case pattern of
     ABBB -> Var ann $ relPixel LeftPos
 
     -- Int/Prim
-    ABCD
-        | areaLeft >= areaRight -> Lit ann $ areaFront
-        | otherwise               -> case decodePrim p mode of
-            Nothing   -> Err ann $ UnknownPrim p mode
+    ABCD -> case areaLeft of
+        1 -> Lit ann $ areaFront ^ areaRight
+        2 -> case decodePrim areaFront areaRight of
+            Nothing   -> Err ann $ UnknownPrim areaFront areaRight
             Just prim -> Prim ann prim
-      where
-        p    = areaRight - areaLeft
-        mode = abs (areaFront - areaRight)
+        _ -> Err ann $ UnknownSym areaLeft
 
     -- Id
     AAAA -> Id ann $ parseFront

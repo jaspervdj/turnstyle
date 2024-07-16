@@ -77,23 +77,23 @@ primName (PCompare CmpLessThanOrEqual)    = "cmp_lte"
 primName (PCompare CmpGreaterThanOrEqual) = "cmp_gte"
 
 encodePrim :: Prim -> (Int, Int)
-encodePrim (PIn InNumber)                   = (1, 0)
-encodePrim (PIn InChar)                     = (1, 1)
-encodePrim (POut OutNumber)                 = (2, 0)
-encodePrim (POut OutChar)                   = (2, 1)
-encodePrim (PNumOp NumOpAdd)                = (3, 0)
-encodePrim (PNumOp NumOpSubtract)           = (3, 1)
-encodePrim (PNumOp NumOpMultiply)           = (3, 2)
-encodePrim (PNumOp NumOpDivide)             = (3, 3)
-encodePrim (PNumOp NumOpModulo)             = (3, 4)
-encodePrim (PCompare CmpEq)                 = (4, 0)
-encodePrim (PCompare CmpLessThan)           = (4, 1)
-encodePrim (PCompare CmpGreaterThan)        = (4, 2)
-encodePrim (PCompare CmpLessThanOrEqual)    = (4, 3)
-encodePrim (PCompare CmpGreaterThanOrEqual) = (4, 4)
+encodePrim (PIn InNumber)                   = (1, 1)
+encodePrim (PIn InChar)                     = (1, 2)
+encodePrim (POut OutNumber)                 = (2, 1)
+encodePrim (POut OutChar)                   = (2, 2)
+encodePrim (PNumOp NumOpAdd)                = (3, 1)
+encodePrim (PNumOp NumOpSubtract)           = (3, 2)
+encodePrim (PNumOp NumOpMultiply)           = (3, 3)
+encodePrim (PNumOp NumOpDivide)             = (3, 4)
+encodePrim (PNumOp NumOpModulo)             = (3, 5)
+encodePrim (PCompare CmpEq)                 = (4, 1)
+encodePrim (PCompare CmpLessThan)           = (4, 2)
+encodePrim (PCompare CmpGreaterThan)        = (4, 3)
+encodePrim (PCompare CmpLessThanOrEqual)    = (4, 4)
+encodePrim (PCompare CmpGreaterThanOrEqual) = (4, 5)
 
 decodeMap :: M.Map (Int, Int) Prim
 decodeMap = M.fromList [(encodePrim p, p) | p <- knownPrims]
 
 decodePrim :: Int -> Int -> Maybe Prim
-decodePrim opcode mode = M.lookup (opcode, mode) decodeMap
+decodePrim modul opcode = M.lookup (modul, opcode) decodeMap

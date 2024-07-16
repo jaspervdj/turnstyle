@@ -123,25 +123,25 @@ This is an overview of the different primitive functions and what they do.
 
 | Opcode | Description                                                                                                                                            |
 | :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0      | _((`in_num` k) l)_ reads a number `x` from `stdin`, then evaluates _(k x)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead.     |
-| 1      | _((`in_char` k) l)_ reads a character `c` from `stdin`, then evaluates _(k c)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead. |
+| 1      | _((`in_num` k) l)_ reads a number `x` from `stdin`, then evaluates _(k x)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead.     |
+| 2      | _((`in_char` k) l)_ reads a character `c` from `stdin`, then evaluates _(k c)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead. |
 
 ### Output (module=2)
 
 | Opcode | Primitive                                                                                     |
 | :----- | :-------------------------------------------------------------------------------------------- |
-| 0      | _((`out_number` x) k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
-| 1      | _((`out_char` x) k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
+| 1      | _((`out_number` x) k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
+| 2      | _((`out_char` x) k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
 
 ### Numerical operations (module=3)
 
 | Opcode | Primitive                                                                          |
 | :----- | :--------------------------------------------------------------------------------- |
-| 0      | _((`num_add` x) y)_ evaluates to _x + y_.                                          |
-| 1      | _((`num_sub` x) y)_ evaluates to _x - y_.                                          |
-| 2      | _((`num_mul` x) y)_ evaluates to _x * y_.                                          |
-| 3      | _((`num_div` x) y)_ evaluates to _x / y_.                                          |
-| 4      | _((`num_mod` x) y)_ evaluates to _x % y_.  Both operands must be integral numbers. |
+| 1      | _((`num_add` x) y)_ evaluates to _x + y_.                                          |
+| 2      | _((`num_sub` x) y)_ evaluates to _x - y_.                                          |
+| 3      | _((`num_mul` x) y)_ evaluates to _x * y_.                                          |
+| 4      | _((`num_div` x) y)_ evaluates to _x / y_.                                          |
+| 5      | _((`num_mod` x) y)_ evaluates to _x % y_.  Both operands must be integral numbers. |
 
 ### Comparisons (module=4)
 
@@ -150,11 +150,11 @@ i.e. _true = λxy.x_ and _false = λxy.y_.
 
 | Opcode | Primitive                                                                |
 | :----- | :----------------------------------------------------------------------- |
-| 0      | _((((`cmp_eq` x) y) t) f)_ evaluates _t_ if _x = y_, and _f_ otherwise.  |
-| 1      | _((((`cmp_lt` x) y) t) f)_ evaluates _t_ if _x < y_, and _f_ otherwise.  |
-| 2      | _((((`cmp_gt` x) y) t) f)_ evaluates _t_ if _x > y_, and _f_ otherwise.  |
-| 3      | _((((`cmp_lte` x) y) t) f)_ evaluates _t_ if _x ≤ y_, and _f_ otherwise. |
-| 4      | _((((`cmp_gte` x) y) t) f)_ evaluates _t_ if _x ≥ y_, and _f_ otherwise. |
+| 1      | _((((`cmp_eq` x) y) t) f)_ evaluates _t_ if _x = y_, and _f_ otherwise.  |
+| 2      | _((((`cmp_lt` x) y) t) f)_ evaluates _t_ if _x < y_, and _f_ otherwise.  |
+| 3      | _((((`cmp_gt` x) y) t) f)_ evaluates _t_ if _x > y_, and _f_ otherwise.  |
+| 4      | _((((`cmp_lte` x) y) t) f)_ evaluates _t_ if _x ≤ y_, and _f_ otherwise. |
+| 5      | _((((`cmp_gte` x) y) t) f)_ evaluates _t_ if _x ≥ y_, and _f_ otherwise. |
 
 ## Evaluation order
 
