@@ -97,13 +97,14 @@ contiguous.
 
 ![Symbols](symbol.svg)
 
- -  If _area(L) ≥ area(R)_, the Turnstyle evaluates to a **numeric** literal
-    of the integer value _area(F)_.
- -  Otherwise, _area(L) < area(R)_.  The Turnstyle evaluates to a
-    **primitive function**.
-    In this case, _area(R) - area(L)_ determines the **primitive opcode**,
-    and _abs(area(F) - area(R))_ determines the **primitive mode**.
+ -  If _area(L) = 1_, the Turnstyle evaluates to a **numeric** literal
+    of the integer value _area(F)^area(R)_.  Commonly, _area(R)_ is 1.
+ -  If _area(L) = 2_, the Turnstyle evaluates to a **primitive function**.
+    In this case, _area(F)_ determines the **primitive module**,
+    and _area(R)_ determines the **primitive opcode**.
     See also [Primitives](#primitives).
+ -  Symbols with _area(L) > 2_ are reserved for future updates to the
+    specification.
 
 ## Identity
 
@@ -118,42 +119,42 @@ the arrow (→).  You can visualize this as following the color of the line.
 
 This is an overview of the different primitive functions and what they do.
 
-### Input (opcode=1)
+### Input (module=1)
 
-| Mode | Description                                                                                                                                            |
-| :--- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 0    | _((`in_num` k) l)_ reads a number `x` from `stdin`, then evaluates _(k x)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead.     |
-| 1    | _((`in_char` k) l)_ reads a character `c` from `stdin`, then evaluates _(k c)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead. |
+| Opcode | Description                                                                                                                                            |
+| :----- | :----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0      | _((`in_num` k) l)_ reads a number `x` from `stdin`, then evaluates _(k x)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead.     |
+| 1      | _((`in_char` k) l)_ reads a character `c` from `stdin`, then evaluates _(k c)_. If `stdin` is closed or an exception occurs, _l_ is evaluated instead. |
 
-### Output (opcode=2)
+### Output (module=2)
 
-| Mode | Primitive                                                                                     |
-| :--- | :-------------------------------------------------------------------------------------------- |
-| 0    | _((`out_number` x) k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
-| 1    | _((`out_char` x) k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
+| Opcode | Primitive                                                                                     |
+| :----- | :-------------------------------------------------------------------------------------------- |
+| 0      | _((`out_number` x) k)_ outputs `x` as a number to `stdout`, and then evaluates _k_.           |
+| 1      | _((`out_char` x) k)_ outputs `x` as an Unicode character to `stdout`, and then evaluates _k_. |
 
-### Numerical operations (opcode=3)
+### Numerical operations (module=3)
 
-| Mode | Primitive                                                                          |
-| :--- | :--------------------------------------------------------------------------------- |
-| 0    | _((`num_add` x) y)_ evaluates to _x + y_.                                          |
-| 1    | _((`num_sub` x) y)_ evaluates to _x - y_.                                          |
-| 2    | _((`num_mul` x) y)_ evaluates to _x * y_.                                          |
-| 3    | _((`num_div` x) y)_ evaluates to _x / y_.                                          |
-| 4    | _((`num_mod` x) y)_ evaluates to _x % y_.  Both operands must be integral numbers. |
+| Opcode | Primitive                                                                          |
+| :----- | :--------------------------------------------------------------------------------- |
+| 0      | _((`num_add` x) y)_ evaluates to _x + y_.                                          |
+| 1      | _((`num_sub` x) y)_ evaluates to _x - y_.                                          |
+| 2      | _((`num_mul` x) y)_ evaluates to _x * y_.                                          |
+| 3      | _((`num_div` x) y)_ evaluates to _x / y_.                                          |
+| 4      | _((`num_mod` x) y)_ evaluates to _x % y_.  Both operands must be integral numbers. |
 
-### Comparisons (opcode=4)
+### Comparisons (module=4)
 
 Turnstyle has no primitive boolean type, and uses [Church encoding] instead,
 i.e. _true = λxy.x_ and _false = λxy.y_.
 
-| Mode | Primitive                                                                |
-| :--- | :----------------------------------------------------------------------- |
-| 0    | _((((`cmp_eq` x) y) t) f)_ evaluates _t_ if _x = y_, and _f_ otherwise.  |
-| 1    | _((((`cmp_lt` x) y) t) f)_ evaluates _t_ if _x < y_, and _f_ otherwise.  |
-| 2    | _((((`cmp_gt` x) y) t) f)_ evaluates _t_ if _x > y_, and _f_ otherwise.  |
-| 3    | _((((`cmp_lte` x) y) t) f)_ evaluates _t_ if _x ≤ y_, and _f_ otherwise. |
-| 4    | _((((`cmp_gte` x) y) t) f)_ evaluates _t_ if _x ≥ y_, and _f_ otherwise. |
+| Opcode | Primitive                                                                |
+| :----- | :----------------------------------------------------------------------- |
+| 0      | _((((`cmp_eq` x) y) t) f)_ evaluates _t_ if _x = y_, and _f_ otherwise.  |
+| 1      | _((((`cmp_lt` x) y) t) f)_ evaluates _t_ if _x < y_, and _f_ otherwise.  |
+| 2      | _((((`cmp_gt` x) y) t) f)_ evaluates _t_ if _x > y_, and _f_ otherwise.  |
+| 3      | _((((`cmp_lte` x) y) t) f)_ evaluates _t_ if _x ≤ y_, and _f_ otherwise. |
+| 4      | _((((`cmp_gte` x) y) t) f)_ evaluates _t_ if _x ≥ y_, and _f_ otherwise. |
 
 ## Evaluation order
 
