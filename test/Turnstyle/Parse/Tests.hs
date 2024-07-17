@@ -18,7 +18,7 @@ data Error = ParseError | CycleError
 tests :: TestTree
 tests = testGroup "Turnstyle.Parse"
     [ example "examples/minimal.png" $
-        num_sub (lit 1) (lit 1)
+        num_sub (lit 8) (lit 8)
 
     , example "examples/pi.png" $ out_num
         (num_div

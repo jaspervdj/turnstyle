@@ -384,7 +384,7 @@ exprToShape' ctx expr = case expr of
         right  = move 1 D center
 
     Prim _ prim -> Shape
-        { sWidth       = max 2 (max (frontArea + 1) rightArea)
+        { sWidth       = max 2 (max (frontArea + 1) (max leftArea rightArea))
         , sHeight      = 3
         , sEntrance    = 1
         , sConstraints =
@@ -393,15 +393,20 @@ exprToShape' ctx expr = case expr of
             , NotEq center front, NotEq center right
             , NotEq front right
             ] ++
-            -- Left pixel should have area 1
-            [ NotEq left p | p <- neighbors left ] ++
-            -- Front "mode" part should be one color
+            -- Left part should be one color
+            [ Eq left e | e <- leftExtension ] ++
+            -- Areas around the left part need to be different
+            [ NotEq left (move 1 U e) | e <- leftExtension ] ++
+            [ NotEq left (move 1 D e) | e <- leftExtension ] ++
+            [ NotEq left (move leftArea R left) ] ++
+            [ NotEq left (move 1 L left) ] ++
+            -- Front part should be one color
             [ Eq front e | e <- frontExtension ] ++
-            -- Areas around the front "mode" part need to be different
+            -- Areas around the front part need to be different
             [ NotEq front (move 1 U e) | e <- frontExtension ] ++
             [ NotEq front (move 1 D e) | e <- frontExtension ] ++
             [ NotEq front (move frontArea R front) ] ++
-            -- Right "opcode" part should be one color
+            -- Right part should be one color
             [ Eq right e | e <- rightExtension ] ++
             -- Areas around the right "opcode" part need to be different
             [ NotEq right (move 1 U e) | e <- rightExtension ] ++
@@ -410,12 +415,13 @@ exprToShape' ctx expr = case expr of
             [ NotEq right (move 1 L right) ]
         }
       where
+        leftExtension  = [move i R left  | i <- [0 .. leftArea  - 1]]
         frontExtension = [move i R front | i <- [0 .. frontArea - 1]]
         rightExtension = [move i R right | i <- [0 .. rightArea - 1]]
-        (opcode, mode) = encodePrim prim
-        rightArea = opcode + 1
-        frontArea =
-            if mode < rightArea then rightArea - mode else rightArea + mode
+        (modul, opcode) = encodePrim prim
+        rightArea = 2
+        frontArea = modul
+        leftArea  = opcode
 
         left   = move 1 U center
         center = Pos 0 1

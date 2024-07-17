@@ -91,12 +91,12 @@ parse pos dir img = case pattern of
     ABBB -> Var ann $ relPixel LeftPos
 
     -- Int/Prim
-    ABCD -> case areaLeft of
+    ABCD -> case areaRight of
         1 -> Lit ann $ areaFront ^ areaRight
-        2 -> case decodePrim areaFront areaRight of
-            Nothing   -> Err ann $ UnknownPrim areaFront areaRight
+        2 -> case decodePrim areaFront areaLeft of
+            Nothing   -> Err ann $ UnknownPrim areaFront areaLeft
             Just prim -> Prim ann prim
-        _ -> Err ann $ UnknownSym areaLeft
+        _ -> Err ann $ UnknownSym areaRight
 
     -- Id
     AAAA -> Id ann $ parseFront

@@ -23,7 +23,7 @@ The starting Turnstyle shape is outlined.
 
 ## 0
 
-_((`num_sub` 1) 1)_ -- returns exit code 0:
+_((`num_sub` 8) 8)_ -- returns exit code 0:
 
 [![](examples/minimal.svg)](examples/minimal.png)
 
