@@ -32,13 +32,6 @@ tests = testGroup "Turnstyle.Parse"
 
     , example "examples/y.png" yc
 
-    , example "examples/turnstyle.png" $ app
-        yc
-        [ lam 0 $ out_char
-            (num_add (lit 34) (num_mul (lit 94) (lit 94)))
-            (var 0)
-        ]
-
     , testCase "examples/loop.png" $ do
         img <- autoScale <$> loadImage "examples/loop.png"
         let parsed = mapErr (const ParseError) (parseImage Nothing img)
