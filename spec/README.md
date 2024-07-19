@@ -97,15 +97,17 @@ contiguous.
 
 ![Symbols](symbol.svg)
 
-The kind of symbol is defined by _area(R)_.
+Just like [application](#function-application) patterns in Turnstyle, symbols
+are read in a clockwise direction.
+The kind of symbol is defined by _area(L)_.
 
- -  If _area(R) = 1_, the Turnstyle evaluates to a **numeric** literal
-    of the integer value _area(F)^area(L)_.  Commonly, _area(L)_ is 1.
- -  If _area(R) = 2_, the Turnstyle evaluates to a **primitive function**.
+ -  If _area(L) = 1_, the Turnstyle evaluates to a **numeric** literal
+    of the integer value _area(F)^area(R)_.  Commonly, _area(R)_ is 1.
+ -  If _area(L) = 2_, the Turnstyle evaluates to a **primitive function**.
     In this case, _area(F)_ determines the **primitive module**,
-    and _area(L)_ determines the **primitive opcode**.
+    and _area(R)_ determines the **primitive opcode**.
     See also [Primitives](#primitives).
- -  Symbols with _area(R) > 2_ are reserved for future updates to the
+ -  Symbols with _area(L) > 2_ are reserved for future updates to the
     specification.
 
 ## Identity

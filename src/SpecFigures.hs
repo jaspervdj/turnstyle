@@ -147,9 +147,9 @@ main = do
             appSpec ===
             (atop symbolSpec $
                 (moveTo (3.7 ^& (-0.4)) $ italic $ scale (3/4) $
-                    alignedText 0 0.5 "a(R)=1 ⇒ Num(a(F)^a(L))") <>
+                    alignedText 0 0.5 "a(L)=1 ⇒ Num(a(F)^a(R))") <>
                 (moveTo (3.7 ^& (-1.6)) $ italic $ scale (3/4) $
-                    alignedText 0 0.5 "a(R)=2 ⇒ Prim(a(F),a(L))")) ===
+                    alignedText 0 0.5 "a(L)=2 ⇒ Prim(a(F),a(R))")) ===
             idSpec)
 
     renderSVG "website/turnstyle.svg" (mkHeight 400) $

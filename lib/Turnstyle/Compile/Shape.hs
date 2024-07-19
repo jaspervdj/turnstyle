@@ -419,9 +419,9 @@ exprToShape' ctx expr = case expr of
         frontExtension = [move i R front | i <- [0 .. frontArea - 1]]
         rightExtension = [move i R right | i <- [0 .. rightArea - 1]]
         (modul, opcode) = encodePrim prim
-        rightArea = 2
+        leftArea  = 2
         frontArea = modul
-        leftArea  = opcode
+        rightArea = opcode
 
         left   = move 1 U center
         center = Pos 0 1
