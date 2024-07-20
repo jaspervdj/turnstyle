@@ -4,6 +4,7 @@ mkShell rec {
   buildInputs = [
     cabal-install
     haskell.compiler.ghc963
+    nodejs
     pkg-config
     zlib
   ] ++ lib.optionals stdenv.isDarwin (with darwin.apple_sdk.frameworks; [
