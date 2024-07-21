@@ -233,6 +233,11 @@ class Parser {
             this._color(this._rightPixel()),
         );
         switch (pattern) {
+            case Pattern.ABAC:
+                return new ApplicationExpression(
+                    this._leftParser(),
+                    this._frontParser(),
+                );
             case Pattern.ABCA:
                 return new ApplicationExpression(
                     this._leftParser(),
@@ -243,8 +248,17 @@ class Parser {
                     this._frontParser(),
                     this._rightParser(),
                 );
+            case Pattern.ABBC:
+                return new LambdaExpression(
+                    this._color(this._centerPixel()),
+                    this._frontParser(),
+                );
+            case Pattern.AABA:
+                return new VariableExpression(this._color(this._frontPixel()));
+            case Pattern.ABAA:
+                return new VariableExpression(this._color(this._centerPixel()));
             case Pattern.ABCD:
-                const left = this._area(this._leftPixel());
+                const left  = this._area(this._leftPixel());
                 const front = this._area(this._frontPixel());
                 const right = this._area(this._rightPixel());
                 if (left === 1) {
@@ -255,6 +269,12 @@ class Parser {
                 } else {
                     throw new Error(`Unhandled symbol: ${left}`);
                 }
+            case Pattern.AAAA:
+                return new IdentityExpression(this._frontParser());
+            case Pattern.AABB:
+                return new IdentityExpression(this._leftParser());
+            case Pattern.ABAB:
+                return new IdentityExpression(this._rightParser());
             case Pattern.ABBA:
                 return new IdentityExpression(this._frontParser());
             default:
@@ -301,14 +321,19 @@ class Parser {
         const color = this._color(pos);
         let frontier = [pos];
         while (frontier.length > 0) {
+            const next = [];
             for (const p of frontier) {
+                if (!visited.has(p.toString())) {
+                    for (const n of p.neighbors()) {
+                        if (this._has(n) && !visited.has(n.toString()) &&
+                                this._color(n) === color) {
+                            next.push(n);
+                        }
+                    }
+                }
                 visited.add(p.toString());
             }
-            frontier = frontier.flatMap((p) =>
-                p.neighbors().filter((q) =>
-                    this._has(q) && this._color(q) === color &&
-                    !visited.has(q.toString()))
-            );
+            frontier = next;
         }
         return visited.size;
     }
@@ -324,6 +349,28 @@ class ApplicationExpression {
         const lhs = this._lhsParser.parse().toString();
         const rhs = this._rhsParser.parse().toString();
         return `(${lhs} ${rhs})`;
+    }
+}
+
+class LambdaExpression {
+    constructor(variable, bodyParser) {
+        this._variable = variable;
+        this._bodyParser = bodyParser;
+    }
+
+    toString() {
+        const body = this._bodyParser.parse().toString();
+        return `(\\${this._variable} -> ${body})`;
+    }
+}
+
+class VariableExpression {
+    constructor(variable) {
+        this._variable = variable;
+    }
+
+    toString() {
+        return this._variable;
     }
 }
 
