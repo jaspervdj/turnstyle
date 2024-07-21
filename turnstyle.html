@@ -18,8 +18,7 @@
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
             const parser = new Parser(imageData);
-            console.log(parser.parse());
-            console.log(parser.parse().eval());
+            console.log(parser.parse().toString());
         };
 
         img.onerror = (err) => {

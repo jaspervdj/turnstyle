@@ -66,10 +66,6 @@ class Position {
         this.y = y;
     }
 
-    up() {
-        return new Position(this.x, this.y - 1);
-    }
-
     right() {
         return new Position(this.x + 1, this.y);
     }
@@ -80,6 +76,14 @@ class Position {
 
     left() {
         return new Position(this.x - 1, this.y);
+    }
+
+    up() {
+        return new Position(this.x, this.y - 1);
+    }
+
+    neighbors() {
+        return [this.right(), this.down(), this.left(), this.up()];
     }
 
     toString() {
@@ -94,16 +98,21 @@ const Direction = {
     UP: Symbol("UP"),
 };
 
+const turnLeft = (dir) => {
+    switch (dir) {
+        case Direction.RIGHT: return Direction.UP;
+        case Direction.DOWN:  return Direction.RIGHT;
+        case Direction.LEFT:  return Direction.DOWN;
+        case Direction.UP:    return Direction.LEFT;
+    }
+};
+
 const turnRight = (dir) => {
     switch (dir) {
-        case Direction.RIGHT:
-            return Direction.DOWN;
-        case Direction.DOWN:
-            return Direction.LEFT;
-        case Direction.LEFT:
-            return Direction.UP;
-        case Direction.UP:
-            return Direction.RIGHT;
+        case Direction.RIGHT: return Direction.DOWN;
+        case Direction.DOWN:  return Direction.LEFT;
+        case Direction.LEFT:  return Direction.UP;
+        case Direction.UP:    return Direction.RIGHT;
     }
 };
 
@@ -183,14 +192,10 @@ class Parser {
 
     _leftPixel() {
         switch (this._dir) {
-            case Direction.RIGHT:
-                return this._pos.up();
-            case Direction.DOWN:
-                return this._pos.right();
-            case Direction.LEFT:
-                return this._pos.down();
-            case Direction.UP:
-                return this._pos.left();
+            case Direction.RIGHT: return this._pos.up();
+            case Direction.DOWN:  return this._pos.right();
+            case Direction.LEFT:  return this._pos.down();
+            case Direction.UP:    return this._pos.left();
         }
     }
 
@@ -200,14 +205,10 @@ class Parser {
 
     _frontPixel() {
         switch (this._dir) {
-            case Direction.RIGHT:
-                return this._pos.right();
-            case Direction.DOWN:
-                return this._pos.down();
-            case Direction.LEFT:
-                return this._pos.left();
-            case Direction.UP:
-                return this._pos.up();
+            case Direction.RIGHT: return this._pos.right();
+            case Direction.DOWN:  return this._pos.down();
+            case Direction.LEFT:  return this._pos.left();
+            case Direction.UP:    return this._pos.up();
         }
     }
 
@@ -232,11 +233,28 @@ class Parser {
             this._color(this._rightPixel()),
         );
         switch (pattern) {
+            case Pattern.ABCA:
+                return new ApplicationExpression(
+                    this._leftParser(),
+                    this._rightParser(),
+                );
             case Pattern.ABCC:
                 return new ApplicationExpression(
                     this._frontParser(),
                     this._rightParser(),
                 );
+            case Pattern.ABCD:
+                const left = this._area(this._leftPixel());
+                const front = this._area(this._frontPixel());
+                const right = this._area(this._rightPixel());
+                if (left === 1) {
+                    const n = BigInt(front) ** BigInt(right);
+                    return new LiteralExpression(new Rational(n, 1n));
+                } else if (left === 2) {
+                    return new PrimitiveExpression(front, right);
+                } else {
+                    throw new Error(`Unhandled symbol: ${left}`);
+                }
             case Pattern.ABBA:
                 return new IdentityExpression(this._frontParser());
             default:
@@ -244,8 +262,29 @@ class Parser {
         }
     }
 
+    _leftParser() {
+        return new Parser(
+            this._imageData,
+            this._leftPixel(),
+            turnLeft(this._dir),
+        );
+    }
+
     _frontParser() {
         return new Parser(this._imageData, this._frontPixel(), this._dir);
+    }
+
+    _rightParser() {
+        return new Parser(
+            this._imageData,
+            this._rightPixel(),
+            turnRight(this._dir),
+        );
+    }
+
+    _has(pos) {
+        return pos.x >= 0 && pos.x < this._imageData.width &&
+            pos.y >= 0 && pos.y < this._imageData.height;
     }
 
     _color(pos) {
@@ -256,6 +295,57 @@ class Parser {
         const ha = this._imageData.data[o + 3].toString(16).padStart(2, "0");
         return `#${hr}${hg}${hb}${ha}`;
     }
+
+    _area(pos) {
+        const visited = new Set();
+        const color = this._color(pos);
+        let frontier = [pos];
+        while (frontier.length > 0) {
+            for (const p of frontier) {
+                visited.add(p.toString());
+            }
+            frontier = frontier.flatMap((p) =>
+                p.neighbors().filter((q) =>
+                    this._has(q) && this._color(q) === color &&
+                    !visited.has(q.toString()))
+            );
+        }
+        return visited.size;
+    }
+}
+
+class ApplicationExpression {
+    constructor(lhsParser, rhsParser) {
+        this._lhsParser = lhsParser;
+        this._rhsParser = rhsParser;
+    }
+
+    toString() {
+        const lhs = this._lhsParser.parse().toString();
+        const rhs = this._rhsParser.parse().toString();
+        return `(${lhs} ${rhs})`;
+    }
+}
+
+class PrimitiveExpression {
+    constructor(module, opcode) {
+        this._module = module;
+        this._opcode = opcode;
+    }
+
+    toString() {
+        return `Prim(${this._module}, ${this._opcode})`;
+    }
+}
+
+class LiteralExpression {
+    constructor(value) {
+        this._value = value;
+    }
+
+    toString() {
+        return this._value.toString();
+    }
 }
 
 class IdentityExpression {
@@ -263,7 +353,7 @@ class IdentityExpression {
         this._parser = parser;
     }
 
-    eval() {
-        return this._parser.parse().eval();
+    toString() {
+        return this._parser.parse().toString();
     }
 }
