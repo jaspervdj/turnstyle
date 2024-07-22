@@ -182,11 +182,33 @@ const parsePattern = (a, x, y, z) => {
     }
 };
 
-class Parser {
-    constructor(imageData, pos, dir) {
+class ImageDataSource {
+    constructor(imageData) {
         this._imageData = imageData;
-        const height = this._imageData.height;
-        this._pos = pos ? pos : new Position(0, Math.floor(height / 2));
+    }
+
+    get width() {
+        return this._imageData.width;
+    }
+
+    get height() {
+        return this._imageData.width;
+    }
+
+    color(pos) {
+        const o = (pos.y * this._imageData.width + pos.x) * 4;
+        const hr = this._imageData.data[o    ].toString(16).padStart(2, "0");
+        const hg = this._imageData.data[o + 1].toString(16).padStart(2, "0");
+        const hb = this._imageData.data[o + 2].toString(16).padStart(2, "0");
+        const ha = this._imageData.data[o + 3].toString(16).padStart(2, "0");
+        return `#${hr}${hg}${hb}${ha}`;
+    }
+}
+
+class Parser {
+    constructor(src, pos, dir) {
+        this._src = src;
+        this._pos = pos ? pos : new Position(0, Math.floor(src.height / 2));
         this._dir = dir ? dir : Direction.RIGHT;
     }
 
@@ -227,10 +249,10 @@ class Parser {
 
     parse() {
         const pattern = parsePattern(
-            this._color(this._leftPixel()),
-            this._color(this._centerPixel()),
-            this._color(this._frontPixel()),
-            this._color(this._rightPixel()),
+            this._src.color(this._leftPixel()),
+            this._src.color(this._centerPixel()),
+            this._src.color(this._frontPixel()),
+            this._src.color(this._rightPixel()),
         );
         switch (pattern) {
             case Pattern.ABAC:
@@ -288,42 +310,25 @@ class Parser {
     }
 
     _leftParser() {
-        return new Parser(
-            this._imageData,
-            this._leftPixel(),
-            turnLeft(this._dir),
-        );
+        return new Parser(this._src, this._leftPixel(), turnLeft(this._dir));
     }
 
     _frontParser() {
-        return new Parser(this._imageData, this._frontPixel(), this._dir);
+        return new Parser(this._src, this._frontPixel(), this._dir);
     }
 
     _rightParser() {
-        return new Parser(
-            this._imageData,
-            this._rightPixel(),
-            turnRight(this._dir),
-        );
+        return new Parser(this._src, this._rightPixel(), turnRight(this._dir));
     }
 
     _has(pos) {
-        return pos.x >= 0 && pos.x < this._imageData.width &&
-            pos.y >= 0 && pos.y < this._imageData.height;
-    }
-
-    _color(pos) {
-        const o = (pos.y * this._imageData.width + pos.x) * 4;
-        const hr = this._imageData.data[o    ].toString(16).padStart(2, "0");
-        const hg = this._imageData.data[o + 1].toString(16).padStart(2, "0");
-        const hb = this._imageData.data[o + 2].toString(16).padStart(2, "0");
-        const ha = this._imageData.data[o + 3].toString(16).padStart(2, "0");
-        return `#${hr}${hg}${hb}${ha}`;
+        return pos.x >= 0 && pos.x < this._src.width &&
+            pos.y >= 0 && pos.y < this._src.height;
     }
 
     _area(pos) {
         const visited = new Set();
-        const color = this._color(pos);
+        const color = this._src.color(pos);
         let frontier = [pos];
         while (frontier.length > 0) {
             const next = [];
@@ -331,7 +336,7 @@ class Parser {
                 if (!visited.has(p.toString())) {
                     for (const n of p.neighbors()) {
                         if (this._has(n) && !visited.has(n.toString()) &&
-                                this._color(n) === color) {
+                                this._src.color(n) === color) {
                             next.push(n);
                         }
                     }

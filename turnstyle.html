@@ -17,7 +17,7 @@
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-            const parser = new Parser(imageData);
+            const parser = new Parser(new ImageDataSource(imageData));
             console.log(parser.parse().toString());
         };
 
