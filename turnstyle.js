@@ -257,23 +257,23 @@ class Parser {
         switch (pattern) {
             case Pattern.ABAC:
                 return new ApplicationExpression(
-                    this._leftParser(),
-                    this._frontParser(),
+                    () => this._parseLeft().parse(),
+                    () => this._parseFront().parse(),
                 );
             case Pattern.ABCA:
                 return new ApplicationExpression(
-                    this._leftParser(),
-                    this._rightParser(),
+                    () => this._parseLeft().parse(),
+                    () => this._parseRight().parse(),
                 );
             case Pattern.ABCC:
                 return new ApplicationExpression(
-                    this._frontParser(),
-                    this._rightParser(),
+                    () => this._parseFront().parse(),
+                    () => this._parseRight().parse(),
                 );
             case Pattern.ABBC:
                 return new LambdaExpression(
                     this._color(this._centerPixel()),
-                    this._frontParser(),
+                    () => this._parseFront().parse(),
                 );
             case Pattern.AABA:
                 return new VariableExpression(this._color(this._frontPixel()));
@@ -297,27 +297,27 @@ class Parser {
                     throw new Error(`Unhandled symbol: ${left}`);
                 }
             case Pattern.AAAA:
-                return new IdentityExpression(this._frontParser());
+                return new IdentityExpression(() => this._parseFront().parse());
             case Pattern.AABB:
-                return new IdentityExpression(this._leftParser());
+                return new IdentityExpression(() => this._parseLeft().parse());
             case Pattern.ABAB:
-                return new IdentityExpression(this._rightParser());
+                return new IdentityExpression(() => this._parseRight().parse());
             case Pattern.ABBA:
-                return new IdentityExpression(this._frontParser());
+                return new IdentityExpression(() => this._parseFront().parse());
             default:
                 throw new Error(`Unhandled pattern: ${pattern.toString()}`);
         }
     }
 
-    _leftParser() {
+    _parseLeft() {
         return new Parser(this._src, this._leftPixel(), turnLeft(this._dir));
     }
 
-    _frontParser() {
+    _parseFront() {
         return new Parser(this._src, this._frontPixel(), this._dir);
     }
 
-    _rightParser() {
+    _parseRight() {
         return new Parser(this._src, this._rightPixel(), turnRight(this._dir));
     }
 
@@ -349,33 +349,50 @@ class Parser {
     }
 }
 
-class ApplicationExpression {
-    constructor(lhsParser, rhsParser) {
-        this._lhsParser = lhsParser;
-        this._rhsParser = rhsParser;
+class Expression {
+    whnf() {
+        return this;
+    }
+
+    apply(arg) {
+        return new ApplicationExpression(() => this, () => arg);
+    }
+
+    value() {
+        return null;
+    }
+}
+
+class ApplicationExpression extends Expression {
+    constructor(lhs, rhs) {
+        super()
+        this._lhs = lhs;
+        this._rhs = rhs;
     }
 
     toString() {
-        const lhs = this._lhsParser.parse().toString();
-        const rhs = this._rhsParser.parse().toString();
+        const lhs = this._lhs().toString();
+        const rhs = this._rhs().toString();
         return `(${lhs} ${rhs})`;
     }
 }
 
-class LambdaExpression {
-    constructor(variable, bodyParser) {
+class LambdaExpression extends Expression {
+    constructor(variable, body) {
+        super()
         this._variable = variable;
-        this._bodyParser = bodyParser;
+        this._body = body;
     }
 
     toString() {
-        const body = this._bodyParser.parse().toString();
+        const body = this._body().toString();
         return `(\\${this._variable} -> ${body})`;
     }
 }
 
-class VariableExpression {
+class VariableExpression extends Expression {
     constructor(variable) {
+        super()
         this._variable = variable;
     }
 
@@ -384,8 +401,9 @@ class VariableExpression {
     }
 }
 
-class PrimitiveExpression {
+class PrimitiveExpression extends Expression {
     constructor(primitive, args) {
+        super()
         this._primitive = primitive;
         this._args = args ? args : [];
     }
@@ -395,23 +413,29 @@ class PrimitiveExpression {
     }
 }
 
-class LiteralExpression {
+class LiteralExpression extends Expression {
     constructor(value) {
+        super()
         this._value = value;
     }
 
     toString() {
         return this._value.toString();
     }
+
+    value() {
+        return this._value;
+    }
 }
 
-class IdentityExpression {
-    constructor(parser) {
-        this._parser = parser;
+class IdentityExpression extends Expression {
+    constructor(expr) {
+        super()
+        this._expr = expr;
     }
 
     toString() {
-        return this._parser.parse().toString();
+        return this._expr().toString();
     }
 }
 
@@ -420,6 +444,11 @@ const PRIMITIVES = {
         2: {
             name: "num_sub",
             arity: 2,
+            implementation: (args) => {
+                const lhs = args[0].whnf().value();
+                const rhs = args[1].whnf().value();
+                return new LiteralExpression(lhs.subtract(rhs));
+            }
         }
     }
 };
