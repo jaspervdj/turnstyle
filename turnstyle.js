@@ -265,7 +265,12 @@ class Parser {
                     const n = BigInt(front) ** BigInt(right);
                     return new LiteralExpression(new Rational(n, 1n));
                 } else if (left === 2) {
-                    return new PrimitiveExpression(front, right);
+                    if (PRIMITIVES[front] && PRIMITIVES[front][right]) {
+                        const primitive = PRIMITIVES[front][right];
+                        return new PrimitiveExpression(primitive);
+                    } else {
+                        throw new Error(`Unknown primitive: ${front}/${right}`);
+                    }
                 } else {
                     throw new Error(`Unhandled symbol: ${left}`);
                 }
@@ -375,13 +380,13 @@ class VariableExpression {
 }
 
 class PrimitiveExpression {
-    constructor(module, opcode) {
-        this._module = module;
-        this._opcode = opcode;
+    constructor(primitive, args) {
+        this._primitive = primitive;
+        this._args = args ? args : [];
     }
 
     toString() {
-        return `Prim(${this._module}, ${this._opcode})`;
+        return this._primitive.name;
     }
 }
 
@@ -404,3 +409,12 @@ class IdentityExpression {
         return this._parser.parse().toString();
     }
 }
+
+const PRIMITIVES = {
+    3: {
+        2: {
+            name: "num_sub",
+            arity: 2,
+        }
+    }
+};
