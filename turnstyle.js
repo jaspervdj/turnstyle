@@ -375,6 +375,11 @@ class ApplicationExpression extends Expression {
         const rhs = this._rhs().toString();
         return `(${lhs} ${rhs})`;
     }
+
+    whnf() {
+        const lhs = this._lhs().whnf();
+        return lhs.apply(this._rhs());
+    }
 }
 
 class LambdaExpression extends Expression {
@@ -409,7 +414,21 @@ class PrimitiveExpression extends Expression {
     }
 
     toString() {
-        return this._primitive.name;
+        if (this._args.length === 0) {
+            return this._primitive.name;
+        } else {
+            return this._primitive.name + "(" +
+                this._args.map((a) => a.toString()).join(", ") + ")";
+        }
+    }
+
+    apply(arg) {
+        const args = [...this._args, arg]
+        if (args.length === this._primitive.arity) {
+            return this._primitive.implementation(args);
+        } else {
+            return new PrimitiveExpression(this._primitive, args);
+        }
     }
 }
 
@@ -436,6 +455,10 @@ class IdentityExpression extends Expression {
 
     toString() {
         return this._expr().toString();
+    }
+
+    whnf() {
+        return this._expr().whnf();
     }
 }
 
