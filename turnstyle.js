@@ -269,47 +269,67 @@ class Parser {
                 return new ApplicationExpression(
                     () => this._parseLeft().parse(),
                     () => this._parseFront().parse(),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.ABCA:
                 return new ApplicationExpression(
                     () => this._parseLeft().parse(),
                     () => this._parseRight().parse(),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.ABCC:
                 return new ApplicationExpression(
                     () => this._parseFront().parse(),
                     () => this._parseRight().parse(),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.AABC:
                 return new LambdaExpression(
                     this._color(this._rightPixel()),
                     () => this._parseLeft().parse(),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.ABBC:
                 return new LambdaExpression(
                     this._color(this._centerPixel()),
                     () => this._parseFront().parse(),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.ABCB:
                 return new LambdaExpression(
                     this._color(this._leftPixel()),
                     () => this._parseRight().parse(),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.AAAB:
                 return new VariableExpression(
                     this._color(this._rightPixel()),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.AABA:
                 return new VariableExpression(
                     this._color(this._frontPixel()),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.ABAA:
                 return new VariableExpression(
                     this._color(this._centerPixel()),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.ABBB:
                 return new VariableExpression(
                     this._color(this._leftPixel()),
+                    this._pos,
+                    this._dir,
                 );
             case Pattern.ABCD:
                 const left  = this._area(this._leftPixel());
@@ -317,11 +337,20 @@ class Parser {
                 const right = this._area(this._rightPixel());
                 if (left === 1) {
                     const n = BigInt(front) ** BigInt(right);
-                    return new LiteralExpression(new Rational(n, 1n));
+                    return new LiteralExpression(
+                        new Rational(n, 1n),
+                        this._pos,
+                        this._dir,
+                    );
                 } else if (left === 2) {
                     if (PRIMITIVES[front] && PRIMITIVES[front][right]) {
                         const primitive = PRIMITIVES[front][right];
-                        return new PrimitiveExpression(primitive);
+                        return new PrimitiveExpression(
+                            primitive,
+                            [],
+                            this._pos,
+                            this._dir,
+                        );
                     } else {
                         throw new Error(`Unknown primitive: ${front}/${right}`);
                     }
@@ -329,13 +358,29 @@ class Parser {
                     throw new Error(`Unhandled symbol: ${left}`);
                 }
             case Pattern.AAAA:
-                return new IdentityExpression(() => this._parseFront().parse());
+                return new IdentityExpression(
+                    () => this._parseFront().parse(),
+                    this._pos,
+                    this._dir,
+                );
             case Pattern.AABB:
-                return new IdentityExpression(() => this._parseLeft().parse());
+                return new IdentityExpression(
+                    () => this._parseLeft().parse(),
+                    this._pos,
+                    this._dir,
+                );
             case Pattern.ABAB:
-                return new IdentityExpression(() => this._parseRight().parse());
+                return new IdentityExpression(
+                    () => this._parseRight().parse(),
+                    this._pos,
+                    this._dir,
+                );
             case Pattern.ABBA:
-                return new IdentityExpression(() => this._parseFront().parse());
+                return new IdentityExpression(
+                    () => this._parseFront().parse(),
+                    this._pos,
+                    this._dir,
+                );
             default:
                 throw new Error(`Unhandled pattern: ${pattern.toString()}`);
         }
@@ -386,12 +431,31 @@ class Parser {
 }
 
 class Expression {
+    constructor(pos, dir) {
+        this._pos = pos;
+        this._dir = dir;
+    }
+
+    get position() {
+        return this._pos;
+    }
+
+    get direction() {
+        return this._dir;
+    }
+
     async whnf(ctx) {
+        await ctx.onWhnf(this);
         return this;
     }
 
     async apply(ctx, arg) {
-        return new ApplicationExpression(() => this, () => arg);
+        return new ApplicationExpression(
+            () => this,
+            () => arg,
+            this.position,
+            this.direction,
+        );
     }
 
     freeVars() {
@@ -412,8 +476,8 @@ class Expression {
 }
 
 class ApplicationExpression extends Expression {
-    constructor(lhsf, rhsf) {
-        super()
+    constructor(lhsf, rhsf, pos, dir) {
+        super(pos, dir);
         this._lhsf = lhsf;
         this._rhsf = rhsf;
     }
@@ -439,6 +503,7 @@ class ApplicationExpression extends Expression {
     }
 
     async whnf(ctx) {
+        await ctx.onWhnf(this);
         const lhs = await this.lhs.whnf(ctx);
         return lhs.apply(ctx, this.rhs);
     }
@@ -455,13 +520,15 @@ class ApplicationExpression extends Expression {
         return new ApplicationExpression(
             () => this.lhs.subst(x, s),
             () => this.rhs.subst(x, s),
+            this.position,
+            this.direction,
         );
     }
 }
 
 class LambdaExpression extends Expression {
-    constructor(variable, bodyf) {
-        super()
+    constructor(variable, bodyf, pos, dir) {
+        super(pos, dir);
         this._variable = variable;
         this._bodyf = bodyf;
     }
@@ -515,6 +582,8 @@ class LambdaExpression extends Expression {
                 () => body.
                     subst(this._variable, new VariableExpression(variable)).
                     subst(x, s),
+                this.position,
+                this.direction,
             )
         }
 
@@ -522,13 +591,15 @@ class LambdaExpression extends Expression {
             // Continue substitution
             this._variable,
             () => this.body.subst(x, s),
+            this.position,
+            this.direction,
         );
     }
 }
 
 class VariableExpression extends Expression {
-    constructor(variable) {
-        super()
+    constructor(variable, pos, dir) {
+        super(pos, dir);
         this._variable = variable;
     }
 
@@ -554,8 +625,8 @@ class VariableExpression extends Expression {
 }
 
 class PrimitiveExpression extends Expression {
-    constructor(primitive, args) {
-        super()
+    constructor(primitive, args, pos, dir) {
+        super(pos, dir);
         this._primitive = primitive;
         this._args = args ? args : [];
     }
@@ -574,14 +645,19 @@ class PrimitiveExpression extends Expression {
         if (args.length === this._primitive.arity) {
             return this._primitive.implementation(ctx, args);
         } else {
-            return new PrimitiveExpression(this._primitive, args);
+            return new PrimitiveExpression(
+                this._primitive,
+                args,
+                this.position,
+                this.direction
+            );
         }
     }
 }
 
 class LiteralExpression extends Expression {
-    constructor(value) {
-        super()
+    constructor(value, pos, dir) {
+        super(pos, dir);
         this._value = value;
     }
 
@@ -595,8 +671,8 @@ class LiteralExpression extends Expression {
 }
 
 class IdentityExpression extends Expression {
-    constructor(exprf) {
-        super()
+    constructor(exprf, pos, dir) {
+        super(pos, dir);
         this._exprf = exprf;
     }
 
@@ -612,7 +688,8 @@ class IdentityExpression extends Expression {
     }
 
     async whnf(ctx) {
-        return this.expr.whnf(ctx);
+        await ctx.onWhnf(this);
+        return await this.expr.whnf(ctx);
     }
 
     freeVars() {
@@ -624,7 +701,11 @@ class IdentityExpression extends Expression {
     }
 
     subst(x, s) {
-        return new IdentityExpression(() => this.expr.subst(x, s));
+        return new IdentityExpression(
+            () => this.expr.subst(x, s),
+            this.position,
+            this.direction,
+        );
     }
 }
 
@@ -699,13 +780,14 @@ class AnnotatedView {
         this._ns = "http://www.w3.org/2000/svg";
         this._src = src;
         this._factor = 10;
+        this._focus = null;
         this._svg = document.createElementNS(this._ns, "svg");
         this._svg.setAttribute("width", this._factor * src.width);
         this._svg.setAttribute("height", this._factor * src.height);
         this._svg.setAttribute("viewBox", `0 0 ${src.width} ${src.height}`);
 
         for (let y = 0; y < this._src.height; y++) {
-            for (let x = 0; x < this._src.height; x++) {
+            for (let x = 0; x < this._src.width; x++) {
                 const alpha = this._src.rgba(x, y)[3];
                 if (alpha > 0) {
                     const rect = this._doc.createElementNS(this._ns, "rect");
@@ -723,5 +805,43 @@ class AnnotatedView {
 
     get svg() {
         return this._svg;
+    }
+
+    focus(pos, dir) {
+        if (!pos || !dir) {
+            return;
+        }
+
+        if (this._focus) {
+            this._svg.removeChild(this._focus);
+        }
+
+        const points = [
+            [0, -1],
+            [1, -1],
+            [1, 0],
+            [2, 0],
+            [2, 1],
+            [1, 1],
+            [1, 2],
+            [0, 2],
+            [0, -1],
+        ].map(([x, y]) => {
+            switch (dir) {
+                case Direction.RIGHT: return [x, y];
+                case Direction.DOWN:  return [y, x];
+                case Direction.LEFT:  return [1 - x, y];
+                case Direction.UP:    return [1 - y, 1 - x];
+            }
+        }).map((xy) => xy.join(",")).join(" ");
+
+        const rect = this._doc.createElementNS(this._ns, "polyline");
+        rect.setAttribute("fill", "none");
+        rect.setAttribute("stroke", "black");
+        rect.setAttribute("stroke-width", "0.1");
+        rect.setAttribute("transform", `translate(${pos.x} ${pos.y})`);
+        rect.setAttribute("points", points);
+        this._focus = rect;
+        this._svg.appendChild(this._focus);
     }
 }

@@ -7,6 +7,8 @@
 <body>
     <canvas id="canvas" style="display:none;"></canvas>
     <script>
+        let view;
+
         const evalCtx = {
             inputNumber: () => {
                 return new Promise((resolve, reject) => {
@@ -32,6 +34,10 @@
                     });
                 });
             },
+            onWhnf: async (expr) => {
+                await new Promise(r => setTimeout(r, 500));
+                view.focus(expr.position, expr.direction);
+            }
         }
 
         const img = new Image();
@@ -45,7 +51,7 @@
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             const src = new ImageDataSource(imageData);
 
-            const view = new AnnotatedView(document, src);
+            view = new AnnotatedView(document, src);
             document.body.appendChild(view.svg);
 
             const parser = new Parser(src);
@@ -57,7 +63,7 @@
             console.error("Failed to load image.");
         };
 
-        img.src = "a.png";
+        img.src = "examples/loop.png";
 
     </script>
 </body>
