@@ -43,8 +43,12 @@
             const ctx = canvas.getContext("2d");
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const src = new ImageDataSource(imageData);
 
-            const parser = new Parser(new ImageDataSource(imageData));
+            const view = new AnnotatedView(document, src);
+            document.body.appendChild(view.svg);
+
+            const parser = new Parser(src);
             const expr = parser.parse();
             console.log(expr.whnf(evalCtx));
         };
@@ -53,7 +57,8 @@
             console.error("Failed to load image.");
         };
 
-        img.src = "examples/loop.png";
+        img.src = "a.png";
+
     </script>
 </body>
 </html>

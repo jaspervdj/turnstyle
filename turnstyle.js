@@ -195,12 +195,22 @@ class ImageDataSource {
         return this._imageData.height;
     }
 
-    color(pos) {
-        const o = (pos.y * this._imageData.width + pos.x) * 4;
-        const hr = this._imageData.data[o    ].toString(16).padStart(2, "0");
-        const hg = this._imageData.data[o + 1].toString(16).padStart(2, "0");
-        const hb = this._imageData.data[o + 2].toString(16).padStart(2, "0");
-        const ha = this._imageData.data[o + 3].toString(16).padStart(2, "0");
+    rgba(x, y) {
+        const o = (y * this._imageData.width + x) * 4;
+        return [
+            this._imageData.data[o],
+            this._imageData.data[o + 1],
+            this._imageData.data[o + 2],
+            this._imageData.data[o + 3],
+        ];
+    }
+
+    hex(x, y) {
+        const rgba = this.rgba(x, y);
+        const hr = rgba[0].toString(16).padStart(2, "0");
+        const hg = rgba[1].toString(16).padStart(2, "0");
+        const hb = rgba[2].toString(16).padStart(2, "0");
+        const ha = rgba[3].toString(16).padStart(2, "0");
         return `#${hr}${hg}${hb}${ha}`;
     }
 }
@@ -249,10 +259,10 @@ class Parser {
 
     parse() {
         const pattern = parsePattern(
-            this._src.color(this._leftPixel()),
-            this._src.color(this._centerPixel()),
-            this._src.color(this._frontPixel()),
-            this._src.color(this._rightPixel()),
+            this._color(this._leftPixel()),
+            this._color(this._centerPixel()),
+            this._color(this._frontPixel()),
+            this._color(this._rightPixel()),
         );
         switch (pattern) {
             case Pattern.ABAC:
@@ -272,34 +282,34 @@ class Parser {
                 );
             case Pattern.AABC:
                 return new LambdaExpression(
-                    this._src.color(this._rightPixel()),
+                    this._color(this._rightPixel()),
                     () => this._parseLeft().parse(),
                 );
             case Pattern.ABBC:
                 return new LambdaExpression(
-                    this._src.color(this._centerPixel()),
+                    this._color(this._centerPixel()),
                     () => this._parseFront().parse(),
                 );
             case Pattern.ABCB:
                 return new LambdaExpression(
-                    this._src.color(this._leftPixel()),
+                    this._color(this._leftPixel()),
                     () => this._parseRight().parse(),
                 );
             case Pattern.AAAB:
                 return new VariableExpression(
-                    this._src.color(this._rightPixel()),
+                    this._color(this._rightPixel()),
                 );
             case Pattern.AABA:
                 return new VariableExpression(
-                    this._src.color(this._frontPixel()),
+                    this._color(this._frontPixel()),
                 );
             case Pattern.ABAA:
                 return new VariableExpression(
-                    this._src.color(this._centerPixel()),
+                    this._color(this._centerPixel()),
                 );
             case Pattern.ABBB:
                 return new VariableExpression(
-                    this._src.color(this._leftPixel()),
+                    this._color(this._leftPixel()),
                 );
             case Pattern.ABCD:
                 const left  = this._area(this._leftPixel());
@@ -343,6 +353,10 @@ class Parser {
         return new Parser(this._src, this._rightPixel(), turnRight(this._dir));
     }
 
+    _color(pos) {
+        return this._src.hex(pos.x, pos.y);
+    }
+
     _has(pos) {
         return pos.x >= 0 && pos.x < this._src.width &&
             pos.y >= 0 && pos.y < this._src.height;
@@ -350,7 +364,7 @@ class Parser {
 
     _area(pos) {
         const visited = new Set();
-        const color = this._src.color(pos);
+        const color = this._color(pos);
         let frontier = [pos];
         while (frontier.length > 0) {
             const next = [];
@@ -358,7 +372,7 @@ class Parser {
                 if (!visited.has(p.toString())) {
                     for (const n of p.neighbors()) {
                         if (this._has(n) && !visited.has(n.toString()) &&
-                                this._src.color(n) === color) {
+                                this._color(n) === color) {
                             next.push(n);
                         }
                     }
@@ -678,3 +692,36 @@ const PRIMITIVES = {
         },
     },
 };
+
+class AnnotatedView {
+    constructor(document, src) {
+        this._doc = document;
+        this._ns = "http://www.w3.org/2000/svg";
+        this._src = src;
+        this._factor = 10;
+        this._svg = document.createElementNS(this._ns, "svg");
+        this._svg.setAttribute("width", this._factor * src.width);
+        this._svg.setAttribute("height", this._factor * src.height);
+        this._svg.setAttribute("viewBox", `0 0 ${src.width} ${src.height}`);
+
+        for (let y = 0; y < this._src.height; y++) {
+            for (let x = 0; x < this._src.height; x++) {
+                const alpha = this._src.rgba(x, y)[3];
+                if (alpha > 0) {
+                    const rect = this._doc.createElementNS(this._ns, "rect");
+                    rect.setAttribute("x", x);
+                    rect.setAttribute("y", y);
+                    rect.setAttribute("width", "1");
+                    rect.setAttribute("height", "1");
+                    rect.setAttribute("fill", this._src.hex(x, y));
+                    rect.setAttribute("stroke", "none");
+                    this._svg.appendChild(rect);
+                }
+            }
+        }
+    }
+
+    get svg() {
+        return this._svg;
+    }
+}
