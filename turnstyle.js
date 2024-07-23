@@ -585,8 +585,7 @@ const PRIMITIVES = {
             name: "out_num",
             arity: 2,
             implementation: (args) => {
-                const lhs = args[0].whnf().value();
-                console.log(lhs);
+                console.log(args[0].whnf().value().toString());
                 return args[1].whnf();  // TODO: Needs TCO
             },
         },
