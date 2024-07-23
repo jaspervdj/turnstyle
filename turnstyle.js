@@ -640,8 +640,8 @@ const PRIMITIVES = {
             name: "num_sub",
             arity: 2,
             implementation: async (args) => {
-                const lhs = args[0].whnf();
-                const rhs = args[1].whnf();
+                const lhs = await args[0].whnf();
+                const rhs = await args[1].whnf();
                 return new LiteralExpression(lhs.value().subtract(rhs.value()));
             },
         },
@@ -649,8 +649,8 @@ const PRIMITIVES = {
             name: "num_mul",
             arity: 2,
             implementation: async (args) => {
-                const lhs = args[0].whnf();
-                const rhs = args[1].whnf();
+                const lhs = await args[0].whnf();
+                const rhs = await args[1].whnf();
                 return new LiteralExpression(lhs.value().multiply(rhs.value()));
             },
         },
@@ -658,8 +658,8 @@ const PRIMITIVES = {
             name: "num_div",
             arity: 2,
             implementation: async (args) => {
-                const lhs = args[0].whnf();
-                const rhs = args[1].whnf();
+                const lhs = await args[0].whnf();
+                const rhs = await args[1].whnf();
                 return new LiteralExpression(lhs.value().divide(rhs.value()));
             },
         },
