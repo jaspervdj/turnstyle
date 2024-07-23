@@ -398,64 +398,85 @@ class Expression {
 }
 
 class ApplicationExpression extends Expression {
-    constructor(lhs, rhs) {
+    constructor(lhsf, rhsf) {
         super()
-        this._lhs = lhs;
-        this._rhs = rhs;
+        this._lhsf = lhsf;
+        this._rhsf = rhsf;
+    }
+
+    get lhs() {
+        if (!this._lhs) {
+            this._lhs = this._lhsf();
+        }
+        return this._lhs;
+    }
+
+    get rhs() {
+        if (!this._rhs) {
+            this._rhs = this._rhsf();
+        }
+        return this._rhs;
     }
 
     toString() {
-        const lhs = this._lhs().toString();
-        const rhs = this._rhs().toString();
+        const lhs = this.lhs.toString();
+        const rhs = this.rhs.toString();
         return `(${lhs} ${rhs})`;
     }
 
     whnf() {
-        const lhs = this._lhs().whnf();
-        return lhs.apply(this._rhs());
+        const lhs = this.lhs.whnf();
+        return lhs.apply(this.rhs);
     }
 
     freeVars() {
-        return this._lhs().freeVars().union(this._rhs().freeVars());
+        return this.lhs.freeVars().union(this.rhs.freeVars());
     }
 
     allVars() {
-        return this._lhs().allVars().union(this._rhs().allVars());
+        return this.lhs.allVars().union(this.rhs.allVars());
     }
 
     subst(x, s) {
         return new ApplicationExpression(
-            () => this._lhs().subst(x, s),
-            () => this._rhs().subst(x, s),
+            () => this.lhs.subst(x, s),
+            () => this.rhs.subst(x, s),
         );
     }
 }
 
 class LambdaExpression extends Expression {
-    constructor(variable, body) {
+    constructor(variable, bodyf) {
         super()
         this._variable = variable;
-        this._body = body;
+        this._bodyf = bodyf;
+    }
+
+    get body() {
+        if (!this._body) {
+            this._body = this._bodyf()
+        }
+        return this._body;
     }
 
     toString() {
-        const body = this._body().toString();
+        const body = this.body.toString();
         return `(\\${this._variable} -> ${body})`;
     }
 
     apply(arg) {
         // TODO: second `whnf()` needs TCO.
-        return this._body().subst(this._variable, arg).whnf();
+        return this.body.subst(this._variable, arg).whnf();
     }
 
     freeVars() {
-        const fvs = this._body().freeVars();
+        const fvs = this.body.freeVars();
         fvs.delete(this._variable);
         return fvs;
     }
 
     allVars() {
-        const avs = this._body().allVars();
+        const avs = this.body.allVars();
         avs.add(this._variable);
         return avs;
     }
@@ -469,7 +490,7 @@ class LambdaExpression extends Expression {
         const fvs = s.freeVars();
         if (fvs.has(this._variable)) {
             // Avoid capturing `this._variable`
-            const body = this._body();
+            const body = this.body;
             const avs = fvs.union(body.allVars());
             let fresh = 0;
             while (avs.has(`fresh_${fresh}`)) {
@@ -487,7 +508,7 @@ class LambdaExpression extends Expression {
         return new LambdaExpression(
             // Continue substitution
             this._variable,
-            () => this._body().subst(x, s),
+            () => this.body.subst(x, s),
         );
     }
 }
@@ -561,29 +582,36 @@ class LiteralExpression extends Expression {
 }
 
 class IdentityExpression extends Expression {
-    constructor(expr) {
+    constructor(exprf) {
         super()
-        this._expr = expr;
+        this._exprf = exprf;
+    }
+
+    get expr() {
+        if (!this._expr) {
+            this._expr = this._exprf()
+        }
+        return this._expr;
     }
 
     toString() {
-        return this._expr().toString();
+        return this.expr.toString();
     }
 
     whnf() {
-        return this._expr().whnf();
+        return this.expr.whnf();
     }
 
     freeVars() {
-        return this._expr().freeVars();
+        return this.expr.freeVars();
     }
 
     allVars() {
-        return this._expr().freeVars();
+        return this.expr.freeVars();
     }
 
     subst(x, s) {
-        return new IdentityExpression(() => this._expr().subst(x, s));
+        return new IdentityExpression(() => this.expr.subst(x, s));
     }
 }
 
