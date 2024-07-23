@@ -285,13 +285,21 @@ class Parser {
                     this._src.color(this._leftPixel()),
                     () => this._parseRight().parse(),
                 );
+            case Pattern.AAAB:
+                return new VariableExpression(
+                    this._src.color(this._rightPixel()),
+                );
             case Pattern.AABA:
                 return new VariableExpression(
-                    this._src.color(this._frontPixel())
+                    this._src.color(this._frontPixel()),
                 );
             case Pattern.ABAA:
                 return new VariableExpression(
-                    this._src.color(this._centerPixel())
+                    this._src.color(this._centerPixel()),
+                );
+            case Pattern.ABBB:
+                return new VariableExpression(
+                    this._src.color(this._leftPixel()),
                 );
             case Pattern.ABCD:
                 const left  = this._area(this._leftPixel());
