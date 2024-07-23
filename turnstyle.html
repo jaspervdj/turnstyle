@@ -19,15 +19,14 @@
 
             const parser = new Parser(new ImageDataSource(imageData));
             const expr = parser.parse();
-            console.log(expr.toString());
-            console.log(expr.whnf().toString());
+            console.log(expr.whnf());
         };
 
         img.onerror = (err) => {
             console.error('Failed to load image.');
         };
 
-        img.src = "examples/pi.png";
+        img.src = "examples/loop.png";
     </script>
 </body>
 </html>

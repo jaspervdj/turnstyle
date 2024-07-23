@@ -270,10 +270,20 @@ class Parser {
                     () => this._parseFront().parse(),
                     () => this._parseRight().parse(),
                 );
+            case Pattern.AABC:
+                return new LambdaExpression(
+                    this._src.color(this._rightPixel()),
+                    () => this._parseLeft().parse(),
+                );
             case Pattern.ABBC:
                 return new LambdaExpression(
                     this._src.color(this._centerPixel()),
                     () => this._parseFront().parse(),
+                );
+            case Pattern.ABCB:
+                return new LambdaExpression(
+                    this._src.color(this._leftPixel()),
+                    () => this._parseRight().parse(),
                 );
             case Pattern.AABA:
                 return new VariableExpression(
