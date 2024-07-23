@@ -779,12 +779,18 @@ class AnnotatedView {
         this._doc = document;
         this._ns = "http://www.w3.org/2000/svg";
         this._src = src;
-        this._factor = 10;
+        this._factor = 20;
+        this._padding = 0.1;
         this._focus = null;
         this._svg = document.createElementNS(this._ns, "svg");
-        this._svg.setAttribute("width", this._factor * src.width);
-        this._svg.setAttribute("height", this._factor * src.height);
-        this._svg.setAttribute("viewBox", `0 0 ${src.width} ${src.height}`);
+        const width = src.width + this._padding * 2;
+        const height = src.height + this._padding * 2;
+        this._svg.setAttribute("width", this._factor * width);
+        this._svg.setAttribute("height", this._factor * height);
+        this._svg.setAttribute(
+            "viewBox",
+            `-${this._padding} -${this._padding} ${width} ${height}`,
+        );
 
         for (let y = 0; y < this._src.height; y++) {
             for (let x = 0; x < this._src.width; x++) {
@@ -845,3 +851,62 @@ class AnnotatedView {
         this._svg.appendChild(this._focus);
     }
 }
+
+const runTurnstyle = (document, element, src) => {
+    let view;
+
+    const evalCtx = {
+        inputNumber: () => {
+            return new Promise((resolve, reject) => {
+                const form = document.createElement("form");
+                const input = document.createElement("input");
+                input.type = "text";
+                form.appendChild(input);
+                const submit = document.createElement("button");
+                submit.type = "submit";
+                submit.textContent = "submit";
+                form.appendChild(submit);
+                document.body.appendChild(form);
+
+                form.addEventListener("submit", (event) => {
+                    event.preventDefault();
+                    const value = input.value;
+                    if (value) {
+                        document.body.removeChild(form);
+                        resolve(Number(value));
+                    } else {
+                        reject("Input is empty");
+                    }
+                });
+            });
+        },
+        onWhnf: async (expr) => {
+            await new Promise(r => setTimeout(r, 500));
+            view.focus(expr.position, expr.direction);
+        }
+    }
+
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const src = new ImageDataSource(imageData);
+
+        view = new AnnotatedView(document, src);
+        element.replaceWith(view.svg);
+
+        const parser = new Parser(src);
+        const expr = parser.parse();
+        console.log(expr.whnf(evalCtx));
+    };
+
+    img.onerror = (err) => {
+        console.error("Failed to load image.");
+    };
+    img.src = src;
+};

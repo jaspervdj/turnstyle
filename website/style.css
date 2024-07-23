@@ -64,8 +64,9 @@ h3 {
     content: ".";
 }
 
-img {
+img, svg {
     max-width: 90%;
+    height: auto;
 }
 
 th, td {

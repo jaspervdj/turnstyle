@@ -10,6 +10,7 @@
 
     <link rel="icon" href="/favicon.ico" sizes="32x32">
     <link rel="stylesheet" type="text/css" href="/style.css" />
+    <script src="turnstyle.js" type="text/JavaScript"></script>
     <title>$title$</title>
   </head>
   <body>
@@ -23,5 +24,20 @@
       <a href="https://github.com/jaspervdj/turnstyle">GitHub</a>
     </nav>
     $body$
+    <script type="text/JavaScript">
+        window.onload = () => {
+            const examples = document.querySelectorAll("img[src^='examples/']");
+            for (const example of examples) {
+                example.onclick = (event) => {
+                    event.preventDefault();
+                    runTurnstyle(
+                        document,
+                        example,
+                        example.src.replace("svg", "png")
+                    );
+                };
+            }
+        };
+    </script>
   </body>
 </html>

@@ -26,6 +26,9 @@ main = hakyllWith config $ do
     match "spec/*.svg" $ do
         route idRoute
         compile copyFileCompiler
+    match "turnstyle.js" $ do
+        route idRoute
+        compile copyFileCompiler
     match ("examples/*.png" .||. "examples/*.svg") $ do
         route idRoute
         compile copyFileCompiler
