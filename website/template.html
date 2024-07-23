@@ -26,14 +26,14 @@
     $body$
     <script type="text/JavaScript">
         window.onload = () => {
-            const examples = document.querySelectorAll("img[src^='examples/']");
+            const examples = document.querySelectorAll("a[href^='examples/']:has(img)");
             for (const example of examples) {
                 example.onclick = (event) => {
                     event.preventDefault();
                     runTurnstyle(
                         document,
                         example,
-                        example.src.replace("svg", "png")
+                        example.href,
                     );
                 };
             }

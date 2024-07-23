@@ -64,9 +64,8 @@ h3 {
     content: ".";
 }
 
-img, svg {
+img {
     max-width: 90%;
-    height: auto;
 }
 
 th, td {
@@ -92,4 +91,23 @@ blockquote {
     border-left: 4px solid #bbb;
     padding-left: 1em;
     margin-left: 0;
+}
+
+.interpreter {
+    text-align: center;
+}
+
+.interpreter svg {
+    max-width: 90%;
+    height: auto;
+}
+
+.interpreter .output {
+    text-align: left;
+    display: block;
+    overflow-y: scroll;
+    max-height: 5em;
+    background-color: #2228;
+    color: #fff;
+    padding: .5em;
 }

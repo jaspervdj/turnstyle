@@ -729,7 +729,9 @@ const PRIMITIVES = {
             arity: 2,
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
-                console.log(lhs.value().toString());
+                const out = lhs.value();
+                console.log(out);
+                await ctx.outputNumber(out.toString());
                 return args[1].whnf(ctx);
             },
         },
@@ -854,6 +856,8 @@ class AnnotatedView {
 
 const runTurnstyle = (document, element, src) => {
     let view;
+    let paused = null;
+    let output = () => {};
 
     const evalCtx = {
         inputNumber: () => {
@@ -880,15 +884,21 @@ const runTurnstyle = (document, element, src) => {
                 });
             });
         },
+        outputNumber: (num) => {
+            output(num.toString());
+        },
         onWhnf: async (expr) => {
-            await new Promise(r => setTimeout(r, 500));
+            if (paused) {
+                await paused;
+            }
             view.focus(expr.position, expr.direction);
+            await new Promise(r => setTimeout(r, 50));
         }
     }
 
     const img = new Image();
     img.crossOrigin = "Anonymous";
-    img.onload = () => {
+    img.onload = async () => {
         const canvas = document.createElement("canvas");
         canvas.width = img.width;
         canvas.height = img.height;
@@ -897,16 +907,48 @@ const runTurnstyle = (document, element, src) => {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const src = new ImageDataSource(imageData);
 
-        view = new AnnotatedView(document, src);
-        element.replaceWith(view.svg);
+        const div = document.createElement("div");
+        div.setAttribute("class", "interpreter");
 
+        view = new AnnotatedView(document, src);
+        div.appendChild(view.svg);
+
+        let unpause = () => {};
+        view.svg.onclick = (event) => {
+            event.preventDefault();
+            if (!paused) {
+                paused = new Promise((resolve, reject) => {
+                    unpause = () => {
+                        resolve();
+                        paused = null;
+                    };
+                });
+            } else {
+                unpause();
+            }
+        };
+
+        const pre = document.createElement("pre");
+        pre.setAttribute("class", "output");
+        const code = document.createElement("code");
+        output = (line) => {
+            code.appendChild(new Text(line + "\n"));
+            pre.scrollTo(0, pre.scrollHeight);
+        };
+        pre.appendChild(code);
+        div.appendChild(pre);
+
+        element.replaceWith(div);
+
+        output("Starting interpreter...");
         const parser = new Parser(src);
-        const expr = parser.parse();
-        console.log(expr.whnf(evalCtx));
+        const exit = await parser.parse().whnf(evalCtx);
+        output(`Interpreter exited with code ${exit}`);
     };
 
     img.onerror = (err) => {
         console.error("Failed to load image.");
     };
+
     img.src = src;
 };
