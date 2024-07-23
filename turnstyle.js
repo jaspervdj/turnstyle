@@ -192,7 +192,7 @@ class ImageDataSource {
     }
 
     get height() {
-        return this._imageData.width;
+        return this._imageData.height;
     }
 
     color(pos) {
@@ -272,13 +272,17 @@ class Parser {
                 );
             case Pattern.ABBC:
                 return new LambdaExpression(
-                    this._color(this._centerPixel()),
+                    this._src.color(this._centerPixel()),
                     () => this._parseFront().parse(),
                 );
             case Pattern.AABA:
-                return new VariableExpression(this._color(this._frontPixel()));
+                return new VariableExpression(
+                    this._src.color(this._frontPixel())
+                );
             case Pattern.ABAA:
-                return new VariableExpression(this._color(this._centerPixel()));
+                return new VariableExpression(
+                    this._src.color(this._centerPixel())
+                );
             case Pattern.ABCD:
                 const left  = this._area(this._leftPixel());
                 const front = this._area(this._frontPixel());
@@ -358,6 +362,18 @@ class Expression {
         return new ApplicationExpression(() => this, () => arg);
     }
 
+    freeVars() {
+        return new Set();
+    }
+
+    allVars() {
+        return new Set();
+    }
+
+    subst(x, s) {
+        return this;
+    }
+
     value() {
         return null;
     }
@@ -380,6 +396,21 @@ class ApplicationExpression extends Expression {
         const lhs = this._lhs().whnf();
         return lhs.apply(this._rhs());
     }
+
+    freeVars() {
+        return this._lhs().freeVars().union(this._rhs().freeVars());
+    }
+
+    allVars() {
+        return this._lhs().allVars().union(this._rhs().allVars());
+    }
+
+    subst(x, s) {
+        return new ApplicationExpression(
+            () => this._lhs().subst(x, s),
+            () => this._rhs().subst(x, s),
+        );
+    }
 }
 
 class LambdaExpression extends Expression {
@@ -393,6 +424,54 @@ class LambdaExpression extends Expression {
         const body = this._body().toString();
         return `(\\${this._variable} -> ${body})`;
     }
+
+    apply(arg) {
+        // TODO: second `whnf()` needs TCO.
+        return this._body().subst(this._variable, arg).whnf();
+    }
+
+    freeVars() {
+        const fvs = this._body().freeVars();
+        fvs.delete(this._variable);
+        return fvs;
+    }
+
+    allVars() {
+        const avs = this._body().allVars();
+        avs.add(this._variable);
+        return avs;
+    }
+
+    subst(x, s) {
+        if (x === this._variable) {
+            // This lambda binds more tightly, no need to change
+            return this;
+        }
+
+        const fvs = s.freeVars();
+        if (fvs.has(this._variable)) {
+            // Avoid capturing `this._variable`
+            const body = this._body();
+            const avs = fvs.union(body.allVars());
+            let fresh = 0;
+            while (avs.has(`fresh_${fresh}`)) {
+                fresh++
+            }
+            const variable = `fresh_${fresh}`;
+            return new LambdaExpression(
+                variable,
+                () => body.
+                    subst(this._variable, new VariableExpression(variable)).
+                    subst(x, s),
+            )
+        }
+
+        return new LambdaExpression(
+            // Continue substitution
+            this._variable,
+            () => this._body().subst(x, s),
+        );
+    }
 }
 
 class VariableExpression extends Expression {
@@ -403,6 +482,22 @@ class VariableExpression extends Expression {
 
     toString() {
         return this._variable;
+    }
+
+    freeVars() {
+        return new Set([this._variable]);
+    }
+
+    allVars() {
+        return new Set([this._variable]);
+    }
+
+    subst(x, e) {
+        if (x === this._variable) {
+            return e;
+        } else {
+            return this;
+        }
     }
 }
 
@@ -460,10 +555,42 @@ class IdentityExpression extends Expression {
     whnf() {
         return this._expr().whnf();
     }
+
+    freeVars() {
+        return this._expr().freeVars();
+    }
+
+    allVars() {
+        return this._expr().freeVars();
+    }
+
+    subst(x, s) {
+        return new IdentityExpression(() => this._expr().subst(x, s));
+    }
 }
 
 const PRIMITIVES = {
+    2: {
+        1: {
+            name: "out_num",
+            arity: 2,
+            implementation: (args) => {
+                const lhs = args[0].whnf().value();
+                console.log(lhs);
+                return args[1].whnf();  // TODO: Needs TCO
+            },
+        },
+    },
     3: {
+        1: {
+            name: "num_add",
+            arity: 2,
+            implementation: (args) => {
+                const lhs = args[0].whnf().value();
+                const rhs = args[1].whnf().value();
+                return new LiteralExpression(lhs.add(rhs));
+            },
+        },
         2: {
             name: "num_sub",
             arity: 2,
@@ -471,7 +598,25 @@ const PRIMITIVES = {
                 const lhs = args[0].whnf().value();
                 const rhs = args[1].whnf().value();
                 return new LiteralExpression(lhs.subtract(rhs));
-            }
-        }
-    }
+            },
+        },
+        3: {
+            name: "num_mul",
+            arity: 2,
+            implementation: (args) => {
+                const lhs = args[0].whnf().value();
+                const rhs = args[1].whnf().value();
+                return new LiteralExpression(lhs.multiply(rhs));
+            },
+        },
+        4: {
+            name: "num_div",
+            arity: 2,
+            implementation: (args) => {
+                const lhs = args[0].whnf().value();
+                const rhs = args[1].whnf().value();
+                return new LiteralExpression(lhs.divide(rhs));
+            },
+        },
+    },
 };
