@@ -7,8 +7,35 @@
 <body>
     <canvas id="canvas" style="display:none;"></canvas>
     <script>
+        const evalCtx = {
+            inputNumber: () => {
+                return new Promise((resolve, reject) => {
+                    const form = document.createElement("form");
+                    const input = document.createElement("input");
+                    input.type = "text";
+                    form.appendChild(input);
+                    const submit = document.createElement("button");
+                    submit.type = "submit";
+                    submit.textContent = "submit";
+                    form.appendChild(submit);
+                    document.body.appendChild(form);
+
+                    form.addEventListener("submit", (event) => {
+                        event.preventDefault();
+                        const value = input.value;
+                        if (value) {
+                            document.body.removeChild(form);
+                            resolve(Number(value));
+                        } else {
+                            reject("Input is empty");
+                        }
+                    });
+                });
+            },
+        }
+
         const img = new Image();
-        img.crossOrigin = 'Anonymous';
+        img.crossOrigin = "Anonymous";
         img.onload = () => {
             const canvas = document.getElementById("canvas");
             canvas.width = img.width;
@@ -19,11 +46,11 @@
 
             const parser = new Parser(new ImageDataSource(imageData));
             const expr = parser.parse();
-            console.log(expr.whnf());
+            console.log(expr.whnf(evalCtx));
         };
 
         img.onerror = (err) => {
-            console.error('Failed to load image.');
+            console.error("Failed to load image.");
         };
 
         img.src = "examples/loop.png";

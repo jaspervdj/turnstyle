@@ -372,11 +372,11 @@ class Parser {
 }
 
 class Expression {
-    async whnf() {
+    async whnf(ctx) {
         return this;
     }
 
-    async apply(arg) {
+    async apply(ctx, arg) {
         return new ApplicationExpression(() => this, () => arg);
     }
 
@@ -424,9 +424,9 @@ class ApplicationExpression extends Expression {
         return `(${lhs} ${rhs})`;
     }
 
-    async whnf() {
-        const lhs = await this.lhs.whnf();
-        return lhs.apply(this.rhs);
+    async whnf(ctx) {
+        const lhs = await this.lhs.whnf(ctx);
+        return lhs.apply(ctx, this.rhs);
     }
 
     freeVars() {
@@ -464,8 +464,8 @@ class LambdaExpression extends Expression {
         return `(\\${this._variable} -> ${body})`;
     }
 
-    async apply(arg) {
-        return this.body.subst(this._variable, arg).whnf();
+    async apply(ctx, arg) {
+        return this.body.subst(this._variable, arg).whnf(ctx);
     }
 
     freeVars() {
@@ -555,10 +555,10 @@ class PrimitiveExpression extends Expression {
         }
     }
 
-    async apply(arg) {
+    async apply(ctx, arg) {
         const args = [...this._args, arg]
         if (args.length === this._primitive.arity) {
-            return this._primitive.implementation(args);
+            return this._primitive.implementation(ctx, args);
         } else {
             return new PrimitiveExpression(this._primitive, args);
         }
@@ -597,8 +597,8 @@ class IdentityExpression extends Expression {
         return this.expr.toString();
     }
 
-    async whnf() {
-        return this.expr.whnf();
+    async whnf(ctx) {
+        return this.expr.whnf(ctx);
     }
 
     freeVars() {
@@ -615,14 +615,27 @@ class IdentityExpression extends Expression {
 }
 
 const PRIMITIVES = {
+    1: {
+        1: {
+            name: "in_num",
+            arity: 2,
+            implementation: async (ctx, args) => {
+                const input = await ctx.inputNumber();
+                const rational = new Rational(BigInt(input), 1n);
+                const lit = new LiteralExpression(rational);
+                const applied = await args[0].apply(ctx, lit);
+                return applied.whnf(ctx);
+            },
+        },
+    },
     2: {
         1: {
             name: "out_num",
             arity: 2,
-            implementation: async (args) => {
-                const lhs = await args[0].whnf();
+            implementation: async (ctx, args) => {
+                const lhs = await args[0].whnf(ctx);
                 console.log(lhs.value().toString());
-                return args[1].whnf();
+                return args[1].whnf(ctx);
             },
         },
     },
@@ -630,36 +643,36 @@ const PRIMITIVES = {
         1: {
             name: "num_add",
             arity: 2,
-            implementation: async (args) => {
-                const lhs = await args[0].whnf();
-                const rhs = await args[1].whnf();
+            implementation: async (ctx, args) => {
+                const lhs = await args[0].whnf(ctx);
+                const rhs = await args[1].whnf(ctx);
                 return new LiteralExpression(lhs.value().add(rhs.value()));
             },
         },
         2: {
             name: "num_sub",
             arity: 2,
-            implementation: async (args) => {
-                const lhs = await args[0].whnf();
-                const rhs = await args[1].whnf();
+            implementation: async (ctx, args) => {
+                const lhs = await args[0].whnf(ctx);
+                const rhs = await args[1].whnf(ctx);
                 return new LiteralExpression(lhs.value().subtract(rhs.value()));
             },
         },
         3: {
             name: "num_mul",
             arity: 2,
-            implementation: async (args) => {
-                const lhs = await args[0].whnf();
-                const rhs = await args[1].whnf();
+            implementation: async (ctx, args) => {
+                const lhs = await args[0].whnf(ctx);
+                const rhs = await args[1].whnf(ctx);
                 return new LiteralExpression(lhs.value().multiply(rhs.value()));
             },
         },
         4: {
             name: "num_div",
             arity: 2,
-            implementation: async (args) => {
-                const lhs = await args[0].whnf();
-                const rhs = await args[1].whnf();
+            implementation: async (ctx, args) => {
+                const lhs = await args[0].whnf(ctx);
+                const rhs = await args[1].whnf(ctx);
                 return new LiteralExpression(lhs.value().divide(rhs.value()));
             },
         },
