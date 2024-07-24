@@ -192,6 +192,67 @@ class Source {
     }
 }
 
+// Firefox private windows (and possibly other browsers with strict security
+// settings) will apply a random noise to the data returned from
+// `canvas.getImageData()`, to prevent browser fingerprinting.  This prevents
+// Turnstyle programs from parsing, because colors must be exactly the same.
+// This is a workaround to find similar-enough colors.
+class DenoiseSource extends Source {
+    constructor(src) {
+        super()
+        this._limit = 32;
+        this._width = src.width;
+        this._height = src.height;
+        this._rgba = new Array(src.width * src.height);
+
+        const palette = {};
+
+        const sse = (as, bs) => {
+            let result = 0;
+            for (let i = 0; i < as.length && i < bs.length; i++) {
+                result += (as[i] - bs[i]) * (as[i] - bs[i]);
+            }
+            return result;
+        }
+
+        const similar = (rgba) => {
+            for (const k of Object.keys(palette)) {
+                if (sse(rgba, palette[k]) < this._limit) {
+                    return palette[k];
+                }
+            }
+            return null;
+        }
+
+        for (let y = 0; y < src.height; y++) {
+            for (let x = 0; x < src.width; x++) {
+                const hex = src.hex(x, y);
+                const rgba = src.rgba(x, y);
+                let out;
+                if (hex in palette) {
+                    out = palette[hex];
+                } else {
+                    out = similar(rgba) || rgba;
+                    palette[hex] = out;
+                }
+                this._rgba[y * src.width + x] = out;
+            }
+        }
+    }
+
+    get width() {
+        return this._width;
+    }
+
+    get height() {
+        return this._height;
+    }
+
+    rgba(x, y) {
+        return this._rgba[y * this.width + x];
+    }
+}
+
 class ImageDataSource extends Source {
     constructor(imageData) {
         super()
@@ -935,7 +996,7 @@ const runInterpreter = async (doc, element, src) => {
         }
     }
 
-    const source = await ImageDataSource.load(doc, src);
+    const source = new DenoiseSource(await ImageDataSource.load(doc, src));
     view = new AnnotatedView(doc, source);
     div.appendChild(view.svg);
 
