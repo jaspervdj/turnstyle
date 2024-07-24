@@ -181,8 +181,20 @@ const Pattern = {
     },
 };
 
-class ImageDataSource {
+class Source {
+    hex(x, y) {
+        const rgba = this.rgba(x, y);
+        const hr = rgba[0].toString(16).padStart(2, "0");
+        const hg = rgba[1].toString(16).padStart(2, "0");
+        const hb = rgba[2].toString(16).padStart(2, "0");
+        const ha = rgba[3].toString(16).padStart(2, "0");
+        return `#${hr}${hg}${hb}${ha}`;
+    }
+}
+
+class ImageDataSource extends Source {
     constructor(imageData) {
+        super()
         this._imageData = imageData;
     }
 
@@ -204,13 +216,23 @@ class ImageDataSource {
         ];
     }
 
-    hex(x, y) {
-        const rgba = this.rgba(x, y);
-        const hr = rgba[0].toString(16).padStart(2, "0");
-        const hg = rgba[1].toString(16).padStart(2, "0");
-        const hb = rgba[2].toString(16).padStart(2, "0");
-        const ha = rgba[3].toString(16).padStart(2, "0");
-        return `#${hr}${hg}${hb}${ha}`;
+    static load(doc, src) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.onload = () => {
+                const canvas = doc.createElement("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+                const imageData =
+                    ctx.getImageData(0, 0, canvas.width, canvas.height);
+                resolve(new ImageDataSource(imageData));
+            }
+            img.onerror = (err) => reject(err);
+            img.src = src;
+        });
     }
 }
 
@@ -791,14 +813,14 @@ const PRIMITIVES = {
 };
 
 class AnnotatedView {
-    constructor(document, src) {
-        this._doc = document;
+    constructor(doc, src) {
+        this._doc = doc;
         this._ns = "http://www.w3.org/2000/svg";
         this._src = src;
         this._factor = 20;
         this._padding = 0.1;
         this._focus = null;
-        this._svg = document.createElementNS(this._ns, "svg");
+        this._svg = doc.createElementNS(this._ns, "svg");
         const width = src.width + this._padding * 2;
         const height = src.height + this._padding * 2;
         this._svg.setAttribute("width", this._factor * width);
@@ -868,23 +890,22 @@ class AnnotatedView {
     }
 }
 
-const runInterpreter = (document, element, src) => {
+const runInterpreter = async (doc, element, src) => {
     let view;
     let paused = null;
     let output = () => {};
 
-    const div = document.createElement("div");
+    const div = doc.createElement("div");
     div.setAttribute("class", "interpreter");
-
 
     const evalCtx = {
         inputNumber: () => {
             return new Promise((resolve, reject) => {
-                const form = document.createElement("form");
-                const input = document.createElement("input");
+                const form = doc.createElement("form");
+                const input = doc.createElement("input");
                 input.type = "text";
                 form.appendChild(input);
-                const submit = document.createElement("button");
+                const submit = doc.createElement("button");
                 submit.type = "submit";
                 submit.textContent = "submit";
                 form.appendChild(submit);
@@ -914,65 +935,48 @@ const runInterpreter = (document, element, src) => {
         }
     }
 
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = async () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0);
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const src = new ImageDataSource(imageData);
+    const source = await ImageDataSource.load(doc, src);
+    view = new AnnotatedView(doc, source);
+    div.appendChild(view.svg);
 
-        view = new AnnotatedView(document, src);
-        div.appendChild(view.svg);
-
-        let unpause = () => {};
-        view.svg.onclick = (event) => {
-            event.preventDefault();
-            if (!paused) {
-                paused = new Promise((resolve, reject) => {
-                    unpause = () => {
-                        resolve();
-                        paused = null;
-                    };
-                });
-            } else {
-                unpause();
-            }
-        };
-
-        const pre = document.createElement("pre");
-        pre.setAttribute("class", "output");
-        const code = document.createElement("code");
-        output = (line) => {
-            code.appendChild(new Text(line + "\n"));
-            pre.scrollTo(0, pre.scrollHeight);
-        };
-        pre.appendChild(code);
-        div.appendChild(pre);
-
-        element.replaceWith(div);
-
-        output("Starting interpreter...");
-        const parser = new Parser(src);
-        try {
-            const whnf = await parser.parse().whnf(evalCtx);
-            if (whnf.value() === null) {
-                output("Interpreter exited with expression:");
-                output(whnf.toString());
-            } else {
-                output(`Interpreter exited with code ${whnf.value()}`);
-            }
-        } catch(e) {
-            output(`Interpreter crashed: ${e}`);
+    let unpause = () => {};
+    view.svg.onclick = (event) => {
+        event.preventDefault();
+        if (!paused) {
+            paused = new Promise((resolve, reject) => {
+                unpause = () => {
+                    resolve();
+                    paused = null;
+                };
+            });
+        } else {
+            unpause();
         }
     };
 
-    img.onerror = (err) => {
-        console.error("Failed to load image.");
+    const pre = doc.createElement("pre");
+    pre.setAttribute("class", "output");
+    const code = doc.createElement("code");
+    output = (line) => {
+        code.appendChild(new Text(line + "\n"));
+        pre.scrollTo(0, pre.scrollHeight);
     };
+    pre.appendChild(code);
+    div.appendChild(pre);
 
-    img.src = src;
+    element.replaceWith(div);
+
+    output("Starting interpreter...");
+    const parser = new Parser(source);
+    try {
+        const whnf = await parser.parse().whnf(evalCtx);
+        if (whnf.value() === null) {
+            output("Interpreter exited with expression:");
+            output(whnf.toString());
+        } else {
+            output(`Interpreter exited with code ${whnf.value()}`);
+        }
+    } catch(e) {
+        output(`Interpreter crashed: ${e}`);
+    }
 };
