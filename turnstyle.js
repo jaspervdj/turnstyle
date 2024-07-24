@@ -854,7 +854,7 @@ class AnnotatedView {
     }
 }
 
-const runTurnstyle = (document, element, src) => {
+const runInterpreter = (document, element, src) => {
     let view;
     let paused = null;
     let output = () => {};

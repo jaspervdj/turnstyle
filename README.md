@@ -7,8 +7,9 @@ the (untyped) [Lambda calculus].  This allows for building more reusable images
 at a higher level of abstraction, while still keeping the specification small,
 making it relatively easy to develop new interpreters.
 
-This repository contains [the language specification](spec/) and a reference
-implementation.
+This repository contains [the language specification](spec/), a reference
+implementation in Haskell, and a [simple JavaScript implementation with no
+dependencies](turnstyle.js).
 
 # Specification
 
@@ -19,7 +20,7 @@ consult [the Turnstyle Language Specification](spec/).
 
 # Examples
 
-The starting Turnstyle shape is outlined.
+The starting Turnstyle shape is outlined.  Click on the examples to run them.
 
 ## 0
 
