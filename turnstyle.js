@@ -1,3 +1,5 @@
+"use strict";
+
 class Rational {
     constructor(numerator, denominator) {
         const gcd = Rational._gcd(numerator, denominator);
