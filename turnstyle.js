@@ -92,94 +92,91 @@ class Position {
 }
 
 const Direction = {
-    RIGHT: Symbol("RIGHT"),
-    DOWN:  Symbol("DOWN"),
-    LEFT:  Symbol("LEFT"),
-    UP:    Symbol("UP"),
-};
-
-const turnLeft = (dir) => {
-    switch (dir) {
-        case Direction.RIGHT: return Direction.UP;
-        case Direction.DOWN:  return Direction.RIGHT;
-        case Direction.LEFT:  return Direction.DOWN;
-        case Direction.UP:    return Direction.LEFT;
-    }
-};
-
-const turnRight = (dir) => {
-    switch (dir) {
-        case Direction.RIGHT: return Direction.DOWN;
-        case Direction.DOWN:  return Direction.LEFT;
-        case Direction.LEFT:  return Direction.UP;
-        case Direction.UP:    return Direction.RIGHT;
-    }
+    RIGHT: "RIGHT",
+    DOWN:  "DOWN",
+    LEFT:  "LEFT",
+    UP:    "UP",
+    turnLeft: (dir) => {
+        switch (dir) {
+            case Direction.RIGHT: return Direction.UP;
+            case Direction.DOWN:  return Direction.RIGHT;
+            case Direction.LEFT:  return Direction.DOWN;
+            case Direction.UP:    return Direction.LEFT;
+        }
+    },
+    turnRight: (dir) => {
+        switch (dir) {
+            case Direction.RIGHT: return Direction.DOWN;
+            case Direction.DOWN:  return Direction.LEFT;
+            case Direction.LEFT:  return Direction.UP;
+            case Direction.UP:    return Direction.RIGHT;
+        }
+    },
 };
 
 const Pattern = {
-    AAAA: Symbol("AAAA"),
-    AAAB: Symbol("AAAB"),
-    AABA: Symbol("AABA"),
-    AABB: Symbol("AABB"),
-    AABC: Symbol("AABC"),
-    ABAA: Symbol("ABAA"),
-    ABAB: Symbol("ABAB"),
-    ABAC: Symbol("ABAC"),
-    ABBA: Symbol("ABBA"),
-    ABBB: Symbol("ABBB"),
-    ABBC: Symbol("ABBC"),
-    ABCA: Symbol("ABCA"),
-    ABCB: Symbol("ABCB"),
-    ABCC: Symbol("ABCC"),
-    ABCD: Symbol("ABCD"),
-};
-
-const parsePattern = (a, x, y, z) => {
-    if (x === a) {
-        if (y === a) {
-            if (z === a) {
-                return Pattern.AAAA;
+    AAAA: "AAAA",
+    AAAB: "AAAB",
+    AABA: "AABA",
+    AABB: "AABB",
+    AABC: "AABC",
+    ABAA: "ABAA",
+    ABAB: "ABAB",
+    ABAC: "ABAC",
+    ABBA: "ABBA",
+    ABBB: "ABBB",
+    ABBC: "ABBC",
+    ABCA: "ABCA",
+    ABCB: "ABCB",
+    ABCC: "ABCC",
+    ABCD: "ABCD",
+    parse: (a, x, y, z) => {
+        if (x === a) {
+            if (y === a) {
+                if (z === a) {
+                    return Pattern.AAAA;
+                } else {
+                    return Pattern.AAAB;
+                }
             } else {
-                return Pattern.AAAB;
+                if (z === a) {
+                    return Pattern.AABA;
+                } else if (z === y) {
+                    return Pattern.AABB;
+                } else {
+                    return Pattern.AABC;
+                }
             }
         } else {
-            if (z === a) {
-                return Pattern.AABA;
-            } else if (z === y) {
-                return Pattern.AABB;
+            if (y === a) {
+                if (z === a) {
+                    return Pattern.ABAA;
+                } else if (z === x) {
+                    return Pattern.ABAB;
+                } else {
+                    return Pattern.ABAC;
+                }
+            } else if (y === x) {
+                if (z === a) {
+                    return Pattern.ABBA;
+                } else if (z === x) {
+                    return Pattern.ABBB;
+                } else {
+                    return Pattern.ABBC;
+                }
             } else {
-                return Pattern.AABC;
+                if (z === a) {
+                    return Pattern.ABCA;
+                } else if (z === x) {
+                    return Pattern.ABCB;
+                } else if (z === y) {
+                    return Pattern.ABCC;
+                } else {
+                    return Pattern.ABCD;
+                }
             }
         }
-    } else {
-        if (y === a) {
-            if (z === a) {
-                return Pattern.ABAA;
-            } else if (z === x) {
-                return Pattern.ABAB;
-            } else {
-                return Pattern.ABAC;
-            }
-        } else if (y === x) {
-            if (z === a) {
-                return Pattern.ABBA;
-            } else if (z === x) {
-                return Pattern.ABBB;
-            } else {
-                return Pattern.ABBC;
-            }
-        } else {
-            if (z === a) {
-                return Pattern.ABCA;
-            } else if (z === x) {
-                return Pattern.ABCB;
-            } else if (z === y) {
-                return Pattern.ABCC;
-            } else {
-                return Pattern.ABCD;
-            }
-        }
-    }
+    },
 };
 
 class ImageDataSource {
@@ -215,11 +212,22 @@ class ImageDataSource {
     }
 }
 
+class ParserError extends Error {
+    constructor(pos, dir, msg) {
+        super(`${pos.toString()},${dir}: ${msg}`);
+        this.name = "ParserError";
+    }
+}
+
 class Parser {
     constructor(src, pos, dir) {
         this._src = src;
         this._pos = pos ? pos : new Position(0, Math.floor(src.height / 2));
         this._dir = dir ? dir : Direction.RIGHT;
+    }
+
+    _error(msg) {
+        throw new ParserError(this._pos, this._dir, msg);
     }
 
     _leftPixel() {
@@ -254,7 +262,7 @@ class Parser {
     }
 
     parse() {
-        const pattern = parsePattern(
+        const pattern = Pattern.parse(
             this._color(this._leftPixel()),
             this._color(this._centerPixel()),
             this._color(this._frontPixel()),
@@ -348,10 +356,10 @@ class Parser {
                             this._dir,
                         );
                     } else {
-                        throw new Error(`Unknown primitive: ${front}/${right}`);
+                        this._error(`unknown primitive: ${front}/${right}`);
                     }
                 } else {
-                    throw new Error(`Unhandled symbol: ${left}`);
+                    this._error(`Unhandled symbol: ${left}`);
                 }
             case Pattern.AAAA:
                 return new IdentityExpression(
@@ -378,12 +386,16 @@ class Parser {
                     this._dir,
                 );
             default:
-                throw new Error(`Unhandled pattern: ${pattern.toString()}`);
+                this._error(`Unhandled pattern: ${pattern.toString()}`);
         }
     }
 
     _parseLeft() {
-        return new Parser(this._src, this._leftPixel(), turnLeft(this._dir));
+        return new Parser(
+            this._src,
+            this._leftPixel(),
+            Direction.turnLeft(this._dir),
+        );
     }
 
     _parseFront() {
@@ -391,7 +403,11 @@ class Parser {
     }
 
     _parseRight() {
-        return new Parser(this._src, this._rightPixel(), turnRight(this._dir));
+        return new Parser(
+            this._src,
+            this._rightPixel(),
+            Direction.turnRight(this._dir),
+        );
     }
 
     _color(pos) {
@@ -939,8 +955,17 @@ const runInterpreter = (document, element, src) => {
 
         output("Starting interpreter...");
         const parser = new Parser(src);
-        const exit = await parser.parse().whnf(evalCtx);
-        output(`Interpreter exited with code ${exit}`);
+        try {
+            const whnf = await parser.parse().whnf(evalCtx);
+            if (whnf.value() === null) {
+                output("Interpreter exited with expression:");
+                output(whnf.toString());
+            } else {
+                output(`Interpreter exited with code ${whnf.value()}`);
+            }
+        } catch(e) {
+            output(`Interpreter crashed: ${e}`);
+        }
     };
 
     img.onerror = (err) => {
