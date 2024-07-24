@@ -93,9 +93,9 @@ class Position {
 
 const Direction = {
     RIGHT: Symbol("RIGHT"),
-    DOWN: Symbol("DOWN"),
-    LEFT: Symbol("LEFT"),
-    UP: Symbol("UP"),
+    DOWN:  Symbol("DOWN"),
+    LEFT:  Symbol("LEFT"),
+    UP:    Symbol("UP"),
 };
 
 const turnLeft = (dir) => {
@@ -246,14 +246,10 @@ class Parser {
 
     _rightPixel() {
         switch (this._dir) {
-            case Direction.RIGHT:
-                return this._pos.down();
-            case Direction.DOWN:
-                return this._pos.left();
-            case Direction.LEFT:
-                return this._pos.up();
-            case Direction.UP:
-                return this._pos.right();
+            case Direction.RIGHT: return this._pos.down();
+            case Direction.DOWN:  return this._pos.left();
+            case Direction.LEFT:  return this._pos.up();
+            case Direction.UP:    return this._pos.right();
         }
     }
 
@@ -859,6 +855,10 @@ const runInterpreter = (document, element, src) => {
     let paused = null;
     let output = () => {};
 
+    const div = document.createElement("div");
+    div.setAttribute("class", "interpreter");
+
+
     const evalCtx = {
         inputNumber: () => {
             return new Promise((resolve, reject) => {
@@ -870,13 +870,13 @@ const runInterpreter = (document, element, src) => {
                 submit.type = "submit";
                 submit.textContent = "submit";
                 form.appendChild(submit);
-                document.body.appendChild(form);
+                div.appendChild(form);
 
                 form.addEventListener("submit", (event) => {
                     event.preventDefault();
                     const value = input.value;
                     if (value) {
-                        document.body.removeChild(form);
+                        div.removeChild(form);
                         resolve(Number(value));
                     } else {
                         reject("Input is empty");
@@ -906,9 +906,6 @@ const runInterpreter = (document, element, src) => {
         ctx.drawImage(img, 0, 0);
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const src = new ImageDataSource(imageData);
-
-        const div = document.createElement("div");
-        div.setAttribute("class", "interpreter");
 
         view = new AnnotatedView(document, src);
         div.appendChild(view.svg);
