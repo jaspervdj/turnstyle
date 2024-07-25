@@ -68,21 +68,10 @@ class Position {
         this.y = y;
     }
 
-    right() {
-        return new Position(this.x + 1, this.y);
-    }
-
-    down() {
-        return new Position(this.x, this.y + 1);
-    }
-
-    left() {
-        return new Position(this.x - 1, this.y);
-    }
-
-    up() {
-        return new Position(this.x, this.y - 1);
-    }
+    right() { return new Position(this.x + 1, this.y); }
+    down()  { return new Position(this.x, this.y + 1); }
+    left()  { return new Position(this.x - 1, this.y); }
+    up()    { return new Position(this.x, this.y - 1); }
 
     neighbors() {
         return [this.right(), this.down(), this.left(), this.up()];
@@ -315,7 +304,7 @@ class Parser {
         this._dir = dir ? dir : Direction.RIGHT;
     }
 
-    _location() {
+    _loc() {
         return {position: this._pos, direction: this._dir};
     }
 
@@ -323,7 +312,7 @@ class Parser {
         throw new ParserError(this._pos, this._dir, msg);
     }
 
-    _leftPixel() {
+    _pixelL() {
         switch (this._dir) {
             case Direction.RIGHT: return this._pos.up();
             case Direction.DOWN:  return this._pos.right();
@@ -332,11 +321,11 @@ class Parser {
         }
     }
 
-    _centerPixel() {
+    _pixelC() {
         return this._pos;
     }
 
-    _frontPixel() {
+    _pixelF() {
         switch (this._dir) {
             case Direction.RIGHT: return this._pos.right();
             case Direction.DOWN:  return this._pos.down();
@@ -345,7 +334,7 @@ class Parser {
         }
     }
 
-    _rightPixel() {
+    _pixelR() {
         switch (this._dir) {
             case Direction.RIGHT: return this._pos.down();
             case Direction.DOWN:  return this._pos.left();
@@ -356,86 +345,67 @@ class Parser {
 
     parse() {
         const pattern = Pattern.parse(
-            this._color(this._leftPixel()),
-            this._color(this._centerPixel()),
-            this._color(this._frontPixel()),
-            this._color(this._rightPixel()),
+            this._color(this._pixelL()),
+            this._color(this._pixelC()),
+            this._color(this._pixelF()),
+            this._color(this._pixelR()),
         );
         switch (pattern) {
             case Pattern.ABAC:
-                return new ApplicationExpression(
-                    () => this._parseLeft().parse(),
-                    () => this._parseFront().parse(),
-                    this._location(),
+                return new AppExpr(
+                    () => this._parseLeft(),
+                    () => this._parseFront(),
+                    this._loc(),
                 );
             case Pattern.ABCA:
-                return new ApplicationExpression(
-                    () => this._parseLeft().parse(),
-                    () => this._parseRight().parse(),
-                    this._location(),
+                return new AppExpr(
+                    () => this._parseLeft(),
+                    () => this._parseRight(),
+                    this._loc(),
                 );
             case Pattern.ABCC:
-                return new ApplicationExpression(
-                    () => this._parseFront().parse(),
-                    () => this._parseRight().parse(),
-                    this._location(),
+                return new AppExpr(
+                    () => this._parseFront(),
+                    () => this._parseRight(),
+                    this._loc(),
                 );
             case Pattern.AABC:
-                return new LambdaExpression(
-                    this._color(this._rightPixel()),
-                    () => this._parseLeft().parse(),
-                    this._location(),
+                return new LamExpr(
+                    this._color(this._pixelR()),
+                    () => this._parseLeft(),
+                    this._loc(),
                 );
             case Pattern.ABBC:
-                return new LambdaExpression(
-                    this._color(this._centerPixel()),
-                    () => this._parseFront().parse(),
-                    this._location(),
+                return new LamExpr(
+                    this._color(this._pixelC()),
+                    () => this._parseFront(),
+                    this._loc(),
                 );
             case Pattern.ABCB:
-                return new LambdaExpression(
-                    this._color(this._leftPixel()),
-                    () => this._parseRight().parse(),
-                    this._location(),
+                return new LamExpr(
+                    this._color(this._pixelL()),
+                    () => this._parseRight(),
+                    this._loc(),
                 );
             case Pattern.AAAB:
-                return new VariableExpression(
-                    this._color(this._rightPixel()),
-                    this._location(),
-                );
+                return new VarExpr(this._color(this._pixelR()), this._loc());
             case Pattern.AABA:
-                return new VariableExpression(
-                    this._color(this._frontPixel()),
-                    this._location(),
-                );
+                return new VarExpr(this._color(this._pixelF()), this._loc());
             case Pattern.ABAA:
-                return new VariableExpression(
-                    this._color(this._centerPixel()),
-                    this._location(),
-                );
+                return new VarExpr(this._color(this._pixelC()), this._loc());
             case Pattern.ABBB:
-                return new VariableExpression(
-                    this._color(this._leftPixel()),
-                    this._location(),
-                );
+                return new VarExpr(this._color(this._pixelL()), this._loc());
             case Pattern.ABCD:
-                const left  = this._area(this._leftPixel());
-                const front = this._area(this._frontPixel());
-                const right = this._area(this._rightPixel());
+                const left  = this._area(this._pixelL());
+                const front = this._area(this._pixelF());
+                const right = this._area(this._pixelR());
                 if (left === 1) {
                     const n = BigInt(front) ** BigInt(right);
-                    return new LiteralExpression(
-                        new Rational(n, 1n),
-                        this._location(),
-                    );
+                    return new LitExpr(new Rational(n, 1n), this._loc());
                 } else if (left === 2) {
                     if (PRIMITIVES[front] && PRIMITIVES[front][right]) {
                         const primitive = PRIMITIVES[front][right];
-                        return new PrimitiveExpression(
-                            primitive,
-                            [],
-                            this._location(),
-                        );
+                        return new PrimExpr(primitive, [], this._loc());
                     } else {
                         this._error(`unknown primitive: ${front}/${right}`);
                     }
@@ -443,25 +413,13 @@ class Parser {
                     this._error(`Unhandled symbol: ${left}`);
                 }
             case Pattern.AAAA:
-                return new IdentityExpression(
-                    () => this._parseFront().parse(),
-                    this._location(),
-                );
+                return new IdExpr(() => this._parseFront(), this._loc());
             case Pattern.AABB:
-                return new IdentityExpression(
-                    () => this._parseLeft().parse(),
-                    this._location(),
-                );
+                return new IdExpr(() => this._parseLeft(), this._loc());
             case Pattern.ABAB:
-                return new IdentityExpression(
-                    () => this._parseRight().parse(),
-                    this._location(),
-                );
+                return new IdExpr(() => this._parseRight(), this._loc());
             case Pattern.ABBA:
-                return new IdentityExpression(
-                    () => this._parseFront().parse(),
-                    this._location(),
-                );
+                return new IdExpr(() => this._parseFront(), this._loc());
             default:
                 this._error(`Unhandled pattern: ${pattern.toString()}`);
         }
@@ -470,21 +428,21 @@ class Parser {
     _parseLeft() {
         return new Parser(
             this._src,
-            this._leftPixel(),
+            this._pixelL(),
             Direction.turnLeft(this._dir),
-        );
+        ).parse();
     }
 
     _parseFront() {
-        return new Parser(this._src, this._frontPixel(), this._dir);
+        return new Parser(this._src, this._pixelF(), this._dir).parse();
     }
 
     _parseRight() {
         return new Parser(
             this._src,
-            this._rightPixel(),
+            this._pixelR(),
             Direction.turnRight(this._dir),
-        );
+        ).parse();
     }
 
     _color(pos) {
@@ -519,7 +477,7 @@ class Parser {
     }
 }
 
-class Expression {
+class Expr {
     constructor(loc) {
         this._loc = loc;
     }
@@ -534,7 +492,7 @@ class Expression {
     }
 
     async apply(ctx, arg) {
-        return new ApplicationExpression( () => this, () => arg, this._loc);
+        return new AppExpr(() => this, () => arg, this._loc);
     }
 
     freeVars() {
@@ -554,7 +512,7 @@ class Expression {
     }
 }
 
-class ApplicationExpression extends Expression {
+class AppExpr extends Expr {
     constructor(lhsf, rhsf, loc) {
         super(loc);
         this._lhsf = lhsf;
@@ -596,7 +554,7 @@ class ApplicationExpression extends Expression {
     }
 
     subst(x, s) {
-        return new ApplicationExpression(
+        return new AppExpr(
             () => this.lhs.subst(x, s),
             () => this.rhs.subst(x, s),
             this.location,
@@ -604,7 +562,7 @@ class ApplicationExpression extends Expression {
     }
 }
 
-class LambdaExpression extends Expression {
+class LamExpr extends Expr {
     constructor(variable, bodyf, loc) {
         super(loc);
         this._variable = variable;
@@ -655,17 +613,17 @@ class LambdaExpression extends Expression {
                 fresh++
             }
             const variable = `fresh_${fresh}`;
-            return new LambdaExpression(
+            return new LamExpr(
                 variable,
                 () => body.
-                    subst(this._variable, new VariableExpression(variable)).
+                    subst(this._variable, new VarExpr(variable)).
                     subst(x, s),
                 this.location,
             )
         }
 
-        return new LambdaExpression(
-            // Continue substitution
+        // Continue substitution
+        return new LamExpr(
             this._variable,
             () => this.body.subst(x, s),
             this.location,
@@ -673,7 +631,7 @@ class LambdaExpression extends Expression {
     }
 }
 
-class VariableExpression extends Expression {
+class VarExpr extends Expr {
     constructor(variable, loc) {
         super(loc);
         this._variable = variable;
@@ -700,7 +658,7 @@ class VariableExpression extends Expression {
     }
 }
 
-class PrimitiveExpression extends Expression {
+class PrimExpr extends Expr {
     constructor(primitive, args, loc) {
         super(loc);
         this._primitive = primitive;
@@ -721,11 +679,11 @@ class PrimitiveExpression extends Expression {
         if (args.length === this._primitive.arity) {
             return this._primitive.implementation(ctx, args);
         }
-        return new PrimitiveExpression(this._primitive, args, this.location);
+        return new PrimExpr(this._primitive, args, this.location);
     }
 }
 
-class LiteralExpression extends Expression {
+class LitExpr extends Expr {
     constructor(value, loc) {
         super(loc);
         this._value = value;
@@ -740,7 +698,7 @@ class LiteralExpression extends Expression {
     }
 }
 
-class IdentityExpression extends Expression {
+class IdExpr extends Expr {
     constructor(exprf, loc) {
         super(loc);
         this._exprf = exprf;
@@ -771,10 +729,7 @@ class IdentityExpression extends Expression {
     }
 
     subst(x, s) {
-        return new IdentityExpression(
-            () => this.expr.subst(x, s),
-            this.location,
-        );
+        return new IdExpr(() => this.expr.subst(x, s), this.location);
     }
 }
 
@@ -786,7 +741,7 @@ const PRIMITIVES = {
             implementation: async (ctx, args) => {
                 const input = await ctx.inputNumber();
                 const rational = new Rational(BigInt(input), 1n);
-                const lit = new LiteralExpression(rational);
+                const lit = new LitExpr(rational);
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
@@ -812,7 +767,7 @@ const PRIMITIVES = {
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
-                return new LiteralExpression(lhs.value().add(rhs.value()));
+                return new LitExpr(lhs.value().add(rhs.value()));
             },
         },
         2: {
@@ -821,7 +776,7 @@ const PRIMITIVES = {
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
-                return new LiteralExpression(lhs.value().subtract(rhs.value()));
+                return new LitExpr(lhs.value().subtract(rhs.value()));
             },
         },
         3: {
@@ -830,7 +785,7 @@ const PRIMITIVES = {
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
-                return new LiteralExpression(lhs.value().multiply(rhs.value()));
+                return new LitExpr(lhs.value().multiply(rhs.value()));
             },
         },
         4: {
@@ -839,7 +794,7 @@ const PRIMITIVES = {
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
-                return new LiteralExpression(lhs.value().divide(rhs.value()));
+                return new LitExpr(lhs.value().divide(rhs.value()));
             },
         },
     },
