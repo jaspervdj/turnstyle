@@ -206,6 +206,7 @@ class DenoiseSource extends Source {
         this._rgba = new Array(src.width * src.height);
 
         const palette = {};
+        const cache = {};
 
         const sse = (as, bs) => {
             let result = 0;
@@ -229,11 +230,15 @@ class DenoiseSource extends Source {
                 const hex = src.hex(x, y);
                 const rgba = src.rgba(x, y);
                 let out;
-                if (hex in palette) {
-                    out = palette[hex];
+                if (hex in cache) {
+                    out = cache[hex];
                 } else {
-                    out = similar(rgba) || rgba;
-                    palette[hex] = out;
+                    out = similar(rgba);
+                    if (out) {
+                        cache[hex] = out;
+                    } else {
+                        cache[hex] = palette[hex] = out = rgba;
+                    }
                 }
                 this._rgba[y * src.width + x] = out;
             }
