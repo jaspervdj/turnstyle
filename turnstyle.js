@@ -487,8 +487,11 @@ class Expr {
     }
 
     async whnf(ctx) {
-        await ctx.onWhnf(this);
-        return this;
+        if (!this._whnf) {
+            await ctx.onWhnf(this);
+            this._whnf = this;
+        }
+        return this._whnf;
     }
 
     async apply(ctx, arg) {
@@ -540,9 +543,12 @@ class AppExpr extends Expr {
     }
 
     async whnf(ctx) {
-        await ctx.onWhnf(this);
-        const lhs = await this.lhs.whnf(ctx);
-        return lhs.apply(ctx, this.rhs);
+        if (!this._whnf) {
+            await ctx.onWhnf(this);
+            const lhs = await this.lhs.whnf(ctx);
+            this._whnf = await lhs.apply(ctx, this.rhs);
+        }
+        return this._whnf;
     }
 
     freeVars() {
@@ -716,8 +722,11 @@ class IdExpr extends Expr {
     }
 
     async whnf(ctx) {
-        await ctx.onWhnf(this);
-        return await this.expr.whnf(ctx);
+        if (!this._whnf) {
+            await ctx.onWhnf(this);
+            this._whnf = await this.expr.whnf(ctx);
+        }
+        return this._whnf;
     }
 
     freeVars() {
