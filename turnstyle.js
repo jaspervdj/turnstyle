@@ -39,16 +39,12 @@ class Rational {
     }
 
     toBigInt() {
-        if (this._denom === 1n) {
-            return this._num;
-        }
+        if (this._denom === 1n) return this._num;
         return null;
     }
 
     toString() {
-        if (this._denom === 1n) {
-            return this._num.toString();
-        }
+        if (this._denom === 1n) return this._num.toString();
         return `${this._num}/${this._denom}`;
     }
 
@@ -124,47 +120,27 @@ const Pattern = {
     parse: (a, x, y, z) => {
         if (x === a) {
             if (y === a) {
-                if (z === a) {
-                    return Pattern.AAAA;
-                } else {
-                    return Pattern.AAAB;
-                }
+                if (z === a)      return Pattern.AAAA;
+                else              return Pattern.AAAB;
             } else {
-                if (z === a) {
-                    return Pattern.AABA;
-                } else if (z === y) {
-                    return Pattern.AABB;
-                } else {
-                    return Pattern.AABC;
-                }
+                if (z === a)      return Pattern.AABA;
+                else if (z === y) return Pattern.AABB;
+                else              return Pattern.AABC;
             }
         } else {
             if (y === a) {
-                if (z === a) {
-                    return Pattern.ABAA;
-                } else if (z === x) {
-                    return Pattern.ABAB;
-                } else {
-                    return Pattern.ABAC;
-                }
+                if (z === a)      return Pattern.ABAA;
+                else if (z === x) return Pattern.ABAB;
+                else              return Pattern.ABAC;
             } else if (y === x) {
-                if (z === a) {
-                    return Pattern.ABBA;
-                } else if (z === x) {
-                    return Pattern.ABBB;
-                } else {
-                    return Pattern.ABBC;
-                }
+                if (z === a)      return Pattern.ABBA;
+                else if (z === x) return Pattern.ABBB;
+                else              return Pattern.ABBC;
             } else {
-                if (z === a) {
-                    return Pattern.ABCA;
-                } else if (z === x) {
-                    return Pattern.ABCB;
-                } else if (z === y) {
-                    return Pattern.ABCC;
-                } else {
-                    return Pattern.ABCD;
-                }
+                if (z === a)      return Pattern.ABCA;
+                else if (z === x) return Pattern.ABCB;
+                else if (z === y) return Pattern.ABCC;
+                else              return Pattern.ABCD;
             }
         }
     },
@@ -207,9 +183,7 @@ class DenoiseSource extends Source {
 
         const similar = (rgba) => {
             for (const k of Object.keys(palette)) {
-                if (sse(rgba, palette[k]) < this._limit) {
-                    return palette[k];
-                }
+                if (sse(rgba, palette[k]) < this._limit) return palette[k];
             }
             return null;
         }
@@ -406,12 +380,10 @@ class Parser {
                     if (PRIMITIVES[front] && PRIMITIVES[front][right]) {
                         const primitive = PRIMITIVES[front][right];
                         return new PrimExpr(primitive, [], this._loc());
-                    } else {
-                        this._error(`unknown primitive: ${front}/${right}`);
                     }
-                } else {
-                    this._error(`Unhandled symbol: ${left}`);
+                    this._error(`Unknown primitive: ${front}/${right}`);
                 }
+                this._error(`Unhandled symbol: ${left}`);
             case Pattern.AAAA:
                 return new IdExpr(() => this._parseFront(), this._loc());
             case Pattern.AABB:
@@ -523,16 +495,12 @@ class AppExpr extends Expr {
     }
 
     get lhs() {
-        if (!this._lhs) {
-            this._lhs = this._lhsf();
-        }
+        if (!this._lhs) this._lhs = this._lhsf();
         return this._lhs;
     }
 
     get rhs() {
-        if (!this._rhs) {
-            this._rhs = this._rhsf();
-        }
+        if (!this._rhs) this._rhs = this._rhsf();
         return this._rhs;
     }
 
@@ -576,9 +544,7 @@ class LamExpr extends Expr {
     }
 
     get body() {
-        if (!this._body) {
-            this._body = this._bodyf()
-        }
+        if (!this._body) this._body = this._bodyf()
         return this._body;
     }
 
@@ -604,10 +570,8 @@ class LamExpr extends Expr {
     }
 
     subst(x, s) {
-        if (x === this._variable) {
-            // This lambda binds more tightly, no need to change
-            return this;
-        }
+        // This lambda binds more tightly, no need to change
+        if (x === this._variable) return this;
 
         const fvs = s.freeVars();
         if (fvs.has(this._variable)) {
@@ -615,9 +579,7 @@ class LamExpr extends Expr {
             const body = this.body;
             const avs = fvs.union(body.allVars());
             let fresh = 0;
-            while (avs.has(`fresh_${fresh}`)) {
-                fresh++
-            }
+            while (avs.has(`fresh_${fresh}`)) fresh++
             const variable = `fresh_${fresh}`;
             return new LamExpr(
                 variable,
@@ -656,11 +618,8 @@ class VarExpr extends Expr {
     }
 
     subst(x, e) {
-        if (x === this._variable) {
-            return e;
-        } else {
-            return this;
-        }
+        if (x === this._variable) return e;
+        return this;
     }
 }
 
@@ -672,12 +631,9 @@ class PrimExpr extends Expr {
     }
 
     toString() {
-        if (this._args.length === 0) {
-            return this._primitive.name;
-        } else {
-            return this._primitive.name + "(" +
-                this._args.map((a) => a.toString()).join(", ") + ")";
-        }
+        if (this._args.length === 0) return this._primitive.name;
+        return this._primitive.name + "(" +
+            this._args.map((a) => a.toString()).join(", ") + ")";
     }
 
     async apply(ctx, arg) {
@@ -711,9 +667,7 @@ class IdExpr extends Expr {
     }
 
     get expr() {
-        if (!this._expr) {
-            this._expr = this._exprf()
-        }
+        if (!this._expr) this._expr = this._exprf();
         return this._expr;
     }
 
@@ -849,9 +803,7 @@ class AnnotatedView {
     }
 
     focus(pos, dir) {
-        if (this._focus) {
-            this._svg.removeChild(this._focus);
-        }
+        if (this._focus) this._svg.removeChild(this._focus);
 
         const points = [
             [0, -1],
@@ -898,9 +850,7 @@ class Terminal {
         this._input.oninput = (event) => {
             const str = this._input.value;
             this._output.innerText += str;
-            for (const c of str) {
-                this._push(c);
-            }
+            for (const c of str) this._push(c);
             this._input.value = "";
         };
         this._pre.appendChild(this._input);
@@ -908,7 +858,6 @@ class Terminal {
         this._cursor = doc.createElement("span");
         this._cursor.setAttribute("class", "cursor");
         this._pre.appendChild(this._cursor);
-
     }
 
     _push(c) {
@@ -933,7 +882,7 @@ class Terminal {
 
     print(str) {
         this._output.innerText += str;
-        this._pre.scrollTo(0, this._pre.scrollHeight);
+        this._code.scrollTo(0, this._code.scrollHeight);
     }
 
     async inputNumber() {
@@ -959,19 +908,13 @@ const runInterpreter = async (doc, element, src) => {
     div.setAttribute("class", "interpreter");
 
     const terminal = new Terminal(doc);
-    const output = (line) => {
-        terminal.print(line + "\n");
-    };
+    const output = (line) => terminal.print(line + "\n");
 
     const evalCtx = {
         inputNumber: async () => terminal.inputNumber(),
-        outputNumber: (num) => {
-            output(num.toString());
-        },
+        outputNumber: (num) => output(num.toString()),
         onWhnf: async (expr) => {
-            if (paused) {
-                await paused;
-            }
+            if (paused) await paused;
             if (expr.location) {
                 view.focus(expr.location.position, expr.location.direction);
             }
