@@ -849,10 +849,6 @@ class AnnotatedView {
     }
 
     focus(pos, dir) {
-        if (!pos || !dir) {
-            return;
-        }
-
         if (this._focus) {
             this._svg.removeChild(this._focus);
         }
@@ -887,39 +883,88 @@ class AnnotatedView {
     }
 }
 
+class Terminal {
+    constructor(doc) {
+        this._queue = [];
+        this._consumers = [];
+
+        this._code = doc.createElement("code");
+        this._code.setAttribute("class", "terminal");
+        this._pre = doc.createElement("pre");
+        this._code.appendChild(this._pre);
+        this._output = doc.createElement("span");
+        this._pre.appendChild(this._output);
+        this._input = doc.createElement("textarea");
+        this._input.oninput = (event) => {
+            const str = this._input.value;
+            this._output.innerText += str;
+            for (const c of str) {
+                this._push(c);
+            }
+            this._input.value = "";
+        };
+        this._pre.appendChild(this._input);
+        this._code.onclick = (event) => this._input.focus();
+        this._cursor = doc.createElement("span");
+        this._cursor.setAttribute("class", "cursor");
+        this._pre.appendChild(this._cursor);
+
+    }
+
+    _push(c) {
+        if (this._consumers.length > 0) {
+            const consumer = this._consumers.shift();
+            consumer(c);
+        } else {
+            this._queue.push(c);
+        }
+    }
+
+    _pop() {
+        return new Promise((resolve, reject) => {
+            if (this._queue.length > 0) {
+                const x = this._queue.shift();
+                resolve(x);
+            } else {
+                this._consumers.push(resolve);
+            }
+        });
+    }
+
+    print(str) {
+        this._output.innerText += str;
+        this._pre.scrollTo(0, this._pre.scrollHeight);
+    }
+
+    async inputNumber() {
+        let str = "";
+        let c = await this._pop();
+        while (c >= "0" && c <= "9") {
+            str += c;
+            c = await this._pop();
+        }
+        return Number(str);
+    }
+
+    get element() {
+        return this._code;
+    }
+}
+
 const runInterpreter = async (doc, element, src) => {
     let view;
     let paused = null;
-    let output = () => {};
 
     const div = doc.createElement("div");
     div.setAttribute("class", "interpreter");
 
-    const evalCtx = {
-        inputNumber: () => {
-            return new Promise((resolve, reject) => {
-                const form = doc.createElement("form");
-                const input = doc.createElement("input");
-                input.type = "text";
-                form.appendChild(input);
-                const submit = doc.createElement("button");
-                submit.type = "submit";
-                submit.textContent = "submit";
-                form.appendChild(submit);
-                div.appendChild(form);
+    const terminal = new Terminal(doc);
+    const output = (line) => {
+        terminal.print(line + "\n");
+    };
 
-                form.addEventListener("submit", (event) => {
-                    event.preventDefault();
-                    const value = input.value;
-                    if (value) {
-                        div.removeChild(form);
-                        resolve(Number(value));
-                    } else {
-                        reject("Input is empty");
-                    }
-                });
-            });
-        },
+    const evalCtx = {
+        inputNumber: async () => terminal.inputNumber(),
         outputNumber: (num) => {
             output(num.toString());
         },
@@ -927,7 +972,9 @@ const runInterpreter = async (doc, element, src) => {
             if (paused) {
                 await paused;
             }
-            view.focus(expr.location.position, expr.location.direction);
+            if (expr.location) {
+                view.focus(expr.location.position, expr.location.direction);
+            }
             await new Promise(r => setTimeout(r, 50));
         }
     }
@@ -951,16 +998,7 @@ const runInterpreter = async (doc, element, src) => {
         }
     };
 
-    const pre = doc.createElement("pre");
-    pre.setAttribute("class", "output");
-    const code = doc.createElement("code");
-    output = (line) => {
-        code.appendChild(new Text(line + "\n"));
-        pre.scrollTo(0, pre.scrollHeight);
-    };
-    pre.appendChild(code);
-    div.appendChild(pre);
-
+    div.appendChild(terminal.element);
     element.replaceWith(div);
 
     output("Starting interpreter...");
