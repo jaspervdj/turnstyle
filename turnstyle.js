@@ -900,61 +900,77 @@ class Terminal {
     }
 }
 
-const runInterpreter = async (doc, element, src) => {
-    let view;
-    let paused = null;
+class Interpreter {
+    constructor(doc, src) {
+        this._doc = doc;
+        this._src = src;
+        this._div = doc.createElement("div");
+        this._paused = null;
+        this._unpause = () => {};
+        this._div.setAttribute("class", "interpreter");
+    }
 
-    const div = doc.createElement("div");
-    div.setAttribute("class", "interpreter");
+    get element() {
+        return this._div;
+    }
 
-    const terminal = new Terminal(doc);
-    const output = (line) => terminal.print(line + "\n");
+    pause() {
+        this._paused = new Promise((resolve, reject) => {
+            this._unpause = () => {
+                resolve();
+                this._paused = null;
+            };
+        });
+    }
 
-    const evalCtx = {
-        inputNumber: async () => terminal.inputNumber(),
-        outputNumber: (num) => output(num.toString()),
-        onWhnf: async (expr) => {
-            if (paused) await paused;
-            if (expr.location) {
-                view.focus(expr.location.position, expr.location.direction);
+    unpause() {
+        this._unpause();
+    }
+
+    async run() {
+        const terminal = new Terminal(this._doc);
+        const output = (line) => terminal.print(line + "\n");
+
+        const evalCtx = {
+            inputNumber: async () => terminal.inputNumber(),
+            outputNumber: (num) => output(num.toString()),
+            onWhnf: async (expr) => {
+                if (this._paused) await this._paused;
+                if (expr.location) {
+                    this._view.focus(expr.location.position, expr.location.direction);
+                }
+                await new Promise(r => setTimeout(r, 50));
             }
-            await new Promise(r => setTimeout(r, 50));
+        }
+
+        const noisy = await ImageDataSource.load(this._doc, this._src);
+        const source = new DenoiseSource(noisy);
+        this._view = new AnnotatedView(this._doc, source);
+        this._div.appendChild(this._view.svg);
+
+        this._view.svg.onclick = (event) => {
+            event.preventDefault();
+            if (!this._paused) {
+                this.pause();
+            } else {
+                this.unpause();
+            }
+        };
+
+        this._div.appendChild(terminal.element);
+
+        output("Starting interpreter...");
+        const parser = new Parser(source);
+        try {
+            const whnf = await parser.parse().whnf(evalCtx);
+            if (whnf.value() === null) {
+                output("Interpreter exited with expression:");
+                output(whnf.toString());
+            } else {
+                output(`Interpreter exited with code ${whnf.value()}`);
+            }
+        } catch(e) {
+            output(`Interpreter crashed: ${e}`);
         }
     }
-
-    const source = new DenoiseSource(await ImageDataSource.load(doc, src));
-    view = new AnnotatedView(doc, source);
-    div.appendChild(view.svg);
-
-    let unpause = () => {};
-    view.svg.onclick = (event) => {
-        event.preventDefault();
-        if (!paused) {
-            paused = new Promise((resolve, reject) => {
-                unpause = () => {
-                    resolve();
-                    paused = null;
-                };
-            });
-        } else {
-            unpause();
-        }
-    };
-
-    div.appendChild(terminal.element);
-    element.replaceWith(div);
-
-    output("Starting interpreter...");
-    const parser = new Parser(source);
-    try {
-        const whnf = await parser.parse().whnf(evalCtx);
-        if (whnf.value() === null) {
-            output("Interpreter exited with expression:");
-            output(whnf.toString());
-        } else {
-            output(`Interpreter exited with code ${whnf.value()}`);
-        }
-    } catch(e) {
-        output(`Interpreter crashed: ${e}`);
-    }
-};
+}

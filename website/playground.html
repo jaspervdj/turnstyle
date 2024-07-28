@@ -1,0 +1,23 @@
+<h1>Playground</h1>
+
+<div id="placeholder">Please upload a file…</div>
+
+<input id="upload" type="file" />
+
+<script type="text/JavaScript">
+    const upload = document.getElementById("upload");
+    let placeholder = document.getElementById("placeholder");
+    let interpreter = null;
+    upload.onchange = () => {
+        const file = upload.files[0];
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (e) => {
+            if (interpreter) interpreter.pause();
+            interpreter = new Interpreter(document, e.target.result);
+            placeholder.replaceWith(interpreter.element);
+            placeholder = interpreter.element;
+            interpreter.run();
+        };
+    };
+</script>

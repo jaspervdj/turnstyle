@@ -17,8 +17,9 @@ data Page = Page
 
 pages :: [Page]
 pages =
-    [ Page "README.md"      "index.html"      (Just "Turnstyle") False
-    , Page "spec/README.md" "spec/index.html" (Nothing)          True
+    [ Page "README.md" "index.html"  (Just "Turnstyle") False
+    , Page "spec/README.md" "spec/index.html" Nothing True
+    , Page "website/playground.html" "playground/index.html" Nothing False
     ]
 
 main :: IO ()

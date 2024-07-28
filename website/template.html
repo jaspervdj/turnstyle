@@ -10,7 +10,7 @@
 
     <link rel="icon" href="/favicon.ico" sizes="32x32">
     <link rel="stylesheet" type="text/css" href="/style.css" />
-    <script src="turnstyle.js" type="text/JavaScript"></script>
+    <script src="/turnstyle.js" type="text/JavaScript"></script>
     <title>$title$</title>
   </head>
   <body>
@@ -21,6 +21,7 @@
     <nav>
       <a class="$if(active("index.html"))$active$endif$" href="/">Home</a>
       <a class="$if(active("spec/index.html"))$active$endif$" href="/spec/">Specification</a>
+      <a class="$if(active("playground/index.html"))$active$endif$" href="/playground/">Playground</a>
       <a href="https://github.com/jaspervdj/turnstyle">GitHub</a>
     </nav>
     $body$
@@ -30,11 +31,9 @@
             for (const example of examples) {
                 example.onclick = (event) => {
                     event.preventDefault();
-                    runInterpreter(
-                        document,
-                        example,
-                        example.href,
-                    );
+                    const itp = new Interpreter(document, example.href);
+                    example.replaceWith(itp.element);
+                    itp.run();
                 };
             }
         };
