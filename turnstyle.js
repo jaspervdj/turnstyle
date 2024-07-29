@@ -164,7 +164,7 @@ class Source {
 // This is a workaround to find similar-enough colors.
 class DenoiseSource extends Source {
     constructor(src) {
-        super()
+        super();
         this._limit = 32;
         this._width = src.width;
         this._height = src.height;
@@ -221,9 +221,16 @@ class DenoiseSource extends Source {
     }
 }
 
+class ImageLoadingError extends Error {
+    constructor() {
+        super("Could not load image file");
+        this.name = "ImageLoadingError";
+    }
+}
+
 class ImageDataSource extends Source {
     constructor(imageData) {
-        super()
+        super();
         this._imageData = imageData;
     }
 
@@ -258,7 +265,8 @@ class ImageDataSource extends Source {
                     ctx.getImageData(0, 0, canvas.width, canvas.height);
                 resolve(new ImageDataSource(imageData));
             }
-            img.onerror = (err) => reject(err);
+            // Sadly the `img.onerror` error contains no useful information.
+            img.onerror = (err) => reject(new ImageLoadingError());
             img.src = src;
         });
     }
@@ -798,7 +806,7 @@ class AnnotatedView {
         }
     }
 
-    get svg() {
+    get element() {
         return this._svg;
     }
 
@@ -908,6 +916,8 @@ class Interpreter {
         this._paused = null;
         this._unpause = () => {};
         this._div.setAttribute("class", "interpreter");
+        this._terminal = new Terminal(this._doc);
+        this._div.appendChild(this._terminal.element);
     }
 
     get element() {
@@ -928,11 +938,9 @@ class Interpreter {
     }
 
     async run() {
-        const terminal = new Terminal(this._doc);
-        const output = (line) => terminal.print(line + "\n");
-
+        const output = (line) => this._terminal.print(line + "\n");
         const evalCtx = {
-            inputNumber: async () => terminal.inputNumber(),
+            inputNumber: async () => this._terminal.inputNumber(),
             outputNumber: (num) => output(num.toString()),
             onWhnf: async (expr) => {
                 if (this._paused) await this._paused;
@@ -943,25 +951,23 @@ class Interpreter {
             }
         }
 
-        const noisy = await ImageDataSource.load(this._doc, this._src);
-        const source = new DenoiseSource(noisy);
-        this._view = new AnnotatedView(this._doc, source);
-        this._div.appendChild(this._view.svg);
-
-        this._view.svg.onclick = (event) => {
-            event.preventDefault();
-            if (!this._paused) {
-                this.pause();
-            } else {
-                this.unpause();
-            }
-        };
-
-        this._div.appendChild(terminal.element);
-
-        output("Starting interpreter...");
-        const parser = new Parser(source);
         try {
+            const noisy = await ImageDataSource.load(this._doc, this._src);
+            const source = new DenoiseSource(noisy);
+            this._view = new AnnotatedView(this._doc, source);
+            this._div.insertBefore(this._view.element, this._div.firstChild);
+
+            this._view.element.onclick = (event) => {
+                event.preventDefault();
+                if (!this._paused) {
+                    this.pause();
+                } else {
+                    this.unpause();
+                }
+            };
+            output("Starting interpreter...");
+            const parser = new Parser(source);
+
             const whnf = await parser.parse().whnf(evalCtx);
             if (whnf.value() === null) {
                 output("Interpreter exited with expression:");
