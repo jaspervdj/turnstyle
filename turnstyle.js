@@ -1,5 +1,12 @@
 "use strict";
 
+class EvaluationError extends Error {
+    constructor(msg) {
+        super(msg);
+        this.name = "EvaluationError";
+    }
+}
+
 class Rational {
     constructor(numerator, denominator) {
         const gcd = Rational._gcd(numerator, denominator);
@@ -903,8 +910,10 @@ class Terminal {
 
     async inputNumber() {
         this._input.focus();
-        const l = await this._pop();
-        return Number(l);
+        const str = await this._pop();
+        const n = Number(str);
+        if (isNaN(n)) throw new EvaluationError(`not a number: ${str}`);
+        return Number(n);
     }
 
     get element() {
