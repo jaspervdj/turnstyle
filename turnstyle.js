@@ -847,6 +847,7 @@ class Terminal {
     constructor(doc) {
         this._queue = [];
         this._consumers = [];
+        this._buffer = "";
 
         this._code = doc.createElement("code");
         this._code.setAttribute("class", "terminal");
@@ -857,8 +858,15 @@ class Terminal {
         this._input = doc.createElement("textarea");
         this._input.oninput = (event) => {
             const str = this._input.value;
-            this._output.innerText += str;
-            for (const c of str) this._push(c);
+            const lines = str.split(/\r?\n/);
+            for (const l of lines.slice(0, lines.length - 1)) {
+                this._output.innerText += l + "\n";
+                this._push(this._buffer + l);
+                this._buffer = "";
+            }
+            const remainder = lines[lines.length - 1];
+            this._output.innerText += remainder;
+            this._buffer += remainder;
             this._input.value = "";
         };
         this._pre.appendChild(this._input);
@@ -895,13 +903,8 @@ class Terminal {
 
     async inputNumber() {
         this._input.focus();
-        let str = "";
-        let c = await this._pop();
-        while (c >= "0" && c <= "9") {
-            str += c;
-            c = await this._pop();
-        }
-        return Number(str);
+        const l = await this._pop();
+        return Number(l);
     }
 
     get element() {
