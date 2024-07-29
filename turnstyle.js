@@ -894,6 +894,7 @@ class Terminal {
     }
 
     async inputNumber() {
+        this._input.focus();
         let str = "";
         let c = await this._pop();
         while (c >= "0" && c <= "9") {
