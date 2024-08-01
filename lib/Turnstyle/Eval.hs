@@ -101,9 +101,17 @@ prim
 prim ann (PIn inMode) [k, l] = catch @IOException
     (do
         lit <- case inMode of
-            InNumber -> readLn :: IO Int
-            InChar   -> ord <$> getChar
-        whnf $ Expr.App ann k (Expr.Lit ann lit))
+            InNumber -> Expr.Lit ann <$> readLn
+            InLine   -> do
+                line <- getLine
+                let cons = Fresh 1
+                    nil  = Fresh 2
+                pure $ Expr.Lam ann cons $ Expr.Lam ann nil $ foldr
+                    (Expr.App ann . Expr.App ann (Expr.Var ann cons))
+                    (Expr.Var ann nil)
+                    (map (Expr.Lit ann . ord) line)
+            InChar   -> Expr.Lit ann . ord <$> getChar
+        whnf $ Expr.App ann k lit)
     (\_ -> whnf l)
 prim _ p@(POut outMode) [outE, kE] = do
     out <- whnf outE >>= castArgNumber p 1

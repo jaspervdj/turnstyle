@@ -184,6 +184,26 @@ Exactness]:
 > using inexact operations. Thus inexactness is a contagious property of a
 > number.
 
+## Lists
+
+Turnstyle has no built-in list type, and by convention uses a _right fold_
+representation instead.
+
+| Description                  | Lambda expression               |
+| :--------------------------  | :------------------------------ |
+| `nil` (empty list)           | _λcn.n_                         |
+| `cons` (prepend one element) | _λht.λcn.((c h) (t c n))_       |
+| `[1, 2, 3]`                  | _λcn.((c 1) ((c 2) ((c 3) n)))_ |
+
+## Strings
+
+Turnstyle has no built-in string type.  Idiomatically they they are represented
+using [lists](#lists) of integers, where each integer represents a Unicode
+codepoint.
+
+For example, the string `"hi, ⊢"` is represented as
+_λcn.((c 104) ((c 105) ((c 44) ((c 32) ((c 8866) n)))))_.
+
 [Church encoding]: https://en.wikipedia.org/wiki/Church_encoding
 [PNG]: http://libpng.org/pub/png/
 [Scheme Exactness]: https://www.cs.cmu.edu/Groups/AI/html/r4rs/r4rs_8.html#SEC52

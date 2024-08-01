@@ -23,11 +23,13 @@ data Prim
 
 data InMode
     = InNumber
+    | InLine
     | InChar
     deriving (Bounded, Enum, Eq, Show)
 
 data OutMode
     = OutNumber
+    | OutLine
     | OutChar
     deriving (Bounded, Enum, Eq, Show)
 
@@ -62,8 +64,10 @@ primArity (PCompare _) = 4
 
 primName :: Prim -> String
 primName (PIn InNumber)                   = "in_num"
+primName (PIn InLine)                     = "in_line"
 primName (PIn InChar)                     = "in_char"
 primName (POut OutNumber)                 = "out_num"
+primName (POut OutLine)                   = "out_line"
 primName (POut OutChar)                   = "out_char"
 primName (PNumOp NumOpAdd)                = "num_add"
 primName (PNumOp NumOpSubtract)           = "num_sub"
@@ -78,9 +82,11 @@ primName (PCompare CmpGreaterThanOrEqual) = "cmp_gte"
 
 encodePrim :: Prim -> (Int, Int)
 encodePrim (PIn InNumber)                   = (1, 1)
-encodePrim (PIn InChar)                     = (1, 2)
+encodePrim (PIn InLine)                     = (1, 2)
+encodePrim (PIn InChar)                     = (1, 3)
 encodePrim (POut OutNumber)                 = (2, 1)
-encodePrim (POut OutChar)                   = (2, 2)
+encodePrim (POut OutLine)                   = (2, 2)
+encodePrim (POut OutChar)                   = (2, 3)
 encodePrim (PNumOp NumOpAdd)                = (3, 1)
 encodePrim (PNumOp NumOpSubtract)           = (3, 2)
 encodePrim (PNumOp NumOpMultiply)           = (3, 3)
