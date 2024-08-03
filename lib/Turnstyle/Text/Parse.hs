@@ -89,7 +89,7 @@ var = (P.<?> "variable") $ do
         VarId  v -> pure v
         PrimId p -> fail $ "reserved name: " ++ primName p
 
-lit :: P.Parser Int
+lit :: P.Parser Integer
 lit = token $ do
     decimal <- P.many1 P.digit
     case read decimal of

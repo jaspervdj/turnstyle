@@ -2,16 +2,17 @@ module Turnstyle.Parse.Tests
     ( tests
     ) where
 
-import           Data.Either.Validation (Validation (..))
-import           Data.List.NonEmpty     (NonEmpty (..))
-import           Test.Tasty             (TestTree, testGroup)
-import           Test.Tasty.HUnit       (testCase, (@?=))
+import           Data.Either.Validation  (Validation (..))
+import           Data.List.NonEmpty      (NonEmpty (..))
+import           Data.Void               (Void)
+import           Test.Tasty              (TestTree, testGroup)
+import           Test.Tasty.HUnit        (testCase, (@?=))
 import           Turnstyle.Expr
 import           Turnstyle.Expr.Tests
-import           Turnstyle.JuicyPixels  (loadImage)
-import           Turnstyle.Parse        (parseImage)
+import           Turnstyle.JuicyPixels   (loadImage)
+import           Turnstyle.Parse         (parseImage)
 import           Turnstyle.Prim
-import           Turnstyle.Scale        (autoScale)
+import           Turnstyle.Scale         (autoScale)
 
 data Error = ParseError | CycleError
 
@@ -40,12 +41,12 @@ tests = testGroup "Turnstyle.Parse"
             _                               -> error "expected a CycleError"
     ]
   where
+    example :: FilePath -> Expr () Void Int -> TestTree
     example path expected = testCase path $ do
         img <- autoScale <$> loadImage path
         case checkErrors (parseImage Nothing img) of
             Failure errs -> fail $ show errs
-            Success expr ->
-                mapAnn (const ()) (normalizeVars (removeId expr)) @?= expected
+            Success expr -> toDeBruijn expr @?= toDeBruijn expected
 
     app f xs = foldl (App ()) f xs
     lam      = Lam ()

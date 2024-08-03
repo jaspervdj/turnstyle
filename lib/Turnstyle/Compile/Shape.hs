@@ -429,7 +429,7 @@ exprToShape' ctx expr = case expr of
         right  = move 1 D center
 
     Lit _ n -> Shape
-        { sWidth       = 1 + n
+        { sWidth       = 1 + int
         , sHeight      = 3
         , sEntrance    = 1
         , sConstraints =
@@ -447,12 +447,13 @@ exprToShape' ctx expr = case expr of
             -- Areas around the front "lit" part need to be different
             [ NotEq front (move 1 U e) | e <- frontExtension ] ++
             [ NotEq front (move 1 D e) | e <- frontExtension ] ++
-            [ NotEq front (move n R front) ]
+            [ NotEq front (move int R front) ]
         }
       where
         -- The extension for a literal
-        frontExtension = [move i R center | i <- [1 .. n]]
+        frontExtension = [move i R center | i <- [1 .. int]]
 
+        int    = fromIntegral n
         left   = move 1 U center
         center = Pos 0 1
         front  = move 1 R center

@@ -1,11 +1,13 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Turnstyle.Expr.Tests
     ( GenExpr (..)
-    , removeAnn
-    , removeId
+    , DeBruijn (..)
+    , toDeBruijn
     ) where
 
+import qualified Data.Map              as M
 import qualified Data.Set              as S
-import           Data.Void             (Void)
+import           Data.Void             (Void, absurd)
 import qualified Test.Tasty.QuickCheck as QC
 import           Turnstyle.Expr
 import           Turnstyle.Prim
@@ -38,14 +40,22 @@ genExpr fresh = QC.oneof $
     ] ++
     if fresh > 0 then [Var () <$> QC.choose (0, fresh - 1)] else []
 
-removeAnn :: Expr ann e v -> Expr () e v
-removeAnn = mapAnn (const ())
+data DeBruijn
+    = DbApp DeBruijn DeBruijn
+    | DbLam DeBruijn
+    | DbVar Int
+    | DbPrim Prim
+    | DbLit Integer
+    deriving (Eq, Show)
 
-removeId :: Expr ann err v -> Expr ann err v
-removeId (App ann f x) = App ann (removeId f) (removeId x)
-removeId (Lam ann v b) = Lam ann v (removeId b)
-removeId (Var ann v)   = Var ann v
-removeId (Prim ann p)  = Prim ann p
-removeId (Lit ann l)   = Lit ann l
-removeId (Id _ e)      = removeId e
-removeId (Err ann err) = Err ann err
+toDeBruijn :: forall ann v. Ord v => Expr ann Void v -> Maybe DeBruijn
+toDeBruijn = go M.empty
+  where
+    go :: M.Map v Int -> Expr ann Void v -> Maybe DeBruijn
+    go vars (App _ f x) = DbApp <$> go vars f <*> go vars x
+    go vars (Lam _ v b) = DbLam <$> go (M.insert v 1 $ fmap succ vars) b
+    go vars (Var _ v)   = DbVar <$> M.lookup v vars
+    go _    (Prim _ l)  = pure $ DbPrim l
+    go _    (Lit _ l)   = pure $ DbLit l
+    go vars (Id _ e)    = go vars e
+    go _    (Err _ e)   = absurd e
