@@ -45,6 +45,10 @@ class Rational {
         return lhs % rhs;
     }
 
+    equal(other) {
+        return this._num === other._num && this._denom === other._denom;
+    }
+
     toBigInt() {
         if (this._denom === 1n) return this._num;
         return null;
@@ -724,6 +728,18 @@ const PRIMITIVES = {
                 return applied.whnf(ctx);
             },
         },
+        2: {
+            name: "in_char",
+            arity: 2,
+            implementation: async (ctx, args) => {
+                const input = await ctx.inputCharacter();
+                const codePoint = input.codePointAt(0);
+                const rational = new Rational(BigInt(codePoint), 1n);
+                const lit = new LitExpr(rational);
+                const applied = await args[0].apply(ctx, lit);
+                return applied.whnf(ctx);
+            },
+        },
     },
     2: {
         1: {
@@ -732,8 +748,17 @@ const PRIMITIVES = {
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
                 const out = lhs.value();
-                console.log(out);
                 await ctx.outputNumber(out.toString());
+                return args[1].whnf(ctx);
+            },
+        },
+        2: {
+            name: "out_char",
+            arity: 2,
+            implementation: async (ctx, args) => {
+                const lhs = await args[0].whnf(ctx);
+                const out = String.fromCodePoint(lhs.value());
+                await ctx.outputCharacter(out);
                 return args[1].whnf(ctx);
             },
         },
@@ -773,6 +798,21 @@ const PRIMITIVES = {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
                 return new LitExpr(lhs.value().divide(rhs.value()));
+            },
+        },
+    },
+    4: {
+        1: {
+            name: "cmp_eq",
+            arity: 4,
+            implementation: async (ctx, args) => {
+                const lhs = await args[0].whnf(ctx);
+                const rhs = await args[1].whnf(ctx);
+                if (lhs.value().equal(rhs.value())) {
+                    return args[2].whnf(ctx);
+                } else {
+                    return args[3].whnf(ctx);
+                }
             },
         },
     },
@@ -854,7 +894,6 @@ class Terminal {
     constructor(doc) {
         this._queue = [];
         this._consumers = [];
-        this._buffer = "";
 
         this._code = doc.createElement("code");
         this._code.setAttribute("class", "terminal");
@@ -865,15 +904,8 @@ class Terminal {
         this._input = doc.createElement("textarea");
         this._input.oninput = (event) => {
             const str = this._input.value;
-            const lines = str.split(/\r?\n/);
-            for (const l of lines.slice(0, lines.length - 1)) {
-                this._output.innerText += l + "\n";
-                this._push(this._buffer + l);
-                this._buffer = "";
-            }
-            const remainder = lines[lines.length - 1];
-            this._output.innerText += remainder;
-            this._buffer += remainder;
+            this._output.innerText += str;
+            for (const c of str) this._push(c);
             this._input.value = "";
         };
         this._pre.appendChild(this._input);
@@ -910,10 +942,21 @@ class Terminal {
 
     async inputNumber() {
         this._input.focus();
-        const str = await this._pop();
+        let str = "";
+        let c = await this._pop();
+        while (c >= "0" && c <= "9") {
+            str += c;
+            c = await this._pop();
+        }
+        // TODO: Assume c is now a newline, we should check.
         const n = Number(str);
         if (isNaN(n)) throw new EvaluationError(`not a number: ${str}`);
         return Number(n);
+    }
+
+    async inputCharacter() {
+        this._input.focus();
+        return this._pop();
     }
 
     get element() {
@@ -954,7 +997,9 @@ class Interpreter {
         const output = (line) => this._terminal.print(line + "\n");
         const evalCtx = {
             inputNumber: async () => this._terminal.inputNumber(),
+            inputCharacter: async () => this._terminal.inputCharacter(),
             outputNumber: (num) => output(num.toString()),
+            outputCharacter: (char) => this._terminal.print(char),
             onWhnf: async (expr) => {
                 if (this._paused) await this._paused;
                 if (expr.location) {
