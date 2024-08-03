@@ -72,6 +72,7 @@ freeVars (Err _ _)      = S.empty
 allVars :: Ord v => Expr ann e v -> S.Set v
 allVars = foldMap S.singleton
 
+-- | Only works if all variables are bound.
 normalizeVars :: forall ann e v. Ord v => Expr ann e v -> Expr ann e Int
 normalizeVars = go 0 M.empty
   where
