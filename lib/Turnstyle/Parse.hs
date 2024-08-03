@@ -92,7 +92,7 @@ parse pos dir img = case pattern of
 
     -- Int/Prim
     ABCD -> case areaLeft of
-        1 -> Lit ann $ areaFront ^ areaRight
+        1 -> Lit ann $ (fromIntegral areaFront :: Integer) ^ areaRight
         2 -> case decodePrim areaFront areaRight of
             Nothing   -> Err ann $ UnknownPrim areaFront areaRight
             Just prim -> Prim ann prim

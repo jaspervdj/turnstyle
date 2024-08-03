@@ -5,7 +5,6 @@ module Turnstyle.Text.Tests
 import           Test.Tasty            (TestTree, testGroup)
 import           Test.Tasty.HUnit      (testCase, (@=?))
 import qualified Test.Tasty.QuickCheck as QC
-import           Turnstyle.Expr
 import           Turnstyle.Expr.Tests
 import           Turnstyle.Text
 import qualified Turnstyle.Text.Sugar  as Sugar
@@ -15,7 +14,7 @@ tests = testGroup "Turnstyle.Text"
     [ QC.testProperty "parse . pretty" $ \(GenExpr expr) ->
         case parseExpr "test iput" (prettyExpr expr) of
             Left  _      -> False
-            Right parsed -> removeId expr == normalizeVars (removeAnn parsed)
+            Right parsed -> toDeBruijn expr == toDeBruijn parsed
 
     , testCase "comments" $
         let input = unlines

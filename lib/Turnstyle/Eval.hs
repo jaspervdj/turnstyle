@@ -101,8 +101,8 @@ prim
 prim ann (PIn inMode) [k, l] = catch @IOException
     (do
         lit <- case inMode of
-            InNumber -> readLn :: IO Int
-            InChar   -> ord <$> getChar
+            InNumber -> readLn :: IO Integer
+            InChar   -> fromIntegral . ord <$> getChar
         whnf $ Expr.App ann k (Expr.Lit ann lit))
     (\_ -> whnf l)
 prim _ p@(POut outMode) [outE, kE] = do

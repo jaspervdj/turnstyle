@@ -15,7 +15,7 @@ data Sugar err ann
     | Lam ann (NonEmpty String) (Sugar err ann)
     | Var ann String
     | Prim ann Prim
-    | Lit ann Int
+    | Lit ann Integer
     | Err ann err
     deriving (Eq, Functor, Show)
 

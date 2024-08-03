@@ -26,7 +26,7 @@ data Expr ann e v
     | Lam ann v (Expr ann e v)
     | Var ann v
     | Prim ann Prim
-    | Lit ann Int
+    | Lit ann Integer
     | Id ann (Expr ann e v)
     | Err ann e
     deriving (Eq, Foldable, Functor, Show)
