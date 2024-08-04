@@ -142,3 +142,7 @@ blockquote {
     0%  {  background: transparent; }
     50% {  background: inherit;     }
 }
+
+input {
+    margin: .5em 0px;
+}

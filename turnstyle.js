@@ -887,6 +887,7 @@ class Terminal {
 
 class Interpreter {
     constructor(doc, src) {
+        this.delay = 50;
         this._doc = doc;
         this._src = src;
         this._div = doc.createElement("div");
@@ -945,7 +946,7 @@ class Interpreter {
                 if (expr.location) {
                     this._view.focus(expr.location.position, expr.location.direction);
                 }
-                await new Promise(r => setTimeout(r, 50));
+                await new Promise(r => setTimeout(r, this.delay));
             }
         }
 
