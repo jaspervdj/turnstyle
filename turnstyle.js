@@ -719,6 +719,7 @@ const Primitives = {
             2: binop("num_sub", (lhs, rhs) => lhs.sub(rhs)),
             3: binop("num_mul", (lhs, rhs) => lhs.mul(rhs)),
             4: binop("num_div", (lhs, rhs) => lhs.div(rhs)),
+            5: binop("num_mod", (lhs, rhs) => lhs.mod(rhs)),
         };
     })(),
     4: (() => {
