@@ -12,9 +12,10 @@
         const file = upload.files[0];
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             if (interpreter) interpreter.pause();
             interpreter = new Interpreter(document, e.target.result);
+            await interpreter.load();
             placeholder.replaceWith(interpreter.element);
             placeholder = interpreter.element;
             interpreter.run();

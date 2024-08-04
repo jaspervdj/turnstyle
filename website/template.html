@@ -29,9 +29,10 @@
         window.onload = () => {
             const examples = document.querySelectorAll("a[href^='examples/']:has(img)");
             for (const example of examples) {
-                example.onclick = (event) => {
+                example.onclick = async (event) => {
                     event.preventDefault();
                     const itp = new Interpreter(document, example.href);
+                    await itp.load();
                     example.replaceWith(itp.element);
                     itp.run();
                 };

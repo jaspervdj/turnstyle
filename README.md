@@ -20,7 +20,8 @@ consult [the Turnstyle Language Specification](spec/).
 
 # Examples
 
-The starting Turnstyle shape is outlined.  Click on the examples to run them.
+The starting Turnstyle shape is outlined.  Click on the examples to run them in
+the browser.
 
 ## pi
 
@@ -32,6 +33,7 @@ Prints an approximation of _pi_ by comparing the circle to its diameter:
 
 Uses a [Y combinator] (indicated by the red rectangle in the top left)
 and [continuation-passing style] to implement the Unix `rev` program.
+Type lines into the terminal to revert them.
 
 [![](examples/rev.svg)](examples/rev.png)
 

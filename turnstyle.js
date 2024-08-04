@@ -882,12 +882,14 @@ class Interpreter {
         this._doc = doc;
         this._src = src;
         this._div = doc.createElement("div");
-        this._paused = null;
-        this._unpause = () => {};
         this._div.setAttribute("class", "interpreter");
         this._terminal = new Terminal(this._doc);
         this._div.appendChild(this._terminal.element);
+        this._paused = null;
+        this._unpause = () => {};
     }
+
+    _output (line) { this._terminal.print(line + "\n") };
 
     get element() { return this._div; }
 
@@ -902,22 +904,7 @@ class Interpreter {
 
     unpause() { this._unpause(); }
 
-    async run() {
-        const output = (line) => this._terminal.print(line + "\n");
-        const evalCtx = {
-            inputNumber: async () => this._terminal.inputNumber(),
-            inputCharacter: async () => this._terminal.inputCharacter(),
-            outputNumber: (num) => output(num.toString()),
-            outputCharacter: (char) => this._terminal.print(char),
-            onWhnf: async (expr) => {
-                if (this._paused) await this._paused;
-                if (expr.location) {
-                    this._view.focus(expr.location.position, expr.location.direction);
-                }
-                await new Promise(r => setTimeout(r, 50));
-            }
-        }
-
+    async load() {
         try {
             const noisy = await ImageDataSource.load(this._doc, this._src);
             const source = new DenoiseSource(noisy);
@@ -932,18 +919,38 @@ class Interpreter {
                     this.unpause();
                 }
             };
-            output("Starting interpreter...");
-            const parser = new Parser(source);
+            this._output("Starting interpreter...");
+            this._parser = new Parser(source);
+        } catch (e) {
+            this._output(`Interpreter failed to load: ${e}`);
+        }
+    }
 
-            const whnf = await parser.parse().whnf(evalCtx);
+    async run() {
+        const evalCtx = {
+            inputNumber: async () => this._terminal.inputNumber(),
+            inputCharacter: async () => this._terminal.inputCharacter(),
+            outputNumber: (num) => this._output(num.toString()),
+            outputCharacter: (char) => this._terminal.print(char),
+            onWhnf: async (expr) => {
+                if (this._paused) await this._paused;
+                if (expr.location) {
+                    this._view.focus(expr.location.position, expr.location.direction);
+                }
+                await new Promise(r => setTimeout(r, 50));
+            }
+        }
+
+        try {
+            const whnf = await this._parser.parse().whnf(evalCtx);
             if (whnf.value() === null) {
-                output("Interpreter exited with expression:");
-                output(whnf.toString());
+                this._output("Interpreter exited with expression:");
+                this._output(whnf.toString());
             } else {
-                output(`Interpreter exited with code ${whnf.value()}`);
+                this._output(`Interpreter exited with code ${whnf.value()}`);
             }
         } catch(e) {
-            output(`Interpreter crashed: ${e}`);
+            this._output(`Interpreter crashed: ${e}`);
         }
     }
 }
