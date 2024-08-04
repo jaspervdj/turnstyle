@@ -7,6 +7,7 @@ class EvalError extends Error {
     }
 }
 
+// Simple implementation of arbitrary-precision rational numbers.
 class Rational {
     constructor(numerator, denominator) {
         const gcd = Rational._gcd(numerator, denominator);
@@ -14,40 +15,42 @@ class Rational {
         this._denom = denominator / gcd;
     }
 
-    add(other) {
+    add(that) {
         return new Rational(
-            this._num * other._denom + other._num * this._denom,
-            this._denom * other._denom,
+            this._num * that._denom + that._num * this._denom,
+            this._denom * that._denom,
         );
     }
 
-    subtract(other) {
+    sub(that) {
         return new Rational(
-            this._num * other._denom - other._num * this._denom,
-            this._denom * other._denom,
+            this._num * that._denom - that._num * this._denom,
+            this._denom * that._denom,
         );
     }
 
-    multiply(other) {
-        return new Rational(this._num * other._num, this._denom * other._denom);
+    mul(that) {
+        return new Rational(this._num * that._num, this._denom * that._denom);
     }
 
-    divide(other) {
-        return new Rational(this._num * other._denom, this._denom * other._num);
+    div(that) {
+        return new Rational(this._num * that._denom, this._denom * that._num);
     }
 
-    modulo(other) {
+    mod(that) {
         const lhs = this.toBigInt();
-        const rhs = other.toBigInt();
+        const rhs = that.toBigInt();
         if (lhs === null || rhs === null) {
             throw new Error("Rational: modulo arguments must be integrals");
         }
         return lhs % rhs;
     }
 
-    equal(other) {
-        return this._num === other._num && this._denom === other._denom;
-    }
+    eq(that)  { return this._num === that._num && this._denom === that._denom; }
+    lt(that)  { return this._num * that._denom <  that._num * this._denom; }
+    gt(that)  { return this._num * that._denom >  that._num * this._denom; }
+    lte(that) { return this._num * that._denom <= that._num * this._denom; }
+    gte(that) { return this._num * that._denom >= that._num * this._denom; }
 
     toBigInt() {
         if (this._denom === 1n) return this._num;
@@ -713,22 +716,29 @@ const Primitives = {
         });
         return {
             1: binop("num_add", (lhs, rhs) => lhs.add(rhs)),
-            2: binop("num_sub", (lhs, rhs) => lhs.subtract(rhs)),
-            3: binop("num_mul", (lhs, rhs) => lhs.multiply(rhs)),
-            4: binop("num_div", (lhs, rhs) => lhs.divide(rhs)),
-        }
+            2: binop("num_sub", (lhs, rhs) => lhs.sub(rhs)),
+            3: binop("num_mul", (lhs, rhs) => lhs.mul(rhs)),
+            4: binop("num_div", (lhs, rhs) => lhs.div(rhs)),
+        };
     })(),
-    4: {
-        1: {
-            name: "cmp_eq",
+    4: (() => {
+        const cmp = (name, p) => ({
+            name,
             arity: 4,
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
-                return args[lhs.value().equal(rhs.value()) ? 2 : 3].whnf(ctx);
+                return args[p(lhs.value(), rhs.value()) ? 2 : 3].whnf(ctx);
             },
-        },
-    },
+        });
+        return {
+            1: cmp("cmp_eq",  (lhs, rhs) => lhs.eq(rhs)),
+            2: cmp("cmp_lt",  (lhs, rhs) => lhs.lt(rhs)),
+            3: cmp("cmp_gt",  (lhs, rhs) => lhs.gt(rhs)),
+            4: cmp("cmp_lte", (lhs, rhs) => lhs.lte(rhs)),
+            5: cmp("cmp_gte", (lhs, rhs) => lhs.gte(rhs)),
+        };
+    })(),
 };
 
 class AnnotatedView {
