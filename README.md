@@ -8,8 +8,8 @@ at a higher level of abstraction, while still keeping the specification small,
 making it relatively easy to develop new interpreters.
 
 This repository contains [the language specification](spec/), a reference
-implementation in Haskell, and a [simple JavaScript implementation with no
-dependencies](turnstyle.js).
+implementation in Haskell, and a
+[simple JavaScript implementation](turnstyle.js).
 
 # Specification
 

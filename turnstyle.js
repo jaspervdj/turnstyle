@@ -80,13 +80,9 @@ class Position {
     left()  { return new Position(this.x - 1, this.y); }
     up()    { return new Position(this.x, this.y - 1); }
 
-    neighbors() {
-        return [this.right(), this.down(), this.left(), this.up()];
-    }
+    neighbors() { return [this.right(), this.down(), this.left(), this.up()]; }
 
-    toString() {
-        return `${this.x},${this.y}`;
-    }
+    toString() { return `${this.x},${this.y}`; }
 }
 
 const Direction = {
@@ -219,17 +215,10 @@ class DenoiseSource extends Source {
         }
     }
 
-    get width() {
-        return this._width;
-    }
+    get width()  { return this._width;  }
+    get height() { return this._height; }
 
-    get height() {
-        return this._height;
-    }
-
-    rgba(x, y) {
-        return this._rgba[y * this.width + x];
-    }
+    rgba(x, y) { return this._rgba[y * this.width + x]; }
 }
 
 class ImageLoadingError extends Error {
@@ -245,13 +234,8 @@ class ImageDataSource extends Source {
         this._imageData = imageData;
     }
 
-    get width() {
-        return this._imageData.width;
-    }
-
-    get height() {
-        return this._imageData.height;
-    }
+    get width()  { return this._imageData.width;  }
+    get height() { return this._imageData.height; }
 
     rgba(x, y) {
         const o = (y * this._imageData.width + x) * 4;
@@ -297,13 +281,9 @@ class Parser {
         this._dir = dir ? dir : Direction.RIGHT;
     }
 
-    _loc() {
-        return {position: this._pos, direction: this._dir};
-    }
+    _loc() { return {position: this._pos, direction: this._dir}; }
 
-    _error(msg) {
-        throw new ParserError(this._pos, this._dir, msg);
-    }
+    _error(msg) { throw new ParserError(this._pos, this._dir, msg); }
 
     _pixelL() {
         switch (this._dir) {
@@ -314,9 +294,7 @@ class Parser {
         }
     }
 
-    _pixelC() {
-        return this._pos;
-    }
+    _pixelC() { return this._pos; }
 
     _pixelF() {
         switch (this._dir) {
@@ -396,11 +374,11 @@ class Parser {
                     const n = BigInt(front) ** BigInt(right);
                     return new LitExpr(new Rational(n, 1n), this._loc());
                 } else if (left === 2) {
-                    if (PRIMITIVES[front] && PRIMITIVES[front][right]) {
-                        const primitive = PRIMITIVES[front][right];
+                    if (Primitives[front] && Primitives[front][right]) {
+                        const primitive = Primitives[front][right];
                         return new PrimExpr(primitive, [], this._loc());
                     }
-                    this._error(`Unknown primitive: ${front}/${right}`);
+                    this._error(`Unknown Prim(${front},${right})`);
                 }
                 this._error(`Unhandled symbol: ${left}`);
             case Pattern.AAAA:
@@ -436,9 +414,7 @@ class Parser {
         ).parse();
     }
 
-    _color(pos) {
-        return this._src.hex(pos.x, pos.y);
-    }
+    _color(pos) { return this._src.hex(pos.x, pos.y); }
 
     _has(pos) {
         return pos.x >= 0 && pos.x < this._src.width &&
@@ -473,9 +449,7 @@ class Expr {
         this._loc = loc;
     }
 
-    get location() {
-        return this._loc;
-    }
+    get location() { return this._loc; }
 
     async whnf(ctx) {
         if (!this._whnf) {
@@ -489,21 +463,12 @@ class Expr {
         return new AppExpr(() => this, () => arg, this._loc);
     }
 
-    freeVars() {
-        return new Set();
-    }
+    freeVars() { return new Set(); }
+    allVars()  { return new Set(); }
 
-    allVars() {
-        return new Set();
-    }
+    subst(x, s) { return this; }
 
-    subst(x, s) {
-        return this;
-    }
-
-    value() {
-        return null;
-    }
+    value() { return null; }
 }
 
 class AppExpr extends Expr {
@@ -538,13 +503,8 @@ class AppExpr extends Expr {
         return this._whnf;
     }
 
-    freeVars() {
-        return this.lhs.freeVars().union(this.rhs.freeVars());
-    }
-
-    allVars() {
-        return this.lhs.allVars().union(this.rhs.allVars());
-    }
+    freeVars() { return this.lhs.freeVars().union(this.rhs.freeVars()); }
+    allVars()  { return this.lhs.allVars().union(this.rhs.allVars());   }
 
     subst(x, s) {
         return new AppExpr(
@@ -624,17 +584,10 @@ class VarExpr extends Expr {
         this._variable = variable;
     }
 
-    toString() {
-        return this._variable;
-    }
+    toString() { return this._variable; }
 
-    freeVars() {
-        return new Set([this._variable]);
-    }
-
-    allVars() {
-        return new Set([this._variable]);
-    }
+    freeVars() { return new Set([this._variable]); }
+    allVars()  { return new Set([this._variable]); }
 
     subst(x, e) {
         if (x === this._variable) return e;
@@ -670,13 +623,9 @@ class LitExpr extends Expr {
         this._value = value;
     }
 
-    toString() {
-        return this._value.toString();
-    }
+    toString() { return this._value.toString(); }
 
-    value() {
-        return this._value;
-    }
+    value() { return this._value; }
 }
 
 class IdExpr extends Expr {
@@ -690,9 +639,7 @@ class IdExpr extends Expr {
         return this._expr;
     }
 
-    toString() {
-        return this.expr.toString();
-    }
+    toString() { return this.expr.toString(); }
 
     async whnf(ctx) {
         if (!this._whnf) {
@@ -702,28 +649,22 @@ class IdExpr extends Expr {
         return this._whnf;
     }
 
-    freeVars() {
-        return this.expr.freeVars();
-    }
-
-    allVars() {
-        return this.expr.freeVars();
-    }
+    freeVars() { return this.expr.freeVars(); }
+    allVars()  { return this.expr.allVars();  }
 
     subst(x, s) {
         return new IdExpr(() => this.expr.subst(x, s), this.location);
     }
 }
 
-const PRIMITIVES = {
+const Primitives = {
     1: {
         1: {
             name: "in_num",
             arity: 2,
             implementation: async (ctx, args) => {
                 const input = await ctx.inputNumber();
-                const rational = new Rational(BigInt(input), 1n);
-                const lit = new LitExpr(rational);
+                const lit = new LitExpr(new Rational(BigInt(input), 1n));
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
@@ -734,8 +675,7 @@ const PRIMITIVES = {
             implementation: async (ctx, args) => {
                 const input = await ctx.inputCharacter();
                 const codePoint = input.codePointAt(0);
-                const rational = new Rational(BigInt(codePoint), 1n);
-                const lit = new LitExpr(rational);
+                const lit = new LitExpr(new Rational(BigInt(codePoint), 1n));
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
@@ -747,8 +687,7 @@ const PRIMITIVES = {
             arity: 2,
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
-                const out = lhs.value();
-                await ctx.outputNumber(out.toString());
+                await ctx.outputNumber(lhs.value().toString());
                 return args[1].whnf(ctx);
             },
         },
@@ -757,50 +696,28 @@ const PRIMITIVES = {
             arity: 2,
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
-                const out = String.fromCodePoint(lhs.value());
-                await ctx.outputCharacter(out);
+                await ctx.outputCharacter(String.fromCodePoint(lhs.value()));
                 return args[1].whnf(ctx);
             },
         },
     },
-    3: {
-        1: {
-            name: "num_add",
+    3: (() => {
+        const binop = (name, f) => ({
+            name,
             arity: 2,
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
-                return new LitExpr(lhs.value().add(rhs.value()));
+                return new LitExpr(f(lhs.value(), rhs.value()));
             },
-        },
-        2: {
-            name: "num_sub",
-            arity: 2,
-            implementation: async (ctx, args) => {
-                const lhs = await args[0].whnf(ctx);
-                const rhs = await args[1].whnf(ctx);
-                return new LitExpr(lhs.value().subtract(rhs.value()));
-            },
-        },
-        3: {
-            name: "num_mul",
-            arity: 2,
-            implementation: async (ctx, args) => {
-                const lhs = await args[0].whnf(ctx);
-                const rhs = await args[1].whnf(ctx);
-                return new LitExpr(lhs.value().multiply(rhs.value()));
-            },
-        },
-        4: {
-            name: "num_div",
-            arity: 2,
-            implementation: async (ctx, args) => {
-                const lhs = await args[0].whnf(ctx);
-                const rhs = await args[1].whnf(ctx);
-                return new LitExpr(lhs.value().divide(rhs.value()));
-            },
-        },
-    },
+        });
+        return {
+            1: binop("num_add", (lhs, rhs) => lhs.add(rhs)),
+            2: binop("num_sub", (lhs, rhs) => lhs.subtract(rhs)),
+            3: binop("num_mul", (lhs, rhs) => lhs.multiply(rhs)),
+            4: binop("num_div", (lhs, rhs) => lhs.divide(rhs)),
+        }
+    })(),
     4: {
         1: {
             name: "cmp_eq",
@@ -853,9 +770,7 @@ class AnnotatedView {
         }
     }
 
-    get element() {
-        return this._svg;
-    }
+    get element() { return this._svg; }
 
     focus(pos, dir) {
         if (this._focus) this._svg.removeChild(this._focus);
@@ -959,9 +874,7 @@ class Terminal {
         return this._pop();
     }
 
-    get element() {
-        return this._code;
-    }
+    get element() { return this._code; }
 }
 
 class Interpreter {
@@ -976,9 +889,7 @@ class Interpreter {
         this._div.appendChild(this._terminal.element);
     }
 
-    get element() {
-        return this._div;
-    }
+    get element() { return this._div; }
 
     pause() {
         this._paused = new Promise((resolve, reject) => {
@@ -989,9 +900,7 @@ class Interpreter {
         });
     }
 
-    unpause() {
-        this._unpause();
-    }
+    unpause() { this._unpause(); }
 
     async run() {
         const output = (line) => this._terminal.print(line + "\n");
