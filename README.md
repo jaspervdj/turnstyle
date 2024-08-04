@@ -22,20 +22,20 @@ consult [the Turnstyle Language Specification](spec/).
 
 The starting Turnstyle shape is outlined.  Click on the examples to run them.
 
-## 0
+## pi
 
-_((`num_sub` 8) 8)_ -- returns exit code 0:
+Prints an approximation of _pi_ by comparing the circle to its diameter:
 
-[![](examples/minimal.svg)](examples/minimal.png)
+[![](examples/pi.svg)](examples/pi.png)
 
-## Y
+## rev
 
-_λf. (λx. f (x x)) (λx. f (x x))_ -- a somewhat symmetrical, reusable Y
-combinator:
+Uses a [Y combinator] (indicated by the red rectangle in the top left)
+and [continuation-passing style] to implement the Unix `rev` program.
 
-[![](examples/y.svg)](examples/y.png)
+[![](examples/rev.svg)](examples/rev.png)
 
-## ⥁
+## loop
 
 Of course, fixed-point combinators are a primitive tool necessary to compensate
 for the limitations of one-dimensional programming.  In two-dimensional
@@ -43,12 +43,6 @@ programs, we can achieve recursion using a more visually intuitive approach.
 This program prints the sequence of natural numbers:
 
 [![](examples/loop.svg)](examples/loop.png)
-
-## π
-
-Prints an approximation of _pi_ by comparing the circle to its diameter:
-
-[![](examples/pi.svg)](examples/pi.png)
 
 # Design Principles
 
@@ -62,6 +56,8 @@ Prints an approximation of _pi_ by comparing the circle to its diameter:
     actually write real programs.  This lead to using at least two numbers
     for primops.
 
+[continuation-passing style]: https://en.wikipedia.org/wiki/Continuation-passing_style
 [esoteric programming language]: https://en.wikipedia.org/wiki/Esoteric_programming_language
 [Lambda calculus]: https://en.wikipedia.org/wiki/Lambda_calculus
 [Piet]: https://www.dangermouse.net/esoteric/piet.html
+[Y combinator]: https://en.wikipedia.org/wiki/Fixed-point_combinator
