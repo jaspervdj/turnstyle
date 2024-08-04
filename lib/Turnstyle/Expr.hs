@@ -14,6 +14,7 @@ module Turnstyle.Expr
     , checkErrors
     ) where
 
+import           Control.Monad.State    (State, evalState, state)
 import           Data.Either.Validation (Validation (..))
 import           Data.List.NonEmpty     (NonEmpty (..))
 import qualified Data.Map               as M
@@ -74,20 +75,21 @@ allVars = foldMap S.singleton
 
 -- | Only works if all variables are bound.
 normalizeVars :: forall ann e v. Ord v => Expr ann e v -> Expr ann e Int
-normalizeVars = go 0 M.empty
+normalizeVars expr = evalState (go expr) (0, M.empty)
   where
-    go :: Int -> M.Map v Int -> Expr ann e v -> (Expr ann e Int)
-    go fresh vars (App ann x y) = App ann (go fresh vars x) (go fresh vars y)
-    go fresh vars (Lam ann v x) = case M.lookup v vars of
-        Just n  -> Lam ann n (go fresh vars x)
-        Nothing -> Lam ann fresh (go (fresh + 1) (M.insert v fresh vars) x)
-    go fresh vars (Var ann v) = case M.lookup v vars of
-        Nothing -> Var ann fresh
-        Just n  -> Var ann n
-    go _ _ (Prim ann p) = Prim ann p
-    go _ _ (Lit ann l) = Lit ann l
-    go fresh vars (Id ann e) = Id ann (go fresh vars e)
-    go _ _ (Err ann e) = Err ann e
+    go :: Expr ann e v -> State (Int, M.Map v Int) (Expr ann e Int)
+    go (App ann f x) = App ann <$> go f <*> go x
+    go (Lam ann v b) = Lam ann <$> var v <*> go b
+    go (Var ann v)   = Var ann <$> var v
+    go (Prim ann p)  = pure $ Prim ann p
+    go (Lit ann l)   = pure $ Lit ann l
+    go (Id ann e)    = Id ann <$> go e
+    go (Err ann e)   = pure $ Err ann e
+
+    var :: v -> State (Int, M.Map v Int) Int
+    var v = state $ \(fresh, vars) -> case M.lookup v vars of
+        Nothing -> (fresh, (fresh + 1, M.insert v fresh vars))
+        Just n  -> (n, (fresh, vars))
 
 -- | Checks that all variables are bound.
 checkVars
