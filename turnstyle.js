@@ -1,9 +1,9 @@
 "use strict";
 
-class EvaluationError extends Error {
+class EvalError extends Error {
     constructor(msg) {
         super(msg);
-        this.name = "EvaluationError";
+        this.name = "EvalError";
     }
 }
 
@@ -725,11 +725,7 @@ const Primitives = {
             implementation: async (ctx, args) => {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
-                if (lhs.value().equal(rhs.value())) {
-                    return args[2].whnf(ctx);
-                } else {
-                    return args[3].whnf(ctx);
-                }
+                return args[lhs.value().equal(rhs.value()) ? 2 : 3].whnf(ctx);
             },
         },
     },
@@ -863,9 +859,10 @@ class Terminal {
             str += c;
             c = await this._pop();
         }
-        // TODO: Assume c is now a newline, we should check.
+        if (str === "") throw new EvalError(`expected number, got: ${c}`);
         const n = Number(str);
-        if (isNaN(n)) throw new EvaluationError(`not a number: ${str}`);
+        if (isNaN(n)) throw new EvalError(`not a number: ${str}`);
+        if (!/\s/.test(c)) throw new EvalError(`expected space, got: ${c}`);
         return Number(n);
     }
 
