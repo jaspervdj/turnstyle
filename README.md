@@ -48,15 +48,26 @@ This program prints the sequence of natural numbers:
 
 # Design Principles
 
- -  Lean towards pixel art but allow larger graphics as well
- -  Integers should be represented by areas, so 0 does not have a literal
-    equivalent
- -  Allow relative creative in freedom in color choice and images
- -  But also ensure it is possible to create very dense images
- -  Allow users to implement and share code that looks like specific images
- -  A relatively large number of primops should be possible so we can
-    actually write real programs.  This lead to using at least two numbers
-    for primops.
+In roughly this order:
+
+1.  Above all, in the spirit of Lambda calculus, the specification must be
+    simple and unambigious.
+     -  Have a single numeric type that support exact as well as inexact
+        operations.
+     -  Referential transparency will allow users to share and reuse images.
+     -  Prefer Church encoding over adding new built-in types where possible.
+2.  Preserve the suspension of disbelief concerning using this for real
+    programs:
+     -  Allow for building fast compilers, type systems and tooling.
+     -  Have an extensible system for primitives so things like networking and
+        file IO can be added in.
+     -  An Array type could be added for efficiency, since there is no good way
+        to build _O(1)_ indexing using Church encoding.
+3.  Allow plenty of creative freedom in the choice of colors and shapes.
+     -  Make sure it possible to create very dense images where specific pixels
+        are reused in several expressions.
+4.  Represent integers as areas as a nod to Piet (as a side effect, 0 does not
+    exist as a literal).
 
 [continuation-passing style]: https://en.wikipedia.org/wiki/Continuation-passing_style
 [esoteric programming language]: https://en.wikipedia.org/wiki/Esoteric_programming_language
