@@ -41,7 +41,7 @@ Type lines into the terminal to revert them.
 
 Of course, fixed-point combinators are a primitive tool necessary to compensate
 for the limitations of one-dimensional programming.  In two-dimensional
-programs, we can achieve recursion using a more visually intuitive approach.
+programs, we can implement recursion using a more visually intuitive approach.
 This program prints the sequence of natural numbers:
 
 [![](examples/loop.svg)](examples/loop.png)
@@ -50,12 +50,13 @@ This program prints the sequence of natural numbers:
 
 In roughly this order:
 
-1.  Above all, in the spirit of Lambda calculus, the specification must be
-    simple and unambigious.
+1.  In the spirit of Lambda calculus, the specification should prioritize
+    simplicity and clarity.
      -  Have a single numeric type that support exact as well as inexact
         operations.
      -  Referential transparency will allow users to share and reuse images.
-     -  Prefer Church encoding over adding new built-in types where possible.
+     -  Prefer Church encoding over introducing new built-in types whenever
+        possible.
 2.  Preserve the suspension of disbelief concerning using this for real
     programs:
      -  Allow for building fast compilers, type systems and tooling.
