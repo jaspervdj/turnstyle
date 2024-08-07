@@ -19,19 +19,34 @@ data Error = ParseError | CycleError
 tests :: TestTree
 tests = testGroup "Turnstyle.Parse"
     [ example "examples/minimal.png" $
-        num_sub (lit 8) (lit 8)
+        num_sub (lit 8) (lit 8 :: Expr () Void Int)
 
     , example "examples/pi.png" $ out_num
         (num_div
-            (lit 749)
+            (lit 1321 :: Expr () Void Int)
             (app
                 (lam 0 (app
                     (lam 1 (num_mul (var 1) (var 1)))
                     [num_div (var 0) (lit 2)]))
-                [lit 31]))
+                [lit 41]))
         (num_sub (lit 1) (lit 1))
 
-    , example "examples/y.png" yc
+    , example "examples/rev.png" $ app
+        ((lam "newline")
+            (app
+                (yc)
+                [ lam "rec" $ lam "acc" $ in_char
+                    (lam "c" $ cmp_eq
+                        (var "c")
+                        (var "newline")
+                        (app (var "acc")
+                            [out_char (var "newline") (app (var "rec") [lam "x" (var "x")])])
+                        (app (var "rec")
+                            [lam "final" (out_char (var "c") (app (var "acc") [var "final"]))]))
+                    (num_sub (var "newline") (var "newline"))
+                , lam "x" (var "x")
+                ]))
+        [lit 10]
 
     , testCase "examples/loop.png" $ do
         img <- autoScale <$> loadImage "examples/loop.png"
@@ -41,7 +56,7 @@ tests = testGroup "Turnstyle.Parse"
             _                               -> error "expected a CycleError"
     ]
   where
-    example :: FilePath -> Expr () Void Int -> TestTree
+    example :: Ord v => FilePath -> Expr () Void v -> TestTree
     example path expected = testCase path $ do
         img <- autoScale <$> loadImage path
         case checkErrors (parseImage Nothing img) of
@@ -54,14 +69,16 @@ tests = testGroup "Turnstyle.Parse"
     prim     = Prim ()
     lit      = Lit ()
 
-    out_num  x k  = app (prim $ POut OutNumber)  [x, k]
-    out_char x k  = app (prim $ POut OutChar) [x, k]
+    in_char  k l = app (prim $ PIn InChar) [k, l]
+    out_num  x k = app (prim $ POut OutNumber)  [x, k]
+    out_char x k = app (prim $ POut OutChar) [x, k]
 
-    num_add x y = app (prim $ PNumOp NumOpAdd)      [x, y]
     num_sub x y = app (prim $ PNumOp NumOpSubtract) [x, y]
     num_mul x y = app (prim $ PNumOp NumOpMultiply) [x, y]
     num_div x y = app (prim $ PNumOp NumOpDivide)   [x, y]
 
-    yc = lam 0 $ app
-        (lam 1 (app (var 0) [app (var 1) [var 1]]))
-        [lam 1 (app (var 0) [app (var 1) [var 1]])]
+    cmp_eq x y t f = app (prim $ PCompare CmpEq) [x, y, t, f]
+
+    yc = lam "f" $ app
+        (lam "x" (app (var "f") [app (var "x") [var "x"]]))
+        [lam "x" (app (var "f") [app (var "x") [var "x"]])]
