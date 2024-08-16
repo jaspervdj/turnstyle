@@ -4,6 +4,7 @@ module Turnstyle.Prim
     , OutMode (..)
     , NumOpMode (..)
     , CmpMode (..)
+    , InexactMode (..)
 
     , knownPrims
     , primArity
@@ -19,6 +20,7 @@ data Prim
     | POut     OutMode
     | PNumOp   NumOpMode
     | PCompare CmpMode
+    | PInexact InexactMode
     deriving (Eq, Show)
 
 data InMode
@@ -47,18 +49,24 @@ data CmpMode
     | CmpGreaterThanOrEqual
     deriving (Bounded, Enum, Eq, Show)
 
+data InexactMode
+    = InexactSqrt
+    deriving (Bounded, Enum, Eq, Show)
+
 knownPrims :: [Prim]
 knownPrims =
     map PIn      [minBound .. maxBound] <>
     map POut     [minBound .. maxBound] <>
     map PNumOp   [minBound .. maxBound] <>
-    map PCompare [minBound .. maxBound]
+    map PCompare [minBound .. maxBound] <>
+    map PInexact [minBound .. maxBound]
 
 primArity :: Prim -> Int
-primArity (PIn      _) = 2
-primArity (POut     _) = 2
-primArity (PNumOp   _) = 2
-primArity (PCompare _) = 4
+primArity (PIn      _)           = 2
+primArity (POut     _)           = 2
+primArity (PNumOp   _)           = 2
+primArity (PCompare _)           = 4
+primArity (PInexact InexactSqrt) = 1
 
 primName :: Prim -> String
 primName (PIn InNumber)                   = "in_num"
@@ -75,6 +83,7 @@ primName (PCompare CmpLessThan)           = "cmp_lt"
 primName (PCompare CmpGreaterThan)        = "cmp_gt"
 primName (PCompare CmpLessThanOrEqual)    = "cmp_lte"
 primName (PCompare CmpGreaterThanOrEqual) = "cmp_gte"
+primName (PInexact InexactSqrt)           = "inexact_sqrt"
 
 encodePrim :: Prim -> (Int, Int)
 encodePrim (PIn InNumber)                   = (1, 1)
@@ -91,6 +100,7 @@ encodePrim (PCompare CmpLessThan)           = (4, 2)
 encodePrim (PCompare CmpGreaterThan)        = (4, 3)
 encodePrim (PCompare CmpLessThanOrEqual)    = (4, 4)
 encodePrim (PCompare CmpGreaterThanOrEqual) = (4, 5)
+encodePrim (PInexact InexactSqrt)           = (5, 1)
 
 decodeMap :: M.Map (Int, Int) Prim
 decodeMap = M.fromList [(encodePrim p, p) | p <- knownPrims]

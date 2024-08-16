@@ -135,6 +135,9 @@ prim _ p@(PCompare cmp) [xE, yE, fE, gE] = do
         CmpGreaterThan        -> if x > y  then whnf fE else whnf gE
         CmpLessThanOrEqual    -> if x <= y  then whnf fE else whnf gE
         CmpGreaterThanOrEqual -> if x >= y  then whnf fE else whnf gE
+prim _ p@(PInexact InexactSqrt) [xE] = do
+    x <- whnf xE >>= castArgNumber p 1
+    pure . Lit . Inexact . sqrt $ numberToDouble x
 
 castArgNumber :: Prim -> Int -> Whnf ann err v -> IO Number
 castArgNumber p narg e = case e of

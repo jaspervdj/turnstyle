@@ -160,6 +160,13 @@ i.e. _true = λxy.x_ and _false = λxy.y_.
 | 4      | _((((`cmp_lte` x) y) t) f)_ evaluates _t_ if _x ≤ y_, and _f_ otherwise. |
 | 5      | _((((`cmp_gte` x) y) t) f)_ evaluates _t_ if _x ≥ y_, and _f_ otherwise. |
 
+### Inexact Math (module=5)
+
+
+| Opcode | Primitive                                                 |
+| :----- | :-------------------------------------------------------- |
+| 1      | _(`inexact_sqrt` x)_ evaluates to the square root of _x_. |
+
 ## Evaluation order
 
 Turnstyle does not require a specific evaluation order, although the semantics
@@ -183,6 +190,10 @@ Exactness]:
 > constant, if it was derived using inexact ingredients, or if it was derived
 > using inexact operations. Thus inexactness is a contagious property of a
 > number.
+
+The following primitives in Turnstyle are **inexact**:
+
+- `inexact_sqrt`
 
 [Church encoding]: https://en.wikipedia.org/wiki/Church_encoding
 [PNG]: http://libpng.org/pub/png/
