@@ -74,14 +74,13 @@ class Rational {
     }
 }
 
-class TurnstyleNumber {
+// Stores a value either as a Rational (exact) or as a Number (inexact).
+class Num {
     constructor(value) {
         this._value = value;
     }
 
-    get _exact() {
-        return this._value instanceof Rational;
-    }
+    get _exact() { return this._value instanceof Rational; }
 
     _binop(that, exact, inexact) {
         if (this._exact && that._exact) {
@@ -93,32 +92,26 @@ class TurnstyleNumber {
         }
     }
 
-    add(that) { return this._binop(that, (x, y) => new TurnstyleNumber(x.add(y)), (x, y) => new TurnstyleNumber(x + y)) }
-    sub(that) { return this._binop(that, (x, y) => new TurnstyleNumber(x.sub(y)), (x, y) => new TurnstyleNumber(x - y)) }
-    mul(that) { return this._binop(that, (x, y) => new TurnstyleNumber(x.mul(y)), (x, y) => new TurnstyleNumber(x * y)) }
-    div(that) { return this._binop(that, (x, y) => new TurnstyleNumber(x.div(y)), (x, y) => new TurnstyleNumber(x / y)) }
+    add(that) { return new Num(this._binop(that, (x, y) => x.add(y), (x, y) => x + y)); }
+    sub(that) { return new Num(this._binop(that, (x, y) => x.sub(y), (x, y) => x - y)); }
+    mul(that) { return new Num(this._binop(that, (x, y) => x.mul(y), (x, y) => x * y)); }
+    div(that) { return new Num(this._binop(that, (x, y) => x.div(y), (x, y) => x / y)); }
 
     mod(that) {
         if (!this._exact || !that._exact) {
             throw new Error("Number: modulo arguments must be integrals");
         }
-        return new TurnstyleNumber(this._value.mod(that._value));
+        return new Num(this._value.mod(that._value));
     }
 
-    eq(that)  { return this._binop(that, (x, y) => x.eq(y),  (x, y) => x == y) }
-    lt(that)  { return this._binop(that, (x, y) => x.lt(y),  (x, y) => x <  y) }
-    gt(that)  { return this._binop(that, (x, y) => x.gt(y),  (x, y) => x >  y) }
-    lte(that) { return this._binop(that, (x, y) => x.lte(y), (x, y) => x <= y) }
-    gte(that) { return this._binop(that, (x, y) => x.gte(y), (x, y) => x >= y) }
+    eq(that)  { return this._binop(that, (x, y) => x.eq(y),  (x, y) => x == y); }
+    lt(that)  { return this._binop(that, (x, y) => x.lt(y),  (x, y) => x <  y); }
+    gt(that)  { return this._binop(that, (x, y) => x.gt(y),  (x, y) => x >  y); }
+    lte(that) { return this._binop(that, (x, y) => x.lte(y), (x, y) => x <= y); }
+    gte(that) { return this._binop(that, (x, y) => x.gte(y), (x, y) => x >= y); }
 
-    toNumber() {
-        return this._exact ? this._value.toNumber() : this._value;
-    }
-
-    toBigInt() {
-        return this._exact ? this._value.toBigInt() : null;
-    }
-
+    toNumber() { return this._exact ? this._value.toNumber() : this._value; }
+    toBigInt() { return this._exact ? this._value.toBigInt() : null; }
     toString() { return this._value.toString(); }
 }
 
@@ -425,7 +418,7 @@ class Parser {
                 const right = this._area(this._pixelR());
                 if (left === 1) {
                     const n = BigInt(front) ** BigInt(right);
-                    return new LitExpr(new TurnstyleNumber(new Rational(n, 1n), this._loc()));
+                    return new LitExpr(new Num(new Rational(n, 1n), this._loc()));
                 } else if (left === 2) {
                     if (Primitives[front] && Primitives[front][right]) {
                         const primitive = Primitives[front][right];
@@ -717,7 +710,7 @@ const Primitives = {
             arity: 2,
             implementation: async (ctx, args) => {
                 const input = await ctx.inputNumber();
-                const lit = new LitExpr(new TurnstyleNumber(new Rational(BigInt(input), 1n)));
+                const lit = new LitExpr(new Num(new Rational(BigInt(input), 1n)));
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
@@ -728,7 +721,7 @@ const Primitives = {
             implementation: async (ctx, args) => {
                 const input = await ctx.inputCharacter();
                 const codePoint = input.codePointAt(0);
-                const lit = new LitExpr(new TurnstyleNumber(new Rational(BigInt(codePoint), 1n)));
+                const lit = new LitExpr(new Num(new Rational(BigInt(codePoint), 1n)));
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
@@ -796,7 +789,7 @@ const Primitives = {
             arity: 1,
             implementation: async (ctx, args) => {
                 const x = await args[0].whnf(ctx);
-                return new LitExpr(new TurnstyleNumber(Math.sqrt(x.value().toNumber())));
+                return new LitExpr(new Num(Math.sqrt(x.value().toNumber())));
             },
         },
     },
