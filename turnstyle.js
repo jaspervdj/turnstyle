@@ -9,7 +9,7 @@ class EvalError extends Error {
 
 // Simple implementation of arbitrary-precision rational numbers.
 class Rational {
-    constructor(numerator, denominator) {
+    constructor(numerator, denominator = 1n) {
         const gcd = Rational._gcd(numerator, denominator);
         this._num = numerator / gcd;
         this._denom = denominator / gcd;
@@ -43,7 +43,7 @@ class Rational {
         if (lhs === null || rhs === null) {
             throw new Error("Rational: modulo arguments must be integrals");
         }
-        return new Rational(lhs % rhs, 1n);
+        return new Rational(lhs % rhs);
     }
 
     eq(that)  { return this._num === that._num && this._denom === that._denom; }
@@ -388,7 +388,7 @@ class Parser {
                 const right = this._area(this._pixelR());
                 if (left === 1) {
                     const n = BigInt(front) ** BigInt(right);
-                    return new LitExpr(new Num(new Rational(n, 1n), this._loc()));
+                    return new LitExpr(new Num(new Rational(n), this._loc()));
                 } else if (left === 2) {
                     if (Primitives[front] && Primitives[front][right]) {
                         const primitive = Primitives[front][right];
@@ -685,7 +685,7 @@ const Primitives = {
             arity: 2,
             implementation: async (ctx, args) => {
                 const input = await ctx.inputNumber();
-                const lit = new LitExpr(new Num(new Rational(BigInt(input), 1n)));
+                const lit = new LitExpr(new Num(new Rational(BigInt(input))));
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
@@ -696,7 +696,7 @@ const Primitives = {
             implementation: async (ctx, args) => {
                 const input = await ctx.inputCharacter();
                 const codePoint = input.codePointAt(0);
-                const lit = new LitExpr(new Num(new Rational(BigInt(codePoint), 1n)));
+                const lit = new LitExpr(new Num(new Rational(BigInt(codePoint))));
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
