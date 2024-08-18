@@ -169,9 +169,15 @@ i.e. _true = λxy.x_ and _false = λxy.y_.
 
 ## Evaluation order
 
-Turnstyle does not require a specific evaluation order, although the semantics
-of the [primitives](#primitives) must be respected (e.g. evaluating
-`((((cpm_eq 1) 2) t) f)` should not evaluate `t`).
+Turnstyle uses _call-by-need_ evaluation.
+The interpreter or compiler is free to use other evaluation strategies and
+optimizations, but the semantics of the [primitives](#primitives) must be
+respected; and effect ordering must be consistent with _call-by-need_
+evaluation.  For example:
+
+ -  Evaluating `((((cpm_eq 1) 2) t) f)` should not evaluate `t`.
+ -  Evaluating `((λf. f (f 1)) (out_num 2))` should output 2 twice before
+    producing exit code 1.
 
 ## Cyclic programs
 
