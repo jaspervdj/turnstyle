@@ -18,7 +18,7 @@ Source-repository head
   location: https://github.com/jaspervdj/turnstyle
 
 Library
-  Hs-source-dirs:  lib
+  Hs-source-dirs:  hs/lib
   Ghc-options:     -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   Default-language: Haskell2010
   Exposed-modules:
@@ -55,14 +55,14 @@ Library
 
 Executable turnstyle
   Main-is:          Main.hs
-  Hs-source-dirs:   src
+  Hs-source-dirs:   hs/src
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
   Build-depends:    base, turnstyle
 
 Executable turnstyle-spec-figures
   Main-is:          SpecFigures.hs
-  Hs-source-dirs:   src
+  Hs-source-dirs:   hs/src
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
   Build-depends:
@@ -73,7 +73,7 @@ Executable turnstyle-spec-figures
 
 Executable turnstyle-annotate-examples
   Main-is:          AnnotateExamples.hs
-  Hs-source-dirs:   src
+  Hs-source-dirs:   hs/src
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
   Build-depends:
@@ -87,7 +87,7 @@ Executable turnstyle-annotate-examples
 
 Executable turnstyle-recolor
   Main-is:          Recolor.hs
-  Hs-source-dirs:   src
+  Hs-source-dirs:   hs/src
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
   Build-depends:
@@ -99,7 +99,7 @@ Executable turnstyle-recolor
 
 Executable turnstyle-website
   Main-is:          Website.hs
-  Hs-source-dirs:   src
+  Hs-source-dirs:   hs/src
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
   Build-depends:
@@ -111,7 +111,7 @@ Executable turnstyle-website
 Test-suite turnstyle-test
   Type:             exitcode-stdio-1.0
   Main-is:          Main.hs
-  Hs-source-dirs:   test
+  Hs-source-dirs:   hs/test
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
   Other-modules:
