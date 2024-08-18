@@ -250,11 +250,8 @@ class DenoiseSource extends Source {
                     out = cache[hex];
                 } else {
                     out = similar(rgba);
-                    if (out) {
-                        cache[hex] = out;
-                    } else {
-                        cache[hex] = palette[hex] = out = rgba;
-                    }
+                    if (out) cache[hex] = out;
+                    else cache[hex] = palette[hex] = out = rgba;
                 }
                 this._rgba[y * src.width + x] = out;
             }
@@ -362,56 +359,29 @@ class Parser {
 
     parse() {
         const pattern = Pattern.parse(
-            this._color(this._pixelL()),
-            this._color(this._pixelC()),
-            this._color(this._pixelF()),
-            this._color(this._pixelR()),
+            this._colorL(), this._colorC(), this._colorF(), this._colorR(),
         );
         switch (pattern) {
             case Pattern.ABAC:
-                return new AppExpr(
-                    () => this._parseLeft(),
-                    () => this._parseFront(),
-                    this._loc(),
-                );
+                return new AppExpr(this._parseL(), this._parseF(), this._loc());
             case Pattern.ABCA:
-                return new AppExpr(
-                    () => this._parseLeft(),
-                    () => this._parseRight(),
-                    this._loc(),
-                );
+                return new AppExpr(this._parseL(), this._parseR(), this._loc());
             case Pattern.ABCC:
-                return new AppExpr(
-                    () => this._parseFront(),
-                    () => this._parseRight(),
-                    this._loc(),
-                );
+                return new AppExpr(this._parseF(), this._parseR(), this._loc());
             case Pattern.AABC:
-                return new LamExpr(
-                    this._color(this._pixelR()),
-                    () => this._parseLeft(),
-                    this._loc(),
-                );
+                return new LamExpr(this._colorR(), this._parseL(), this._loc());
             case Pattern.ABBC:
-                return new LamExpr(
-                    this._color(this._pixelC()),
-                    () => this._parseFront(),
-                    this._loc(),
-                );
+                return new LamExpr(this._colorC(), this._parseF(), this._loc());
             case Pattern.ABCB:
-                return new LamExpr(
-                    this._color(this._pixelL()),
-                    () => this._parseRight(),
-                    this._loc(),
-                );
+                return new LamExpr(this._colorL(), this._parseR(), this._loc());
             case Pattern.AAAB:
-                return new VarExpr(this._color(this._pixelR()), this._loc());
+                return new VarExpr(this._colorR(), this._loc());
             case Pattern.AABA:
-                return new VarExpr(this._color(this._pixelF()), this._loc());
+                return new VarExpr(this._colorF(), this._loc());
             case Pattern.ABAA:
-                return new VarExpr(this._color(this._pixelC()), this._loc());
+                return new VarExpr(this._colorC(), this._loc());
             case Pattern.ABBB:
-                return new VarExpr(this._color(this._pixelL()), this._loc());
+                return new VarExpr(this._colorL(), this._loc());
             case Pattern.ABCD:
                 const left  = this._area(this._pixelL());
                 const front = this._area(this._pixelF());
@@ -428,32 +398,32 @@ class Parser {
                 }
                 this._error(`Unhandled symbol: ${left}`);
             case Pattern.AAAA:
-                return new IdExpr(() => this._parseFront(), this._loc());
+                return new IdExpr(this._parseF(), this._loc());
             case Pattern.AABB:
-                return new IdExpr(() => this._parseLeft(), this._loc());
+                return new IdExpr(this._parseL(), this._loc());
             case Pattern.ABAB:
-                return new IdExpr(() => this._parseRight(), this._loc());
+                return new IdExpr(this._parseR(), this._loc());
             case Pattern.ABBA:
-                return new IdExpr(() => this._parseFront(), this._loc());
+                return new IdExpr(this._parseF(), this._loc());
             default:
                 this._error(`Unhandled pattern: ${pattern.toString()}`);
         }
     }
 
-    _parseLeft() {
-        return new Parser(
+    _parseL() {
+        return () => new Parser(
             this._src,
             this._pixelL(),
             Direction.turnLeft(this._dir),
         ).parse();
     }
 
-    _parseFront() {
-        return new Parser(this._src, this._pixelF(), this._dir).parse();
+    _parseF() {
+        return () => new Parser(this._src, this._pixelF(), this._dir).parse();
     }
 
-    _parseRight() {
-        return new Parser(
+    _parseR() {
+        return () => new Parser(
             this._src,
             this._pixelR(),
             Direction.turnRight(this._dir),
@@ -461,6 +431,11 @@ class Parser {
     }
 
     _color(pos) { return this._src.hex(pos.x, pos.y); }
+
+    _colorL() { return this._color(this._pixelL()); }
+    _colorC() { return this._color(this._pixelC()); }
+    _colorF() { return this._color(this._pixelF()); }
+    _colorR() { return this._color(this._pixelR()); }
 
     _has(pos) {
         return pos.x >= 0 && pos.x < this._src.width &&
@@ -836,15 +811,8 @@ class AnnotatedView {
         if (this._focus) this._svg.removeChild(this._focus);
 
         const points = [
-            [0, -1],
-            [1, -1],
-            [1, 0],
-            [2, 0],
-            [2, 1],
-            [1, 1],
-            [1, 2],
-            [0, 2],
-            [0, -1],
+            [0, -1], [1, -1], [1, 0], [2, 0],
+            [2, 1], [1, 1], [1, 2], [0, 2], [0, -1],
         ].map(([x, y]) => {
             switch (dir) {
                 case Direction.RIGHT: return [x, y];
