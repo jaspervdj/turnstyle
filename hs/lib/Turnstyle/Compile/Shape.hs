@@ -6,15 +6,13 @@ module Turnstyle.Compile.Shape
     , exprToShape
     ) where
 
-import qualified Data.Map               as M
+import qualified Data.Map                     as M
+import           Turnstyle.Compile.Constraint
 import           Turnstyle.Compile.Expr
+import           Turnstyle.Compile.Recompile
+import qualified Turnstyle.Image              as Image
 import           Turnstyle.Prim
 import           Turnstyle.TwoD
-
-data ColorConstraint p
-    = Eq p p
-    | NotEq p p
-    deriving (Foldable, Functor, Show)
 
 data Shape = Shape
     { sWidth       :: Int
@@ -425,3 +423,10 @@ exprToShape' ctx expr = case expr of
         center = Pos 0 1
         front  = move 1 R center
         right  = move 1 D center
+
+    Import img imgExpr -> Shape
+        { sWidth       = Image.width img
+        , sHeight      = Image.height img
+        , sEntrance    = Image.height img `div` 2
+        , sConstraints = recompile img imgExpr
+        }

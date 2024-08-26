@@ -113,6 +113,8 @@ checkCycles mkError = go S.empty
         visited' = S.insert ann visited
 
 -- | Removes errors from an expression.
+-- TODO: can we make this work for cyclic ones?  I think we can if we add
+-- some sort of cache and tie the knot.
 checkErrors :: Expr ann e v -> Validation (NonEmpty (ann, e)) (Expr ann Void v)
 checkErrors (App ann f x) = App ann <$> checkErrors f <*> checkErrors x
 checkErrors (Lam ann v b) = Lam ann v <$> checkErrors b

@@ -24,8 +24,10 @@ Library
   Exposed-modules:
     Turnstyle.Compile
     Turnstyle.Compile.Bound
+    Turnstyle.Compile.Constraint
     Turnstyle.Compile.Paint
     Turnstyle.Compile.Expr
+    Turnstyle.Compile.Recompile
     Turnstyle.Compile.Shake
     Turnstyle.Compile.Shape
     Turnstyle.Compile.SimulatedAnnealing

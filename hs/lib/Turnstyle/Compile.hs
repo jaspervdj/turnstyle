@@ -23,6 +23,7 @@ import           Turnstyle.Compile.Shape
 import qualified Turnstyle.Compile.SimulatedAnnealing as SA
 import           Turnstyle.Compile.Solve
 import           Turnstyle.JuicyPixels                (JuicyPixels)
+import           Turnstyle.Parse                      (parseImage)
 import qualified Turnstyle.Text.Sugar                 as S
 import           Turnstyle.TwoD
 
@@ -52,7 +53,7 @@ compile _ expr | err : errs <- checkVars expr = do
 compile opts expr = do
     expr0 <- fromSugar (\ann path -> case M.lookup path (coImports opts) of
         Nothing -> Left $ UnknownImport ann path
-        Just jp -> pure $ Import jp) expr
+        Just jp -> pure $ Import jp (parseImage Nothing jp)) expr
 
     let neighbour l g = case shake l g of
              Just (l', g')

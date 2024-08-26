@@ -17,6 +17,7 @@ shakeOnce shakeChild = go id
             []     -> []
             c : cs -> [c :| cs]) ++
         case expr of
+            Import _ _ -> []
             App ann f x ->
                 go (\f' -> mkExpr (App ann f' x)) f ++
                 go (\x' -> mkExpr (App ann f x')) x

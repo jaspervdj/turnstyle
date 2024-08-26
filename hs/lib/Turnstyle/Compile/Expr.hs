@@ -8,7 +8,9 @@ module Turnstyle.Compile.Expr
 
 import           Data.Void             (Void, absurd)
 import qualified Turnstyle.Expr        as E
+import           Turnstyle.Image       (Pixel)
 import           Turnstyle.JuicyPixels (JuicyPixels)
+import           Turnstyle.Parse       (Ann, ParseError)
 import           Turnstyle.Prim
 import qualified Turnstyle.Text.Sugar  as S
 
@@ -25,7 +27,7 @@ data LamLayout
     deriving (Eq, Show)
 
 data Expr v
-    = Import JuicyPixels
+    = Import JuicyPixels (E.Expr Ann ParseError (Pixel JuicyPixels))
     | App AppLayout (Expr v) (Expr v)
     | Lam LamLayout v (Expr v)
     | Var v
