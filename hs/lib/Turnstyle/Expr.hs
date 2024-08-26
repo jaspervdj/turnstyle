@@ -9,7 +9,6 @@ module Turnstyle.Expr
     , freeVars
     , allVars
     , normalizeVars
-    , checkVars
     , checkCycles
     , checkErrors
     ) where
@@ -91,23 +90,6 @@ normalizeVars expr = evalState (go expr) (0, M.empty)
         Nothing -> (fresh, (fresh + 1, M.insert v fresh vars))
         Just n  -> (n, (fresh, vars))
 
--- | Checks that all variables are bound.
-checkVars
-    :: Ord v
-    => (v -> e)      -- ^ Construct error for unbound variable
-    -> Expr ann e v  -- ^ Expression to check
-    -> Expr ann e v  -- ^ Expression with additional errors
-checkVars mkError = go S.empty
-  where
-    go vars (App ann f x) = App ann (go vars f) (go vars x)
-    go vars (Lam ann v b) = Lam ann v $ go (S.insert v vars) b
-    go vars (Var ann v)   =
-        if S.member v vars then Var ann v else Err ann (mkError v)
-    go _    (Prim ann p)  = Prim ann p
-    go _    (Lit ann l)   = Lit ann l
-    go vars (Id ann e)    = Id ann (go vars e)
-    go _    (Err ann err) = Err ann err
-
 -- | Finds cyclic expressions by using comparison on the annotation, assuming
 -- this represents some sort of position.
 checkCycles
@@ -118,24 +100,40 @@ checkCycles
 checkCycles mkError = go S.empty
   where
     go visited expr = case expr of
-        App _ f x
-            | ann `S.member` visited -> Err ann (mkError expr)
-            | otherwise              -> App ann (go visited' f) (go visited' x)
-        Lam _ v b
-            | ann `S.member` visited -> Err ann (mkError expr)
-            | otherwise              -> Lam ann v $ go visited' b
-        Id _ e                       -> Id ann (go visited e)
-        _                            -> expr
+        _ | ann `S.member` visited -> Err ann (mkError expr)
+        App _ f x                  -> App ann (go visited' f) (go visited' x)
+        Lam _ v b                  -> Lam ann v $ go visited' b
+        Id _ e                     -> Id ann (go visited' e)
+        _                          -> expr
       where
         ann      = getAnn expr
         visited' = S.insert ann visited
 
 -- | Removes errors from an expression.
-checkErrors :: Expr ann e v -> Validation (NonEmpty (ann, e)) (Expr ann Void v)
-checkErrors (App ann f x) = App ann <$> checkErrors f <*> checkErrors x
-checkErrors (Lam ann v b) = Lam ann v <$> checkErrors b
-checkErrors (Var ann v)   = pure $ Var ann v
-checkErrors (Prim ann p)  = pure $ Prim ann p
-checkErrors (Lit ann l)   = pure $ Lit ann l
-checkErrors (Id ann e)    = Id ann <$> checkErrors e
-checkErrors (Err ann err) = Failure ((ann, err) :| [])
+checkErrors
+    :: Ord ann
+    => Expr ann e v -> Validation (NonEmpty (ann, e)) (Expr ann Void v)
+checkErrors = \expr -> case collect S.empty expr of
+    []         -> Success $ unsafeErr expr
+    err : errs -> Failure (err :| errs)
+  where
+    collect visited expr = case expr of
+        Err _ e   -> [(ann, e)]
+        _ | ann `S.member` visited -> []
+        App _ f x -> collect visited' f ++ collect visited' x
+        Lam _ _ b -> collect visited' b
+        Var _ _   -> []
+        Prim _ _  -> []
+        Lit _ _   -> []
+        Id _ e    -> collect visited' e
+      where
+        ann      = getAnn expr
+        visited' = S.insert ann visited
+
+    unsafeErr (App ann f x) = App ann (unsafeErr f) (unsafeErr x)
+    unsafeErr (Lam ann v b) = Lam ann v (unsafeErr b)
+    unsafeErr (Var ann v)   = Var ann v
+    unsafeErr (Prim ann p)  = Prim ann p
+    unsafeErr (Lit ann l)   = Lit ann l
+    unsafeErr (Id ann e)    = Id ann (unsafeErr e)
+    unsafeErr (Err _ _)     = error "checkErrors: error left after check"

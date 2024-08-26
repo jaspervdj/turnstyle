@@ -23,7 +23,11 @@ Library
   Default-language: Haskell2010
   Exposed-modules:
     Turnstyle.Compile
+    Turnstyle.Compile.Bound
+    Turnstyle.Compile.Constraint
     Turnstyle.Compile.Paint
+    Turnstyle.Compile.Expr
+    Turnstyle.Compile.Recompile
     Turnstyle.Compile.Shake
     Turnstyle.Compile.Shape
     Turnstyle.Compile.SimulatedAnnealing
@@ -93,6 +97,7 @@ Executable turnstyle-recolor
   Build-depends:
     base                 >= 4.7  && < 5,
     containers           >= 0.6  && < 0.7,
+    either               >= 5.0  && < 5.1,
     JuicyPixels          >= 3.3  && < 3.4,
     optparse-applicative >= 0.18 && < 0.19,
     turnstyle

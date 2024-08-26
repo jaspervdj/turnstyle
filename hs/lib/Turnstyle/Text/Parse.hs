@@ -21,13 +21,17 @@ expr :: P.Parser (Sugar Void P.SourcePos)
 expr = P.choice
     [ do
         pos <- P.getPosition
-        letTok
+        keyword "LET"
         v <- var
         equal
         def <- expr
-        inTok
+        keyword "IN"
         body <- expr
         pure $ Let pos v def body
+    , do
+        pos <- P.getPosition
+        keyword "IMPORT"
+        Import pos <$> string
     , do
         pos <- P.getPosition
         e : es <- P.many1 expr1
@@ -64,11 +68,8 @@ dot = void $ token $ P.char '.'
 equal :: P.Parser ()
 equal = void $ token $ P.char '='
 
-letTok :: P.Parser ()
-letTok = void $ token $ P.try $ P.string "LET"
-
-inTok :: P.Parser ()
-inTok = void $ token $ P.try $ P.string "IN"
+keyword :: String -> P.Parser ()
+keyword k = void $ token $ P.try $ P.string k
 
 parens :: P.Parser p -> P.Parser p
 parens p = token (P.char '(') *> p <* token (P.char ')')
@@ -109,6 +110,14 @@ spaceOrComments :: P.Parser ()
 spaceOrComments = P.skipMany (comment <|> P.space P.<?> "")
   where
     comment = P.char '#' <* P.manyTill P.anyChar (void P.newline <|> P.eof)
+
+string :: P.Parser String
+string = token $ do
+    void $ P.char '"'
+    str <- P.manyTill stringChar (P.char '"')
+    pure str
+  where
+    stringChar = (P.char '\\' >> P.anyChar) <|> P.satisfy (/= '"')
 
 primsByName :: M.Map String Prim
 primsByName = M.fromList [(primName p, p) | p <- knownPrims]
