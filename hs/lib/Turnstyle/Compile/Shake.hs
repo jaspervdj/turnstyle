@@ -5,12 +5,11 @@ module Turnstyle.Compile.Shake
 import           Data.List.NonEmpty      (NonEmpty (..))
 import           Data.Foldable (toList)
 import           System.Random           (RandomGen, uniformR)
-import           Turnstyle.Compile.Shape
-import           Turnstyle.Expr
+import           Turnstyle.Compile.Expr
 
 shakeOnce
-    :: (Expr ann e v -> [Expr ann e v])
-    -> Expr ann e v -> [NonEmpty (Expr ann e v)]
+    :: (Expr v -> [Expr v])
+    -> Expr v -> [NonEmpty (Expr v)]
 shakeOnce shakeChild = go id
   where
     go mkExpr expr =
@@ -23,22 +22,20 @@ shakeOnce shakeChild = go id
                 go (\x' -> mkExpr (App ann f x')) x
             Lam ann v b ->
                 go (\b' -> mkExpr (Lam ann v b')) b
-            Var _ _ -> []
-            Prim _ _ -> []
-            Lit _ _ -> []
-            Id _ _ -> []
-            Err _ _ -> []
+            Var _ -> []
+            Prim _ -> []
+            Lit _ -> []
 
-shakeExpr :: Expr Layout e v -> [Expr Layout e v]
-shakeExpr (App (AppLayout AppLeftRight)  f x) = [App (AppLayout l) f x | l <- [AppLeftFront, AppFrontRight]]
-shakeExpr (App (AppLayout AppLeftFront)  f x) = [App (AppLayout l) f x | l <- [AppLeftRight, AppFrontRight]]
-shakeExpr (App (AppLayout AppFrontRight) f x) = [App (AppLayout l) f x | l <- [AppLeftRight, AppLeftFront]]
-shakeExpr (Lam (LamLayout LamLeft)       v b) = [Lam (LamLayout l) v b | l <- [LamRight, LamStraight]]
-shakeExpr (Lam (LamLayout LamRight)      v b) = [Lam (LamLayout l) v b | l <- [LamLeft, LamStraight]]
-shakeExpr (Lam (LamLayout LamStraight)   v b) = [Lam (LamLayout l) v b | l <- [LamLeft, LamRight]]
-shakeExpr _                                   = []
+shakeExpr :: Expr v -> [Expr v]
+shakeExpr (App AppLeftRight  f x) = [App l f x | l <- [AppLeftFront, AppFrontRight]]
+shakeExpr (App AppLeftFront  f x) = [App l f x | l <- [AppLeftRight, AppFrontRight]]
+shakeExpr (App AppFrontRight f x) = [App l f x | l <- [AppLeftRight, AppLeftFront]]
+shakeExpr (Lam LamLeft       v b) = [Lam l v b | l <- [LamRight, LamStraight]]
+shakeExpr (Lam LamRight      v b) = [Lam l v b | l <- [LamLeft, LamStraight]]
+shakeExpr (Lam LamStraight   v b) = [Lam l v b | l <- [LamLeft, LamRight]]
+shakeExpr _                       = []
 
-shake :: RandomGen g => Expr Layout e v -> g -> Maybe (Expr Layout e v, g)
+shake :: RandomGen g => Expr v -> g -> Maybe (Expr v, g)
 shake expr0 gen0 = case shakeOnce shakeExpr expr0 of
     [] -> Nothing
     once ->

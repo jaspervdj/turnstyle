@@ -3,16 +3,11 @@
 module Turnstyle.Compile.Shape
     ( ColorConstraint (..)
     , Shape (..)
-    , Layout (..)
-    , AppLayout (..)
-    , LamLayout (..)
-    , defaultLayout
     , exprToShape
     ) where
 
-import qualified Data.Map       as M
-import           Data.Void      (Void, absurd)
-import           Turnstyle.Expr
+import qualified Data.Map               as M
+import           Turnstyle.Compile.Expr
 import           Turnstyle.Prim
 import           Turnstyle.TwoD
 
@@ -55,40 +50,12 @@ offsetShape dx dy = Transform $ \s ->
         bwd (Pos x y) = Pos (x - dx) (y - dy) in
     (s {sConstraints = fmap fwd <$> sConstraints s}, bwd)
 
-data Layout
-    = AppLayout AppLayout
-    | LamLayout LamLayout
-    | NoLayout
-    deriving (Eq, Show)
-
-data AppLayout
-    = AppLeftRight
-    | AppLeftFront
-    | AppFrontRight
-    deriving (Eq, Show)
-
-data LamLayout
-    = LamLeft
-    | LamRight
-    | LamStraight
-    deriving (Eq, Show)
-
-defaultLayout :: Expr ann e v -> Expr Layout e v
-defaultLayout (App _ f x) =
-    App (AppLayout AppLeftRight) (defaultLayout f) (defaultLayout x)
-defaultLayout (Lam _ v b) = Lam (LamLayout LamLeft) v (defaultLayout b)
-defaultLayout (Var _ v) = Var NoLayout v
-defaultLayout (Prim _ p) = Prim NoLayout p
-defaultLayout (Lit _ l) = Lit NoLayout l
-defaultLayout (Id _ e) = Id NoLayout (defaultLayout e)
-defaultLayout (Err _ e) = Err NoLayout e
-
-exprToShape :: Ord v => Expr Layout Void v -> Shape
+exprToShape :: Ord v => Expr v -> Shape
 exprToShape = exprToShape' M.empty
 
-exprToShape' :: Ord v => M.Map v Pos -> Expr Layout Void v -> Shape
+exprToShape' :: Ord v => M.Map v Pos -> Expr v -> Shape
 exprToShape' ctx expr = case expr of
-    App (AppLayout AppLeftRight) lhs rhs -> Shape
+    App AppLeftRight lhs rhs -> Shape
         { sWidth       = max 3 (max (sWidth lhsShape + offsetL) (sWidth rhsShape + offsetR))
         , sHeight      = sHeight lhsShape + 3 + sHeight rhsShape
         , sEntrance    = sHeight lhsShape + 1
@@ -141,7 +108,7 @@ exprToShape' ctx expr = case expr of
         appF = move entrance R enterF
         appC = move entrance R enterC
 
-    App (AppLayout AppLeftFront) lhs rhs -> Shape
+    App AppLeftFront lhs rhs -> Shape
         { sWidth       = max 3 (sWidth lhsShape) + sWidth rhsShape
         , sHeight      = max (sHeight lhsShape + 3) (offsetR + sHeight rhsShape)
         , sEntrance    = entrance
@@ -193,7 +160,7 @@ exprToShape' ctx expr = case expr of
         appF = move entranceL R enterF
         appC = move entranceL R enterC
 
-    App (AppLayout AppFrontRight) lhs rhs -> Shape
+    App AppFrontRight lhs rhs -> Shape
         { sWidth       = max 3 (sWidth rhsShape) + sWidth lhsShape
         , sHeight      = max (sHeight lhsShape) (entrance + 2 + sHeight rhsShape)
         , sEntrance    = entrance
@@ -244,7 +211,7 @@ exprToShape' ctx expr = case expr of
         appF = move entranceR R enterF
         appC = move entranceR R enterC
 
-    Lam (LamLayout LamLeft) v body -> Shape
+    Lam LamLeft v body -> Shape
         { sWidth       = max 3 (sWidth bodyShape)
         , sHeight      = sHeight bodyShape + 3
         , sEntrance    = entrance
@@ -286,7 +253,7 @@ exprToShape' ctx expr = case expr of
         enterF = move 1 R enterC
         enterR = move 1 D enterC
 
-    Lam (LamLayout LamRight) v body -> Shape
+    Lam LamRight v body -> Shape
         { sWidth       = max 3 (sWidth bodyShape)
         , sHeight      = sHeight bodyShape + 3
         , sEntrance    = entrance
@@ -331,7 +298,7 @@ exprToShape' ctx expr = case expr of
         enterF = move 1 R enterC
         enterR = move 1 D enterC
 
-    Lam (LamLayout LamStraight) v body -> Shape
+    Lam LamStraight v body -> Shape
         { sWidth       = 1 + sWidth bodyShape
         , sHeight      = sHeight bodyShape
         , sEntrance    = entrance
@@ -363,7 +330,7 @@ exprToShape' ctx expr = case expr of
         lamF = move 1 R lamC
         lamR = move 1 D lamC
 
-    Var _ v -> case M.lookup v ctx of
+    Var v -> case M.lookup v ctx of
         Nothing  -> error "exprToShape: unbound variable"
         Just pos -> Shape
             { sWidth       = 2
@@ -383,7 +350,7 @@ exprToShape' ctx expr = case expr of
         front  = move 1 R center
         right  = move 1 D center
 
-    Prim _ prim -> Shape
+    Prim prim -> Shape
         { sWidth       = max 2 (max (frontArea + 1) (max leftArea rightArea))
         , sHeight      = 3
         , sEntrance    = 1
@@ -428,7 +395,7 @@ exprToShape' ctx expr = case expr of
         front  = move 1 R center
         right  = move 1 D center
 
-    Lit _ n -> Shape
+    Lit n -> Shape
         { sWidth       = 1 + int
         , sHeight      = 3
         , sEntrance    = 1
@@ -458,7 +425,3 @@ exprToShape' ctx expr = case expr of
         center = Pos 0 1
         front  = move 1 R center
         right  = move 1 D center
-
-    Id NoLayout expr' -> exprToShape' ctx expr'
-
-    Err _ void -> absurd void

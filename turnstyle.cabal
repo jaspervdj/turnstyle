@@ -23,7 +23,9 @@ Library
   Default-language: Haskell2010
   Exposed-modules:
     Turnstyle.Compile
+    Turnstyle.Compile.Bound
     Turnstyle.Compile.Paint
+    Turnstyle.Compile.Expr
     Turnstyle.Compile.Shake
     Turnstyle.Compile.Shape
     Turnstyle.Compile.SimulatedAnnealing

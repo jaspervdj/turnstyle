@@ -10,21 +10,25 @@ module Turnstyle.Compile
 
 import qualified Codec.Picture                        as JP
 import           Data.Bifunctor                       (first)
-import           Data.Either.Validation               (Validation (..))
-import           Data.List.NonEmpty                   (NonEmpty)
+import           Data.List.NonEmpty                   (NonEmpty (..))
+import qualified Data.Map                             as M
 import           Data.Ord                             (Down (..))
-import           Data.Void                            (Void, absurd)
+import           Data.Void                            (Void)
 import           System.Random                        (mkStdGen)
+import           Turnstyle.Compile.Bound
+import           Turnstyle.Compile.Expr
 import           Turnstyle.Compile.Paint
 import           Turnstyle.Compile.Shake
 import           Turnstyle.Compile.Shape
 import qualified Turnstyle.Compile.SimulatedAnnealing as SA
 import           Turnstyle.Compile.Solve
-import           Turnstyle.Expr
+import           Turnstyle.JuicyPixels                (JuicyPixels)
+import qualified Turnstyle.Text.Sugar                 as S
 import           Turnstyle.TwoD
 
 data CompileOptions = CompileOptions
-    { coOptimize  :: Bool
+    { coImports   :: M.Map FilePath JuicyPixels
+    , coOptimize  :: Bool
     , coSeed      :: Int
     , coBudget    :: Int
     , coHillClimb :: Bool
@@ -32,24 +36,25 @@ data CompileOptions = CompileOptions
     }
 
 defaultCompileOptions :: CompileOptions
-defaultCompileOptions = CompileOptions False 12345 1000 False 5
+defaultCompileOptions = CompileOptions M.empty False 12345 1000 False 5
 
-data CompileError ann v
-    = UnboundVars (NonEmpty (ann, v))
+data CompileError ann
+    = UnboundVars (NonEmpty (ann, String))
+    | UnknownImport ann FilePath
     | SolveError (SolveError Pos)
     deriving (Show)
 
 compile
-    :: Ord v
-    => CompileOptions -> Expr ann Void v
-    -> Either (CompileError ann v) (JP.Image JP.PixelRGBA8)
-compile _ expr
-        | Failure err <- checkErrors (checkVars id (mapErr absurd expr)) = do
-    Left $ UnboundVars err
+    :: CompileOptions -> S.Sugar Void ann
+    -> Either (CompileError ann) (JP.Image JP.PixelRGBA8)
+compile _ expr | err : errs <- checkVars expr = do
+    Left $ UnboundVars (err :| errs)
 compile opts expr = do
-    let expr0 = defaultLayout expr
+    expr0 <- fromSugar (\ann path -> case M.lookup path (coImports opts) of
+        Nothing -> Left $ UnknownImport ann path
+        Just jp -> pure $ Import jp) expr
 
-        neighbour l g = case shake l g of
+    let neighbour l g = case shake l g of
              Just (l', g')
                  | Right _ <- solve $ sConstraints (exprToShape l') ->
                      (l', g')
@@ -76,7 +81,7 @@ compile opts expr = do
     colors <- first SolveError (solve $ sConstraints shape)
     pure $ paint defaultPalette colors shape
 
-scoreLayout :: Ord v => Expr Layout Void v -> Int
+scoreLayout :: Ord v => Expr v -> Int
 scoreLayout expr =
     let shape = exprToShape expr in
     -- Minimize area

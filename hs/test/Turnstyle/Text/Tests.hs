@@ -12,7 +12,7 @@ import qualified Turnstyle.Text.Sugar  as Sugar
 tests :: TestTree
 tests = testGroup "Turnstyle.Text"
     [ QC.testProperty "parse . pretty" $ \(GenExpr expr) ->
-        case parseExpr "test iput" (prettyExpr expr) of
+        case parseExpr (prettyExpr expr) of
             Left  _      -> False
             Right parsed -> toDeBruijn expr == toDeBruijn parsed
 
@@ -29,3 +29,7 @@ tests = testGroup "Turnstyle.Text"
         Right (Sugar.Lit () 1) @=?
             fmap (const ()) <$> parseSugar "test input" "1 # Trailing comment"
     ]
+  where
+    parseExpr input =
+        sugarToExpr (\_ _ -> error "imports not supported") <$>
+        parseSugar "test input" input

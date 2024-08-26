@@ -9,7 +9,6 @@ module Turnstyle.Expr
     , freeVars
     , allVars
     , normalizeVars
-    , checkVars
     , checkCycles
     , checkErrors
     ) where
@@ -90,23 +89,6 @@ normalizeVars expr = evalState (go expr) (0, M.empty)
     var v = state $ \(fresh, vars) -> case M.lookup v vars of
         Nothing -> (fresh, (fresh + 1, M.insert v fresh vars))
         Just n  -> (n, (fresh, vars))
-
--- | Checks that all variables are bound.
-checkVars
-    :: Ord v
-    => (v -> e)      -- ^ Construct error for unbound variable
-    -> Expr ann e v  -- ^ Expression to check
-    -> Expr ann e v  -- ^ Expression with additional errors
-checkVars mkError = go S.empty
-  where
-    go vars (App ann f x) = App ann (go vars f) (go vars x)
-    go vars (Lam ann v b) = Lam ann v $ go (S.insert v vars) b
-    go vars (Var ann v)   =
-        if S.member v vars then Var ann v else Err ann (mkError v)
-    go _    (Prim ann p)  = Prim ann p
-    go _    (Lit ann l)   = Lit ann l
-    go vars (Id ann e)    = Id ann (go vars e)
-    go _    (Err ann err) = Err ann err
 
 -- | Finds cyclic expressions by using comparison on the annotation, assuming
 -- this represents some sort of position.

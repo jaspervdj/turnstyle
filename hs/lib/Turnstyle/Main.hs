@@ -2,18 +2,21 @@ module Turnstyle.Main
     ( main
     ) where
 
-import qualified Codec.Picture          as JP
-import           Data.Maybe             (fromMaybe)
-import qualified Options.Applicative    as OA
-import qualified System.IO              as IO
-import           Text.Read              (readMaybe)
-import qualified Turnstyle.Compile      as Compile
-import           Turnstyle.Eval         (eval)
+import qualified Codec.Picture         as JP
+import           Data.Foldable         (toList)
+import qualified Data.Map              as M
+import           Data.Maybe            (fromMaybe)
+import           Data.Traversable      (for)
+import qualified Options.Applicative   as OA
+import qualified System.IO             as IO
+import           Text.Read             (readMaybe)
+import qualified Turnstyle.Compile     as Compile
+import           Turnstyle.Eval        (eval)
 import           Turnstyle.Expr
-import           Turnstyle.JuicyPixels  (loadImage)
+import           Turnstyle.JuicyPixels (loadImage)
 import           Turnstyle.Parse
-import           Turnstyle.Scale        (autoScale)
-import qualified Turnstyle.Text         as Text
+import           Turnstyle.Scale       (autoScale)
+import qualified Turnstyle.Text        as Text
 
 data Options = Options
     { oCommand         :: Command
@@ -80,8 +83,6 @@ main = do
             let expr = parseImage (roInitialPosition ropts) (autoScale img)
             putStrLn $ Text.prettyExpr $ checkCycles (const CycleError) $
                 mapErr ParseError expr
-            IO.hSetBuffering IO.stdin IO.NoBuffering
-            IO.hSetBuffering IO.stdout IO.NoBuffering
             eval expr >>= print
         Compile copts -> do
             let out = fromMaybe "a.png" (coOut copts)
@@ -90,11 +91,15 @@ main = do
                 Left err  -> IO.hPutStrLn IO.stderr $ show err
                 Right sugar -> do
                     putStrLn $ Text.prettySugar sugar
-                    let expr = Text.sugarToExpr sugar
-                        compileOptions = Compile.defaultCompileOptions
-                            { Compile.coOptimize = coOptimize copts
+                    imports <- for (toList $ Text.sugarImports sugar) $ \p -> do
+                        img <- loadImage p
+                        putStrLn $ "Loaded " ++ p
+                        pure (p, img)
+                    let compileOptions = Compile.defaultCompileOptions
+                            { Compile.coImports  = M.fromList imports
+                            , Compile.coOptimize = coOptimize copts
                             }
-                    case Compile.compile compileOptions expr of
+                    case Compile.compile compileOptions sugar of
                         Left cerr -> IO.hPutStrLn IO.stderr $ show cerr
                         Right img -> JP.savePngImage out $ JP.ImageRGBA8 img
   where
