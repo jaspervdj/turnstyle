@@ -51,7 +51,7 @@ fromSugar imports (S.Let _ v d b) = do
     d' <- fromSugar imports d
     b' <- fromSugar imports b
     pure $ App AppLeftRight (Lam LamLeft v b') d'
-fromSugar imports (S.Import ann fp) = imports ann fp
+fromSugar imports (S.Import ann _ fp) = imports ann fp
 fromSugar imports (S.App _ f xs) = do
     f' <- fromSugar imports f
     xs' <- traverse (fromSugar imports) xs

@@ -31,7 +31,8 @@ expr = P.choice
     , do
         pos <- P.getPosition
         keyword "IMPORT"
-        Import pos <$> string
+        attrs <- attributes
+        Import pos attrs <$> string
     , do
         pos <- P.getPosition
         e : es <- P.many1 expr1
@@ -96,6 +97,16 @@ lit = token $ do
     case read decimal of
         0 -> P.unexpected "zero literal"
         n -> pure n
+
+attributes :: P.Parser Attributes
+attributes = P.many attribute
+  where
+    attribute = do
+        void $ P.char '@'
+        key <- (:) <$> identifierStart <*> P.many identifierChar
+        void $ P.char '='
+        val <- string
+        pure (key, val)
 
 token :: P.Parser a -> P.Parser a
 token p = p <* spaceOrComments

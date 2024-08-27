@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Turnstyle.Text.Sugar
-    ( Sugar (..)
+    ( Attributes
+    , Sugar (..)
     , sugarImports
     , sugarToExpr
     , exprToSugar
@@ -11,9 +12,11 @@ import qualified Data.Set           as S
 import qualified Turnstyle.Expr     as E
 import           Turnstyle.Prim     (Prim)
 
+type Attributes = [(String, String)]
+
 data Sugar err ann
     = Let ann String (Sugar err ann) (Sugar err ann)
-    | Import ann FilePath
+    | Import ann Attributes FilePath
     | App ann (Sugar err ann) (NonEmpty (Sugar err ann))
     | Lam ann (NonEmpty String) (Sugar err ann)
     | Var ann String
@@ -24,7 +27,7 @@ data Sugar err ann
 
 sugarImports :: Sugar err ann -> S.Set FilePath
 sugarImports (Let _ _ d b) = sugarImports d <> sugarImports b
-sugarImports (Import _ p)  = S.singleton p
+sugarImports (Import _ _ p)  = S.singleton p
 sugarImports (App _ f xs)  = sugarImports f <> foldMap sugarImports xs
 sugarImports (Lam _ _ b)   = sugarImports b
 sugarImports (Var _ _)     = S.empty
@@ -37,7 +40,7 @@ sugarToExpr
     -> Sugar err ann -> E.Expr ann err String
 sugarToExpr imports (Let ann v d b) =
     E.App ann (E.Lam ann v (sugarToExpr imports b)) (sugarToExpr imports d)
-sugarToExpr imports (Import ann fp) = imports ann fp
+sugarToExpr imports (Import ann _ fp) = imports ann fp
 sugarToExpr imports (App ann f xs) =
     foldl (E.App ann) (sugarToExpr imports f) (fmap (sugarToExpr imports) xs)
 sugarToExpr imports (Lam ann vs b)
