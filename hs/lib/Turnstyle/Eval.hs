@@ -1,18 +1,36 @@
 {-# LANGUAGE TypeApplications #-}
 module Turnstyle.Eval
-    ( Var (..)
+    ( MonadEval (..)
+
+    , Var (..)
     , Whnf (..)
     , whnf
     , eval
     ) where
 
-import           Control.Exception (Exception, IOException, catch, throwIO)
+import           Control.Exception (Exception, IOException, handle, throwIO)
 import           Data.Char         (chr, ord)
 import qualified Data.Set          as S
 import qualified Turnstyle.Expr    as Expr
 import           Turnstyle.Expr    (Expr)
 import           Turnstyle.Number
 import           Turnstyle.Prim
+
+class Monad m => MonadEval m where
+    evalThrow :: EvalException -> m a
+    evalInputNumber :: m (Maybe Integer)
+    evalInputChar   :: m (Maybe Char)
+    evalOutputNumber :: Number -> m ()
+    evalOutputChar   :: Char -> m ()
+
+instance MonadEval IO where
+    evalThrow = throwIO
+
+    evalInputNumber = handle @IOException (\_ -> pure Nothing) (Just <$> readLn)
+    evalInputChar = handle @IOException (\_ -> pure Nothing) (Just <$> getChar)
+
+    evalOutputNumber = print
+    evalOutputChar   = putChar
 
 data Type
     = ApplicationTy
@@ -21,6 +39,7 @@ data Type
     | PrimitiveTy
     | NumberTy
     | IntegralTy
+    | ErrorTy
 
 instance Show Type where
     show ApplicationTy = "function application"
@@ -29,6 +48,7 @@ instance Show Type where
     show PrimitiveTy   = "primitive"
     show NumberTy      = "number"
     show IntegralTy    = "integral"
+    show ErrorTy       = "error"
 
 data EvalException
     = PrimBadArg Prim Int Type Type
@@ -42,7 +62,7 @@ instance Show EvalException where
 
 instance Exception EvalException
 
-eval :: (Exception err, Ord v) => Expr ann err v -> IO (Whnf ann err v)
+eval :: (MonadEval m, Ord v) => Expr ann err v -> m (Whnf ann err v)
 eval = whnf . fmap User
 
 data Var v = User v | Fresh Int deriving (Eq, Ord, Show)
@@ -54,9 +74,10 @@ data Whnf ann err v
     | Var (Var v)
     | UnsatPrim Int Prim [Expr ann err (Var v)]
     | Lit Number
+    | Err ann err
     deriving (Show)
 
-whnf :: (Exception err, Ord v) => Expr ann err (Var v) -> IO (Whnf ann err v)
+whnf :: (Ord v, MonadEval m) => Expr ann err (Var v) -> m (Whnf ann err v)
 whnf (Expr.App ann f x) = do
     fv <- whnf f
     case fv of
@@ -69,7 +90,7 @@ whnf (Expr.Var _ v) = pure $ Var v
 whnf (Expr.Prim _ p) = pure $ UnsatPrim (primArity p) p []
 whnf (Expr.Lit _ lit) = pure $ Lit $ fromIntegral lit
 whnf (Expr.Id _ e) = whnf e
-whnf (Expr.Err _ err) = throwIO err
+whnf (Expr.Err ann err) = pure $ Err ann err
 
 subst
     :: Ord v
@@ -96,22 +117,22 @@ subst x s b = sub b
     vs  = fvs <> Expr.allVars b
 
 prim
-    :: (Exception err, Ord v)
-    => ann -> Prim -> [Expr ann err (Var v)] -> IO (Whnf ann err v)
-prim ann (PIn inMode) [k, l] = catch @IOException
-    (do
-        lit <- case inMode of
-            InNumber -> readLn :: IO Integer
-            InChar   -> fromIntegral . ord <$> getChar
-        whnf $ Expr.App ann k (Expr.Lit ann lit))
-    (\_ -> whnf l)
+    :: (Ord v, MonadEval m)
+    => ann -> Prim -> [Expr ann err (Var v)] -> m (Whnf ann err v)
+prim ann (PIn inMode) [k, l] = do
+    mbLit <- case inMode of
+        InNumber -> evalInputNumber
+        InChar   -> fmap (fromIntegral . ord) <$> evalInputChar
+    case mbLit of
+        Nothing  -> whnf l
+        Just lit -> whnf $ Expr.App ann k $ Expr.Lit ann lit
 prim _ p@(POut outMode) [outE, kE] = do
     out <- whnf outE >>= castArgNumber p 1
     case outMode of
-        OutNumber -> print out
+        OutNumber -> evalOutputNumber out
         OutChar -> case numberToInt out of
-            Nothing -> throwIO $ PrimBadArg p 1 IntegralTy NumberTy
-            Just n  -> putChar $ chr n
+            Nothing -> evalThrow $ PrimBadArg p 1 IntegralTy NumberTy
+            Just n  -> evalOutputChar $ chr n
     whnf kE
 prim _ p@(PNumOp numOp) [xE, yE] = do
     x <- whnf xE >>= castArgNumber p 1
@@ -119,12 +140,12 @@ prim _ p@(PNumOp numOp) [xE, yE] = do
     fmap Lit $ case numOp of
         NumOpAdd             -> pure $ x + y
         NumOpSubtract        -> pure $ x - y
-        NumOpDivide | y == 0 -> throwIO DivideByZero
+        NumOpDivide | y == 0 -> evalThrow DivideByZero
         NumOpDivide          -> pure $ x / y
         NumOpMultiply        -> pure $ x * y
         NumOpModulo          -> do
-            xi <- maybe (throwIO (PrimBadArg p 1 IntegralTy NumberTy)) pure $ numberToInteger x
-            yi <- maybe (throwIO (PrimBadArg p 1 IntegralTy NumberTy)) pure $ numberToInteger y
+            xi <- maybe (evalThrow (PrimBadArg p 1 IntegralTy NumberTy)) pure $ numberToInteger x
+            yi <- maybe (evalThrow (PrimBadArg p 1 IntegralTy NumberTy)) pure $ numberToInteger y
             pure $ fromInteger $ xi `mod` yi
 prim _ p@(PCompare cmp) [xE, yE, fE, gE] = do
     x <- whnf xE >>= castArgNumber p 1
@@ -139,10 +160,10 @@ prim _ p@(PInexact InexactSqrt) [xE] = do
     x <- whnf xE >>= castArgNumber p 1
     pure . Lit . Inexact . sqrt $ numberToDouble x
 
-castArgNumber :: Prim -> Int -> Whnf ann err v -> IO Number
+castArgNumber :: MonadEval m => Prim -> Int -> Whnf ann err v -> m Number
 castArgNumber p narg e = case e of
     Lit x -> pure x
-    _     -> throwIO $ PrimBadArg p narg NumberTy (typeOf e)
+    _     -> evalThrow $ PrimBadArg p narg NumberTy (typeOf e)
 
 typeOf :: Whnf err ann v -> Type
 typeOf (App _ _)         = ApplicationTy
@@ -150,3 +171,4 @@ typeOf (Lam _ _)         = LambdaTy
 typeOf (Var _)           = VariableTy
 typeOf (UnsatPrim _ _ _) = PrimitiveTy
 typeOf (Lit _)           = NumberTy
+typeOf (Err _ _)         = ErrorTy
