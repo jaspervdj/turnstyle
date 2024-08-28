@@ -1,6 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Turnstyle.Eval.Tests
-    ( tests
+    ( EvalState (..)
+    , emptyEvalState
+    , EvalPure
+    , runEvalPure
+
+    , tests
     ) where
 
 import           Control.Monad.Except  (ExceptT, runExceptT, throwError)
@@ -39,6 +44,9 @@ instance MonadEval EvalPure where
         es {esOutNumbers = n : esOutNumbers es}
     evalOutputChar n = EvalPure $ modify $ \es ->
         es {esOutChars = n : esOutChars es}
+
+runEvalPure :: EvalPure a -> EvalState -> (Either EvalException a, EvalState)
+runEvalPure m = runState (runExceptT $ unEvalPure m)
 
 tests :: TestTree
 tests = testGroup "Turnstyle.Eval"
