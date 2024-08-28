@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeApplications #-}
 module Turnstyle.Eval
-    ( MonadEval (..)
+    ( EvalException (..)
+    , MonadEval (..)
 
     , Var (..)
     , Whnf (..)
@@ -15,6 +16,38 @@ import qualified Turnstyle.Expr    as Expr
 import           Turnstyle.Expr    (Expr)
 import           Turnstyle.Number
 import           Turnstyle.Prim
+
+data Type
+    = ApplicationTy
+    | LambdaTy
+    | VariableTy
+    | PrimitiveTy
+    | NumberTy
+    | IntegralTy
+    | ErrorTy
+    deriving (Eq)
+
+instance Show Type where
+    show ApplicationTy = "function application"
+    show LambdaTy      = "lambda"
+    show VariableTy    = "variable"
+    show PrimitiveTy   = "primitive"
+    show NumberTy      = "number"
+    show IntegralTy    = "integral"
+    show ErrorTy       = "error"
+
+data EvalException
+    = PrimBadArg Prim Int Type Type
+    | DivideByZero
+    deriving (Eq)
+
+instance Show EvalException where
+    show (PrimBadArg p n expected actual) =
+        "primitive " ++ primName p ++ " bad argument #" ++ show n ++
+        ": expected " ++ show expected ++ " but got " ++ show actual
+    show DivideByZero = "division by zero"
+
+instance Exception EvalException
 
 class Monad m => MonadEval m where
     evalThrow :: EvalException -> m a
@@ -32,36 +65,6 @@ instance MonadEval IO where
     evalOutputNumber = print
     evalOutputChar   = putChar
 
-data Type
-    = ApplicationTy
-    | LambdaTy
-    | VariableTy
-    | PrimitiveTy
-    | NumberTy
-    | IntegralTy
-    | ErrorTy
-
-instance Show Type where
-    show ApplicationTy = "function application"
-    show LambdaTy      = "lambda"
-    show VariableTy    = "variable"
-    show PrimitiveTy   = "primitive"
-    show NumberTy      = "number"
-    show IntegralTy    = "integral"
-    show ErrorTy       = "error"
-
-data EvalException
-    = PrimBadArg Prim Int Type Type
-    | DivideByZero
-
-instance Show EvalException where
-    show (PrimBadArg p n expected actual) =
-        "primitive " ++ primName p ++ " bad argument #" ++ show n ++
-        ": expected " ++ show expected ++ " but got " ++ show actual
-    show DivideByZero = "division by zero"
-
-instance Exception EvalException
-
 eval :: (MonadEval m, Ord v) => Expr ann err v -> m (Whnf ann err v)
 eval = whnf . fmap User
 
@@ -75,7 +78,7 @@ data Whnf ann err v
     | UnsatPrim Int Prim [Expr ann err (Var v)]
     | Lit Number
     | Err ann err
-    deriving (Show)
+    deriving (Eq, Show)
 
 whnf :: (Ord v, MonadEval m) => Expr ann err (Var v) -> m (Whnf ann err v)
 whnf (Expr.App ann f x) = do

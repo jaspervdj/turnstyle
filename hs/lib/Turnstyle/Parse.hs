@@ -61,7 +61,7 @@ data ParseError
     | EmptyImage
     | UnknownSym Int
     | UnknownPrim Int Int
-    deriving (Show)
+    deriving (Eq, Show)
 
 instance Exception ParseError
 
