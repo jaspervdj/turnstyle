@@ -74,14 +74,15 @@ main = do
                 Success e   -> pure e
                 Failure err -> fail $ show err
             let constrs = recompile img expr
-            solution <- either (fail . show) pure $ solve constrs
+                palette = map colorToPixel $ oColors args
+            solution <- either (fail . show) pure $ solve palette constrs
             let shape = Shape
                     { sWidth       = width img
                     , sHeight      = height img
                     , sEntrance    = height img `div` 2
                     , sConstraints = constrs
                     }
-            pure $ paint (map colorToPixel $ oColors args) solution shape
+            pure $ paint solution shape
         False -> do
             img <- JP.readImage (oFilePath args) >>= either fail pure
             either fail pure $ recolor (oColors args) (JP.convertRGBA8 img)

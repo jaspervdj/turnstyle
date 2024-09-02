@@ -27,7 +27,7 @@ data LamLayout
     deriving (Eq, Show)
 
 data Expr v
-    = Import JuicyPixels (E.Expr Ann Void (Pixel JuicyPixels))
+    = Import S.Attributes JuicyPixels (E.Expr Ann Void (Pixel JuicyPixels))
     | App AppLayout (Expr v) (Expr v)
     | Lam LamLayout v (Expr v)
     | Var v
@@ -45,13 +45,13 @@ fromExpr (E.Err _ e)   = absurd e
 
 fromSugar
     :: Monad m
-    => (ann -> FilePath -> m (Expr String))
+    => (ann -> S.Attributes -> FilePath -> m (Expr String))
     -> S.Sugar Void ann -> m (Expr String)
 fromSugar imports (S.Let _ v d b) = do
     d' <- fromSugar imports d
     b' <- fromSugar imports b
     pure $ App AppLeftRight (Lam LamLeft v b') d'
-fromSugar imports (S.Import ann _ fp) = imports ann fp
+fromSugar imports (S.Import ann attrs fp) = imports ann attrs fp
 fromSugar imports (S.App _ f xs) = do
     f' <- fromSugar imports f
     xs' <- traverse (fromSugar imports) xs

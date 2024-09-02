@@ -15,17 +15,17 @@ import           Turnstyle.Quattern           (Quattern (..))
 import           Turnstyle.TwoD
 
 recompile
-    :: forall img. (Image img, Ord (Pixel img))
-    => img -> Expr Ann Void (Pixel img) -> [ColorConstraint Pos]
+    :: forall img c. (Image img, Ord (Pixel img))
+    => img -> Expr Ann Void (Pixel img) -> [ColorConstraint c Pos]
 recompile img = exprToConstraints img S.empty M.empty
 
 exprToConstraints
-    :: forall img. (Image img, Ord (Pixel img))
+    :: forall img c. (Image img, Ord (Pixel img))
     => img
     -> S.Set Ann
     -> M.Map (Pixel img) Pos
     -> Expr Ann Void (Pixel img)
-    -> [ColorConstraint Pos]
+    -> [ColorConstraint c Pos]
 exprToConstraints img visited ctx expr
     | ann `S.member` visited = []
     | otherwise              = constraints ++ children

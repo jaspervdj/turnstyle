@@ -6,11 +6,14 @@ module Turnstyle.Compile.Shape
     , exprToShape
     ) where
 
+import qualified Codec.Picture                as JP
+import           Control.Monad                (guard)
 import qualified Data.Map                     as M
 import           Turnstyle.Compile.Constraint
 import           Turnstyle.Compile.Expr
 import           Turnstyle.Compile.Recompile
 import qualified Turnstyle.Image              as Image
+import           Turnstyle.JuicyPixels        (JuicyPixels)
 import           Turnstyle.Prim
 import           Turnstyle.TwoD
 
@@ -18,7 +21,7 @@ data Shape = Shape
     { sWidth       :: Int
     , sHeight      :: Int
     , sEntrance    :: Int  -- Pixels from top where we "enter" the shape.
-    , sConstraints :: [ColorConstraint Pos]
+    , sConstraints :: [ColorConstraint (Image.Pixel JuicyPixels) Pos]
     } deriving (Show)
 
 newtype Transform = Transform {unTransform :: Shape -> (Shape, Pos -> Pos)}
@@ -424,9 +427,21 @@ exprToShape' ctx expr = case expr of
         front  = move 1 R center
         right  = move 1 D center
 
-    Import img imgExpr -> Shape
+    Import attrs img imgExpr | Just "true" <- lookup "recompile" attrs -> Shape
         { sWidth       = Image.width img
         , sHeight      = Image.height img
         , sEntrance    = Image.height img `div` 2
         , sConstraints = recompile img imgExpr
+        }
+
+    Import _ img _ -> Shape
+        { sWidth       = Image.width img
+        , sHeight      = Image.height img
+        , sEntrance    = Image.height img `div` 2
+        , sConstraints = do
+            y <- [0 .. Image.height img - 1]
+            x <- [0 .. Image.width img - 1]
+            let col@(JP.PixelRGBA8 _ _ _ alpha) = Image.pixel x y img
+            guard $ alpha /= 0
+            pure $ LitEq col (Pos x y)
         }

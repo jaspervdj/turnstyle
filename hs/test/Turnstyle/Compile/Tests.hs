@@ -48,6 +48,7 @@ tests = testGroup "Turnstyle.Compile"
         esOutChars finalState @?= reverse "nop\nqrs\n"
     ]
   where
+    -- TODO: test this with and without recoloring
     rot13 = unlines
         [ "LET y = IMPORT \"y.png\" IN"
         , "LET char_a = num_add (num_mul 10 9) 7 IN"

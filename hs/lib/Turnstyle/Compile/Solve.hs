@@ -27,10 +27,11 @@ data SolveError p
     | UnknownVertex p deriving (Show)
 
 solve
-    :: forall p. Ord p
-    => [ColorConstraint p]
-    -> Either (SolveError p) (p -> Maybe Int)
-solve constraints = do
+    :: forall p c. (Ord p, Eq c)
+    => [c]
+    -> [ColorConstraint c p]
+    -> Either (SolveError p) (p -> Maybe c)
+solve palette constraints = do
     ineqGraph <- mkInequalityGraph
     let colors = greedyColor ineqGraph
     pure $ \p -> M.lookup p vertexToComponent >>= (`M.lookup` colors)
@@ -66,15 +67,21 @@ solve constraints = do
         M.empty
         inequalities
 
+    initialColors :: M.Map (Component p) c
+    initialColors = M.fromList $ do
+        LitEq col p <- constraints
+        comp <- maybeToList $ M.lookup p vertexToComponent
+        pure (comp, col)
+
     greedyColor
         :: M.Map (Component p) (S.Set (Component p))
-        -> M.Map (Component p) Int
+        -> M.Map (Component p) c
     greedyColor inequalityGraph = foldl'
         (\acc c ->
             let unavailable = do
                     nc <- maybe [] S.toList $ M.lookup c inequalityGraph
                     maybeToList $ M.lookup nc acc
-                color = head $ filter (not . (`elem` unavailable)) [0 ..] in
+                color = head $ filter (not . (`elem` unavailable)) palette in
             M.insert c color acc)
-        M.empty
-        (fst <$> components)
+        initialColors
+        (filter (not . (`M.member` initialColors)) $ fst <$> components)

@@ -23,13 +23,14 @@ defaultPalette = concat $ transpose
     steps = reverse $ [63, 127 .. 255]
 
 paint
-    :: [JP.PixelRGBA8] -> (Pos -> Maybe Int) -> Shape -> JP.Image JP.PixelRGBA8
-paint palette colors s = JP.generateImage
+    :: (Pos -> Maybe JP.PixelRGBA8) -> Shape
+    -> JP.Image JP.PixelRGBA8
+paint colors s = JP.generateImage
     (\x0 y0 -> fromMaybe background $
         let x1 = x0 - offsetX
             y1 = y0 - offsetY in
         if x1 >= 0 && x1 < sWidth s && y1 >= 0 && y1 < sHeight s
-            then (palette !!) <$> colors (Pos x1 y1)
+            then colors (Pos x1 y1)
             else Nothing)
     (sWidth s)
     (spacingHeight * 2 + 1)

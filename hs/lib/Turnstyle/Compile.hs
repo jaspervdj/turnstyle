@@ -55,15 +55,15 @@ compile
 compile _ expr | err : errs <- checkVars expr = do
     Left $ UnboundVars (err :| errs)
 compile opts expr = do
-    expr0 <- fromSugar (\ann path -> case M.lookup path (coImports opts) of
+    expr0 <- fromSugar (\ann attrs path -> case M.lookup path (coImports opts) of
         Nothing -> Left $ UnknownImport ann path
         Just jp -> case E.checkErrors (parseImage Nothing jp) of
-            Success e   -> pure $ Import jp e
+            Success e   -> pure $ Import attrs jp e
             Failure err -> Left $ BadImport ann path err) expr
 
     let neighbour l g = case shake l g of
              Just (l', g')
-                 | Right _ <- solve $ sConstraints (exprToShape l') ->
+                 | Right _ <- solve defaultPalette $ sConstraints (exprToShape l') ->
                      (l', g')
              _ -> (l, g)
 
@@ -85,8 +85,8 @@ compile opts expr = do
                             })
                 expr0 (mkStdGen (coSeed opts))
         shape = exprToShape expr1
-    colors <- first SolveError (solve $ sConstraints shape)
-    pure $ paint defaultPalette colors shape
+    colors <- first SolveError (solve defaultPalette $ sConstraints shape)
+    pure $ paint colors shape
 
 scoreLayout :: Ord v => Expr v -> Int
 scoreLayout expr =
