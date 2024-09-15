@@ -40,7 +40,7 @@ data CompileOptions = CompileOptions
     }
 
 defaultCompileOptions :: CompileOptions
-defaultCompileOptions = CompileOptions M.empty False 12345 1000 False 5
+defaultCompileOptions = CompileOptions M.empty False 12345 2000 False 5
 
 data CompileError ann
     = UnboundVars (NonEmpty (ann, String))

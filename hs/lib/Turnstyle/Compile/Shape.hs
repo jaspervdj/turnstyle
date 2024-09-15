@@ -6,10 +6,12 @@ module Turnstyle.Compile.Shape
     , exprToShape
     ) where
 
+import Debug.Trace
 import qualified Codec.Picture                as JP
 import           Control.Monad                (guard)
 import qualified Data.Map                     as M
 import           Turnstyle.Compile.Constraint
+import qualified Data.Set as S
 import           Turnstyle.Compile.Expr
 import           Turnstyle.Compile.Recompile
 import qualified Turnstyle.Image              as Image
@@ -396,10 +398,10 @@ exprToShape' ctx expr = case expr of
         front  = move 1 R center
         right  = move 1 D center
 
-    Lit n -> Shape
-        { sWidth       = 1 + int
-        , sHeight      = 3
-        , sEntrance    = 1
+    Lit (LitLayout upH downH) n -> Shape
+        { sWidth       = 1 + maximum [x | Pos x _ <- frontExtension]
+        , sHeight      = 3 + max 0 (upH - 1) + max 0 (downH - 1)
+        , sEntrance    = entrance
         , sConstraints =
             -- Turnstyle shape
             [ NotEq left center, NotEq left front, NotEq left right
@@ -413,19 +415,24 @@ exprToShape' ctx expr = case expr of
             -- Front "lit" part should be one color
             [ Eq front e | e <- frontExtension ] ++
             -- Areas around the front "lit" part need to be different
-            [ NotEq front (move 1 U e) | e <- frontExtension ] ++
-            [ NotEq front (move 1 D e) | e <- frontExtension ] ++
-            [ NotEq front (move int R front) ]
+            [ NotEq front p | p <- S.toList (surrounding frontExtension) ]
         }
       where
         -- The extension for a literal
-        frontExtension = [move i R center | i <- [1 .. int]]
+        frontExtension = take int frontForever
 
-        int    = fromIntegral n
-        left   = move 1 U center
-        center = Pos 0 1
-        front  = move 1 R center
-        right  = move 1 D center
+        -- Infinite list of pixels that extend to the right
+        frontForever = do
+            x <- [0 ..]
+            y <- take (upH + 1) [0, -1..] ++ take downH [1..]
+            pure $ move y D $ move x R front
+
+        entrance = max 1 upH
+        int      = fromIntegral n
+        left     = move 1 U center
+        center   = Pos 0 entrance
+        front    = move 1 R center
+        right    = move 1 D center
 
     Import attrs img imgExpr | Just "true" <- lookup "recompile" attrs -> Shape
         { sWidth       = Image.width img
@@ -445,3 +452,8 @@ exprToShape' ctx expr = case expr of
             guard $ alpha /= 0
             pure $ LitEq col (Pos x y)
         }
+
+  where
+    surrounding :: [Pos] -> S.Set Pos
+    surrounding area = S.fromList
+        [n | p <- area, n <- neighbors p, not (n `S.member` S.fromList area)]

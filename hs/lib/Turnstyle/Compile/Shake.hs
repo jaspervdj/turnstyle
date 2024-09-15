@@ -2,9 +2,9 @@ module Turnstyle.Compile.Shake
     ( shake
     ) where
 
-import           Data.List.NonEmpty      (NonEmpty (..))
-import           Data.Foldable (toList)
-import           System.Random           (RandomGen, uniformR)
+import           Data.Foldable          (toList)
+import           Data.List.NonEmpty     (NonEmpty (..))
+import           System.Random          (RandomGen, uniformR)
 import           Turnstyle.Compile.Expr
 
 shakeOnce
@@ -25,7 +25,7 @@ shakeOnce shakeChild = go id
                 go (\b' -> mkExpr (Lam ann v b')) b
             Var _ -> []
             Prim _ -> []
-            Lit _ -> []
+            Lit _ _ -> []
 
 shakeExpr :: Expr v -> [Expr v]
 shakeExpr (App AppLeftRight  f x) = [App l f x | l <- [AppLeftFront, AppFrontRight]]
@@ -34,6 +34,9 @@ shakeExpr (App AppFrontRight f x) = [App l f x | l <- [AppLeftRight, AppLeftFron
 shakeExpr (Lam LamLeft       v b) = [Lam l v b | l <- [LamRight, LamStraight]]
 shakeExpr (Lam LamRight      v b) = [Lam l v b | l <- [LamLeft, LamStraight]]
 shakeExpr (Lam LamStraight   v b) = [Lam l v b | l <- [LamLeft, LamRight]]
+shakeExpr (Lit (LitLayout u d) l) =
+    [Lit (LitLayout u' d) l | u' <- [u - 1, u + 1], u' >= 0, u' + d <= fromIntegral l] ++
+    [Lit (LitLayout u d') l | d' <- [d - 1, d + 1], d' >= 0, u + d' <= fromIntegral l]
 shakeExpr _                       = []
 
 shake :: RandomGen g => Expr v -> g -> Maybe (Expr v, g)

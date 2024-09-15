@@ -50,6 +50,7 @@ Library
   Build-depends:
     base                 >= 4.7  && < 5,
     containers           >= 0.6  && < 0.7,
+    data-default         >= 0.7  && < 0.8,
     either               >= 5.0  && < 5.1,
     JuicyPixels          >= 3.3  && < 3.4,
     mtl                  >= 2.3  && < 2.4,
