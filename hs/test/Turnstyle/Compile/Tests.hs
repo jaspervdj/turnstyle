@@ -19,6 +19,8 @@ import           Turnstyle.Image
 import           Turnstyle.JuicyPixels
 import           Turnstyle.Parse
 import           Turnstyle.Text         (exprToSugar, parseSugar)
+import           Turnstyle.Text.Pretty  (prettyAttributes)
+import           Turnstyle.Text.Sugar   (Attributes)
 
 tests :: TestTree
 tests = testGroup "Turnstyle.Compile"
@@ -36,21 +38,25 @@ tests = testGroup "Turnstyle.Compile"
             Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
                 Failure err    -> error $ "parse error: " ++ show err
                 Success parsed -> toDeBruijn expr == toDeBruijn parsed
-    , testCase "rot13" $ do
-        sugar <- either (fail . show) pure $ parseSugar "rot13.txt" rot13
-        img <- either (fail . show) pure $ compile
-            defaultCompileOptions {coImports = M.singleton "y.png" yImage}
-            sugar
-        let expr = parseImage Nothing (JuicyPixels img)
-            (result, finalState) = runEvalPure (eval expr)
-                emptyEvalState {esInChars = "abc\ndef\n"}
-        result @?= Right (E.Lit 0)
-        esOutChars finalState @?= reverse "nop\nqrs\n"
+    , rot13 "rot13" []
+    , rot13 "rot13 (recompile)" [("recompile", "true")]
     ]
   where
-    -- TODO: test this with and without recoloring
-    rot13 = unlines
-        [ "LET y = IMPORT \"y.png\" IN"
+
+rot13 :: String -> Attributes -> TestTree
+rot13 name importAttrs = testCase name $ do
+    sugar <- either (fail . show) pure $ parseSugar "rot13.txt" src
+    img <- either (fail . show) pure $ compile
+        defaultCompileOptions {coImports = M.singleton "y.png" yImage}
+        sugar
+    let expr = parseImage Nothing (JuicyPixels img)
+        (result, finalState) = runEvalPure (eval expr)
+            emptyEvalState {esInChars = "abc\ndef\n"}
+    result @?= Right (E.Lit 0)
+    esOutChars finalState @?= reverse "nop\nqrs\n"
+  where
+    src = unlines
+        [ "LET y = IMPORT " ++ prettyAttributes importAttrs ++ " \"y.png\" IN"
         , "LET char_a = num_add (num_mul 10 9) 7 IN"
         , "LET char_z = num_add char_a 25 IN"
         , "LET and = λp q. p q p IN"
