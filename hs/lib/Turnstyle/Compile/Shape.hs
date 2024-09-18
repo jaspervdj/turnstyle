@@ -6,7 +6,6 @@ module Turnstyle.Compile.Shape
     , exprToShape
     ) where
 
-import Debug.Trace
 import qualified Codec.Picture                as JP
 import           Control.Monad                (guard)
 import qualified Data.Map                     as M
