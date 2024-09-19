@@ -2,19 +2,27 @@
 
 <div id="placeholder">Please upload a file…</div>
 
-<input type="button" id="restart" value="Restart" />
+<input type="button" id="pause" value="Pause" />
+<input type="button" id="start" value="Start" />
 <input type="button" id="step" value="Step" />
+<input type="button" id="restart" value="Restart" />
 <div style="display: flex; align-items: center;">
     <label for="delay" style="margin-right: 1em;">Step delay</label>
     <input type="range" id="delay" name="delay" value="50" min="1" max="200" />
 </div>
 
 <script type="text/JavaScript">
-    const upload = document.getElementById("upload");
     let placeholder = document.getElementById("placeholder");
-    let delay = document.getElementById("delay");
     let src = null;
     let interpreter = null;
+    const inputs = {
+        upload: document.getElementById("upload"),
+        pause: document.getElementById("pause"),
+        start: document.getElementById("start"),
+        step: document.getElementById("step"),
+        restart: document.getElementById("restart"),
+        delay: document.getElementById("delay"),
+    };
 
     const start = async () => {
         if (!src) return;
@@ -27,6 +35,14 @@
         interpreter.run();
     };
 
+    const toggleButtons = () => {
+        inputs.pause.disabled = !interpreter || interpreter.paused;
+        inputs.start.disabled = !interpreter || !interpreter.paused ||
+            (interpreter && interpreter.done);
+        inputs.step.disabled = inputs.start.disabled;
+        inputs.restart.disabled = !interpreter;
+    };
+
     upload.onchange = () => {
         const file = upload.files[0];
         const reader = new FileReader();
@@ -34,23 +50,41 @@
         reader.onload = async (e) => {
             src = e.target.result;
             start();
+            toggleButtons();
         };
     };
 
-    document.getElementById("restart").onclick = (event) => {
+    inputs.pause.onclick = (event) => {
         event.preventDefault();
-        start();
+        if (interpreter) interpreter.pause();
+        toggleButtons();
     };
 
-    document.getElementById("step").onclick = (event) => {
+    inputs.start.onclick = (event) => {
+        event.preventDefault();
+        if (interpreter) interpreter.unpause();
+        toggleButtons();
+    };
+
+    inputs.step.onclick = (event) => {
         event.preventDefault();
         if (interpreter) {
             interpreter.unpause();
             interpreter.pause();
         }
+        toggleButtons();
     };
 
-    delay.oninput = () => {
-        if (interpreter) interpreter.delay = delay.value;
+    inputs.restart.onclick = (event) => {
+        event.preventDefault();
+        start();
+        toggleButtons();
     };
+
+    inputs.delay.oninput = () => {
+        if (interpreter) interpreter.delay = delay.value;
+        toggleButtons();
+    };
+
+    toggleButtons();
 </script>

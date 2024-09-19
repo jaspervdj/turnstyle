@@ -915,21 +915,28 @@ class Interpreter {
         this._div.setAttribute("class", "interpreter");
         this._terminal = new Terminal(this._doc);
         this._div.appendChild(this._terminal.element);
+        this._done = false;
         this._paused = null;
         this._unpause = () => {};
     }
 
     _output (line) { this._terminal.print(line + "\n") };
 
+    get done() { return this._done; }
+
     get element() { return this._div; }
 
+    get paused() { return this._paused !== null; }
+
     pause() {
-        this._paused = new Promise((resolve, reject) => {
-            this._unpause = () => {
-                resolve();
-                this._paused = null;
-            };
-        });
+        if (!this.paused) {
+            this._paused = new Promise((resolve, reject) => {
+                this._unpause = () => {
+                    resolve();
+                    this._paused = null;
+                };
+            });
+        }
     }
 
     unpause() { this._unpause(); }
@@ -977,10 +984,13 @@ class Interpreter {
                 this._output("Interpreter exited with expression:");
                 this._output(whnf.toString());
             } else {
-                this._output(`Interpreter exited with code ${whnf.value()}`);
+                const code = whnf.value();
+                this._output(`Interpreter exited with code ${code}`);
+                this._done = true;
             }
         } catch(e) {
             this._output(`Interpreter crashed: ${e}`);
+            this._done = true;
         }
     }
 }
