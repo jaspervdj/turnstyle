@@ -11,12 +11,14 @@ module Turnstyle.Compile
 import qualified Codec.Picture                        as JP
 import           Data.Bifunctor                       (first)
 import           Data.Either.Validation               (Validation (..))
+import           Data.Foldable                        (toList)
 import           Data.List.NonEmpty                   (NonEmpty (..))
 import qualified Data.Map                             as M
 import           Data.Ord                             (Down (..))
 import           Data.Void                            (Void)
 import           System.Random                        (mkStdGen)
 import           Turnstyle.Compile.Bound
+import qualified Turnstyle.Compile.Contaminate        as Contaminate
 import           Turnstyle.Compile.Expr
 import           Turnstyle.Compile.Paint
 import           Turnstyle.Compile.Shake
@@ -61,9 +63,14 @@ compile opts expr = do
             Success e   -> pure $ Import attrs jp e
             Failure err -> Left $ BadImport ann path err) expr
 
-    let neighbour l g = case shake l g of
+    let palette =
+            let contaminated = Contaminate.palette expr0 in
+            toList contaminated ++
+            filter (not . (`elem` contaminated)) defaultPalette
+
+        neighbour l g = case shake l g of
              Just (l', g')
-                 | Right _ <- solve defaultPalette $ sConstraints (exprToShape l') ->
+                 | Right _ <- solve palette $ sConstraints (exprToShape l') ->
                      (l', g')
              _ -> (l, g)
 
@@ -85,7 +92,7 @@ compile opts expr = do
                             })
                 expr0 (mkStdGen (coSeed opts))
         shape = exprToShape expr1
-    colors <- first SolveError (solve defaultPalette $ sConstraints shape)
+    colors <- first SolveError (solve palette $ sConstraints shape)
     pure $ paint colors shape
 
 scoreLayout :: Ord v => Expr v -> Int

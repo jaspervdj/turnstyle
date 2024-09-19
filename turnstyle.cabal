@@ -25,6 +25,7 @@ Library
     Turnstyle.Compile
     Turnstyle.Compile.Bound
     Turnstyle.Compile.Constraint
+    Turnstyle.Compile.Contaminate
     Turnstyle.Compile.Paint
     Turnstyle.Compile.Expr
     Turnstyle.Compile.Recompile
