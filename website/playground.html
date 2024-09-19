@@ -2,6 +2,7 @@
 
 <input id="upload" type="file" /><br />
 <input type="button" id="restart" value="Restart" /><br />
+<input type="button" id="step" value="Step" /><br />
 <div style="display: flex; align-items: center;">
     <label for="delay" style="margin-right: 1em;">Step delay</label>
     <input type="range" id="delay" name="delay" value="50" min="1" max="200" />
@@ -35,12 +36,20 @@
         };
     };
 
-    delay.oninput = () => {
-        if (interpreter) interpreter.delay = delay.value;
-    };
-
     document.getElementById("restart").onclick = (event) => {
         event.preventDefault();
         start();
+    };
+
+    document.getElementById("step").onclick = (event) => {
+        event.preventDefault();
+        if (interpreter) {
+            interpreter.unpause();
+            interpreter.pause();
+        }
+    };
+
+    delay.oninput = () => {
+        if (interpreter) interpreter.delay = delay.value;
     };
 </script>
