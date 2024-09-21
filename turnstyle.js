@@ -947,15 +947,6 @@ class Interpreter {
             const source = new DenoiseSource(noisy);
             this._view = new AnnotatedView(this._doc, source);
             this._div.insertBefore(this._view.element, this._div.firstChild);
-
-            this._view.element.onclick = (event) => {
-                event.preventDefault();
-                if (!this._paused) {
-                    this.pause();
-                } else {
-                    this.unpause();
-                }
-            };
             this._output("Starting interpreter...");
             this._parser = new Parser(source);
         } catch (e) {
