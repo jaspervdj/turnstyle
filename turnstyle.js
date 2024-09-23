@@ -388,7 +388,7 @@ class Parser {
                 const right = this._area(this._pixelR());
                 if (left === 1) {
                     const n = BigInt(front) ** BigInt(right);
-                    return new LitExpr(new Num(new Rational(n), this._loc()));
+                    return new LitExpr(new Num(new Rational(n)), this._loc());
                 } else if (left === 2) {
                     if (Primitives[front] && Primitives[front][right]) {
                         const primitive = Primitives[front][right];
