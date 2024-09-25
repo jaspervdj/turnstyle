@@ -30,14 +30,17 @@
 
     const start = async () => {
         if (!src) return;
+        const paused = interpreter && interpreter.paused;
         if (interpreter) interpreter.pause();
         interpreter = new Interpreter(document, src);
         await interpreter.load();
+        if (paused) interpreter.pause();
         interpreter.delay = inputs.delay.value;
         interpreter.skipIds = inputs.skipIds.checked;
         placeholder.replaceWith(interpreter.element);
         placeholder = interpreter.element;
         interpreter.run();
+        toggleButtons();
     };
 
     const toggleButtons = () => {
