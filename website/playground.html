@@ -11,6 +11,9 @@
     <input type="range" id="delay" name="delay" value="50" min="1" max="200" />
 </div>
 
+<label for="skipIds">Skip identity expressions</label>
+<input type="checkbox" id="skipIds" />
+
 <script type="text/JavaScript">
     let placeholder = document.getElementById("placeholder");
     let src = null;
@@ -22,6 +25,7 @@
         step: document.getElementById("step"),
         restart: document.getElementById("restart"),
         delay: document.getElementById("delay"),
+        skipIds: document.getElementById("skipIds"),
     };
 
     const start = async () => {
@@ -29,7 +33,8 @@
         if (interpreter) interpreter.pause();
         interpreter = new Interpreter(document, src);
         await interpreter.load();
-        interpreter.delay = delay.value;
+        interpreter.delay = inputs.delay.value;
+        interpreter.skipIds = inputs.skipIds.checked;
         placeholder.replaceWith(interpreter.element);
         placeholder = interpreter.element;
         interpreter.run();
@@ -82,8 +87,12 @@
     };
 
     inputs.delay.oninput = () => {
-        if (interpreter) interpreter.delay = delay.value;
+        if (interpreter) interpreter.delay = inputs.delay.value;
         toggleButtons();
+    };
+
+    inputs.skipIds.oninput = () => {
+        if (interpreter) interpreter.skipIds = inputs.skipIds.checked;
     };
 
     toggleButtons();

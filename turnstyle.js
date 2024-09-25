@@ -909,6 +909,7 @@ class Terminal {
 class Interpreter {
     constructor(doc, src) {
         this.delay = 50;
+        this.skipIds = false;
         this._doc = doc;
         this._src = src;
         this._div = doc.createElement("div");
@@ -961,10 +962,11 @@ class Interpreter {
             outputNumber: (num) => this._output(num.toString()),
             outputCharacter: (char) => this._terminal.print(char),
             onWhnf: async (expr) => {
-                if (this._paused) await this._paused;
+                if (this.skipIds && expr instanceof IdExpr) return;
                 if (expr.location) {
                     this._view.focus(expr.location.position, expr.location.direction);
                 }
+                if (this._paused) await this._paused;
                 await new Promise(r => setTimeout(r, this.delay));
             }
         }
