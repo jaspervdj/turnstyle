@@ -1,4 +1,4 @@
-{ pkgs ? import <nixpkgs> { }, fish ? true }:
+{ pkgs ? import <nixpkgs> { } }:
 pkgs.mkShell {
     inputsFrom = [ (import ./default.nix).env ];
     packages = [
@@ -6,6 +6,5 @@ pkgs.mkShell {
         pkgs.entr
         pkgs.git
         pkgs.stylish-haskell
-    ] ++ (if fish then [pkgs.fish] else []);
-    shellHook = if fish then "exec fish" else null;
+    ];
 }
