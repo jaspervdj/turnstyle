@@ -17,7 +17,7 @@ data Page = Page
 
 pages :: [Page]
 pages =
-    [ Page "README.md" "index.html"  (Just "Turnstyle") False
+    [ Page "website/home.md" "index.html"  (Just "Turnstyle") False
     , Page "spec/README.md" "spec/index.html" Nothing True
     , Page "website/playground.html" "playground/index.html" (Just "Turnstyle Playground") False
     ]
