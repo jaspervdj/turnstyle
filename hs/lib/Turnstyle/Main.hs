@@ -3,7 +3,7 @@ module Turnstyle.Main
     ) where
 
 import qualified Codec.Picture         as JP
-import           Data.Foldable         (toList)
+import           Data.Foldable         (for_, toList)
 import qualified Data.Map              as M
 import           Data.Maybe            (fromMaybe)
 import           Data.Traversable      (for)
@@ -79,6 +79,8 @@ main = do
     args <- OA.execParser opts
     case oCommand args of
         Run ropts -> do
+            for_ [IO.stdin, IO.stdout, IO.stderr] $ \h ->
+                IO.hSetBuffering h IO.LineBuffering
             img <- loadImage $ roFilePath ropts
             let expr = parseImage (roInitialPosition ropts) (autoScale img)
             putStrLn $ Text.prettyExpr $ checkCycles (const CycleError) $
