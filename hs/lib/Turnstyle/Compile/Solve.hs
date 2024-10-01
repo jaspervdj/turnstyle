@@ -24,7 +24,8 @@ newtype Component p = Component Int deriving (Eq, Ord)
 
 data SolveError p
     = Inconsistent p p
-    | UnknownVertex p deriving (Show)
+    | UnknownVertex p
+    | NotEnoughColors deriving (Show)
 
 solve
     :: forall p c. (Ord p, Eq c)
@@ -33,7 +34,7 @@ solve
     -> Either (SolveError p) (p -> Maybe c)
 solve palette constraints = do
     ineqGraph <- mkInequalityGraph
-    let colors = greedyColor ineqGraph
+    colors <- greedyColor ineqGraph
     pure $ \p -> M.lookup p vertexToComponent >>= (`M.lookup` colors)
   where
     vertices :: S.Set p
@@ -75,13 +76,15 @@ solve palette constraints = do
 
     greedyColor
         :: M.Map (Component p) (S.Set (Component p))
-        -> M.Map (Component p) c
-    greedyColor inequalityGraph = foldl'
-        (\acc c ->
+        -> Either (SolveError p) (M.Map (Component p) c)
+    greedyColor inequalityGraph = foldM
+        (\acc c -> do
             let unavailable = do
                     nc <- maybe [] S.toList $ M.lookup c inequalityGraph
                     maybeToList $ M.lookup nc acc
-                color = head $ filter (not . (`elem` unavailable)) palette in
-            M.insert c color acc)
+            color <- case filter (not . (`elem` unavailable)) palette of
+                []      -> Left NotEnoughColors
+                col : _ -> pure col
+            pure $ M.insert c color acc)
         initialColors
         (filter (not . (`M.member` initialColors)) $ fst <$> components)

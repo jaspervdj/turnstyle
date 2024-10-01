@@ -2,25 +2,27 @@ module Turnstyle.Compile.Tests
     ( tests
     ) where
 
-import qualified Codec.Picture          as JP
-import           Data.Either.Validation (Validation (..))
-import qualified Data.Map               as M
-import           Test.Tasty             (TestTree, testGroup)
-import           Test.Tasty.HUnit       (testCase, (@?=))
-import qualified Test.Tasty.QuickCheck  as QC
+import qualified Codec.Picture           as JP
+import           Data.Either.Validation  (Validation (..))
+import qualified Data.Map                as M
+import qualified Data.Set                as S
+import           Test.Tasty              (TestTree, testGroup)
+import           Test.Tasty.HUnit        (assertBool, testCase, (@?=))
+import qualified Test.Tasty.QuickCheck   as QC
 import           Turnstyle.Compile
-import qualified Turnstyle.Eval         as E
-import           Turnstyle.Eval         (eval)
-import           Turnstyle.Eval.Tests   (EvalState (..), emptyEvalState,
-                                         runEvalPure)
+import           Turnstyle.Compile.Paint (defaultPalette)
+import qualified Turnstyle.Eval          as E
+import           Turnstyle.Eval          (eval)
+import           Turnstyle.Eval.Tests    (EvalState (..), emptyEvalState,
+                                          runEvalPure)
 import           Turnstyle.Expr
 import           Turnstyle.Expr.Tests
 import           Turnstyle.Image
 import           Turnstyle.JuicyPixels
 import           Turnstyle.Parse
-import           Turnstyle.Text         (exprToSugar, parseSugar)
-import           Turnstyle.Text.Pretty  (prettyAttributes)
-import           Turnstyle.Text.Sugar   (Attributes)
+import           Turnstyle.Text          (exprToSugar, parseSugar)
+import           Turnstyle.Text.Pretty   (prettyAttributes)
+import           Turnstyle.Text.Sugar    (Attributes)
 
 tests :: TestTree
 tests = testGroup "Turnstyle.Compile"
@@ -40,6 +42,13 @@ tests = testGroup "Turnstyle.Compile"
                 Success parsed -> toDeBruijn expr == toDeBruijn parsed
     , rot13 "rot13" []
     , rot13 "rot13 (recompile)" [("recompile", "true")]
+    , testGroup "defaultPalette" $
+        [ testCase "length" $
+            let len = length defaultPalette in
+            assertBool ("insufficient: " ++ show len) (len >= 64)
+        , testCase "quality" $ assertBool "colors are not unique" $
+            length defaultPalette == S.size (S.fromList defaultPalette)
+        ]
     ]
   where
 
