@@ -357,77 +357,79 @@ class Parser {
         }
     }
 
-    parse() {
+    parse(parent) {
         const pattern = Pattern.parse(
             this._colorL(), this._colorC(), this._colorF(), this._colorR(),
         );
         switch (pattern) {
             case Pattern.ABAC:
-                return new AppExpr(this._parseL(), this._parseF(), this._loc());
+                return new AppExpr(parent, this._loc(), this._parseL(), this._parseF(),);
             case Pattern.ABCA:
-                return new AppExpr(this._parseL(), this._parseR(), this._loc());
+                return new AppExpr(parent, this._loc(), this._parseL(), this._parseR(),);
             case Pattern.ABCC:
-                return new AppExpr(this._parseF(), this._parseR(), this._loc());
+                return new AppExpr(parent, this._loc(), this._parseF(), this._parseR(),);
             case Pattern.AABC:
-                return new LamExpr(this._colorR(), this._parseL(), this._loc());
+                return new LamExpr(parent, this._loc(), this._colorR(), this._parseL(),);
             case Pattern.ABBC:
-                return new LamExpr(this._colorC(), this._parseF(), this._loc());
+                return new LamExpr(parent, this._loc(), this._colorC(), this._parseF(),);
             case Pattern.ABCB:
-                return new LamExpr(this._colorL(), this._parseR(), this._loc());
+                return new LamExpr(parent, this._loc(), this._colorL(), this._parseR(),);
             case Pattern.AAAB:
-                return new VarExpr(this._colorR(), this._loc());
+                return new VarExpr(parent, this._loc(), this._colorR());
             case Pattern.AABA:
-                return new VarExpr(this._colorF(), this._loc());
+                return new VarExpr(parent, this._loc(), this._colorF());
             case Pattern.ABAA:
-                return new VarExpr(this._colorC(), this._loc());
+                return new VarExpr(parent, this._loc(), this._colorC());
             case Pattern.ABBB:
-                return new VarExpr(this._colorL(), this._loc());
+                return new VarExpr(parent, this._loc(), this._colorL());
             case Pattern.ABCD:
                 const left  = this._area(this._pixelL());
                 const front = this._area(this._pixelF());
                 const right = this._area(this._pixelR());
                 if (left === 1) {
                     const n = BigInt(front) ** BigInt(right);
-                    return new LitExpr(new Num(new Rational(n)), this._loc());
+                    return new LitExpr(parent, this._loc(), new Num(new Rational(n)));
                 } else if (left === 2) {
                     if (Primitives[front] && Primitives[front][right]) {
                         const primitive = Primitives[front][right];
-                        return new PrimExpr(primitive, [], this._loc());
+                        return new PrimExpr(parent, this._loc(), primitive, []);
                     }
                     this._error(`Unknown Prim(${front},${right})`);
                 }
                 this._error(`Unhandled symbol: ${left}`);
             case Pattern.AAAA:
-                return new IdExpr(this._parseF(), this._loc());
+                return new IdExpr(parent, this._loc(), this._parseF());
             case Pattern.AABB:
-                return new IdExpr(this._parseL(), this._loc());
+                return new IdExpr(parent, this._loc(), this._parseL());
             case Pattern.ABAB:
-                return new IdExpr(this._parseR(), this._loc());
+                return new IdExpr(parent, this._loc(), this._parseR());
             case Pattern.ABBA:
-                return new IdExpr(this._parseF(), this._loc());
+                return new IdExpr(parent, this._loc(), this._parseF());
             default:
                 this._error(`Unhandled pattern: ${pattern.toString()}`);
         }
     }
 
     _parseL() {
-        return () => new Parser(
+        return (parent) => new Parser(
             this._src,
             this._pixelL(),
             Direction.turnLeft(this._dir),
-        ).parse();
+        ).parse(parent);
     }
 
     _parseF() {
-        return () => new Parser(this._src, this._pixelF(), this._dir).parse();
+        return (parent) => new Parser(
+            this._src, this._pixelF(), this._dir
+        ).parse(parent);
     }
 
     _parseR() {
-        return () => new Parser(
+        return (parent) => new Parser(
             this._src,
             this._pixelR(),
             Direction.turnRight(this._dir),
-        ).parse();
+        ).parse(parent);
     }
 
     _color(pos) { return this._src.hex(pos.x, pos.y); }
@@ -466,7 +468,8 @@ class Parser {
 }
 
 class Expr {
-    constructor(loc) {
+    constructor(parent, loc) {
+        this._parent = parent;
         this._loc = loc;
     }
 
@@ -480,32 +483,42 @@ class Expr {
         return this._whnf;
     }
 
-    async apply(ctx, arg) {
-        return new AppExpr(() => this, () => arg, this._loc);
+    async apply(ctx, arg, parent) {
+        // TODO: check apply?
+        return new AppExpr(
+            parent,
+            this._loc,
+            (parent) => this._withParent(parent),
+            (parent) => arg,
+        );
     }
 
     freeVars() { return new Set(); }
     allVars()  { return new Set(); }
 
-    subst(x, s) { return this; }
+    subst(x, s, parent) { return this._withParent(parent) };
 
     value() { return null; }
 }
 
 class AppExpr extends Expr {
-    constructor(lhsf, rhsf, loc) {
-        super(loc);
+    constructor(parent, loc, lhsf, rhsf) {
+        super(parent, loc);
         this._lhsf = lhsf;
         this._rhsf = rhsf;
     }
 
+    _withParent(parent) {
+        return AppExpr(parent, this._loc, this._lhsf, this._rhsf);
+    }
+
     get lhs() {
-        if (!this._lhs) this._lhs = this._lhsf();
+        if (!this._lhs) this._lhs = this._lhsf(this);
         return this._lhs;
     }
 
     get rhs() {
-        if (!this._rhs) this._rhs = this._rhsf();
+        if (!this._rhs) this._rhs = this._rhsf(this);
         return this._rhs;
     }
 
@@ -527,24 +540,29 @@ class AppExpr extends Expr {
     freeVars() { return new Set([...this.lhs.freeVars(), ...this.rhs.freeVars()]); }
     allVars()  { return new Set([...this.lhs.allVars(), ...this.rhs.allVars()]);   }
 
-    subst(x, s) {
+    subst(x, s, parent) {
         return new AppExpr(
-            () => this.lhs.subst(x, s),
-            () => this.rhs.subst(x, s),
+            parent,
             this.location,
+            (parent) => this.lhs.subst(x, s, parent),
+            (parent) => this.rhs.subst(x, s, parent),
         );
     }
 }
 
 class LamExpr extends Expr {
-    constructor(variable, bodyf, loc) {
-        super(loc);
+    constructor(parent, loc, variable, bodyf) {
+        super(parent, loc);
         this._variable = variable;
         this._bodyf = bodyf;
     }
 
+    _withParent(parent) {
+        return new LamExpr(parent, loc, this._variable, this._bodyf);
+    }
+
     get body() {
-        if (!this._body) this._body = this._bodyf()
+        if (!this._body) this._body = this._bodyf(this)
         return this._body;
     }
 
@@ -554,6 +572,7 @@ class LamExpr extends Expr {
     }
 
     async apply(ctx, arg) {
+        // TODO: parent?
         return this.body.subst(this._variable, arg).whnf(ctx);
     }
 
@@ -569,9 +588,9 @@ class LamExpr extends Expr {
         return avs;
     }
 
-    subst(x, s) {
+    subst(x, s, parent) {
         // This lambda binds more tightly, no need to change
-        if (x === this._variable) return this;
+        if (x === this._variable) return this._withParent(parent);
 
         const fvs = s.freeVars();
         if (fvs.has(this._variable)) {
@@ -582,45 +601,53 @@ class LamExpr extends Expr {
             while (avs.has(`fresh_${fresh}`)) fresh++
             const variable = `fresh_${fresh}`;
             return new LamExpr(
-                variable,
-                () => body.
-                    subst(this._variable, new VarExpr(variable)).
-                    subst(x, s),
+                parent,
                 this.location,
+                variable,
+                (parent) => body.
+                    subst(this._variable, new VarExpr(parent, this.location, variable), parent).
+                    subst(x, s, parent),
             )
         }
 
         // Continue substitution
         return new LamExpr(
-            this._variable,
-            () => this.body.subst(x, s),
+            parent,
             this.location,
+            this._variable,
+            (parent) => this.body.subst(x, s, parent),
         );
     }
 }
 
 class VarExpr extends Expr {
-    constructor(variable, loc) {
-        super(loc);
+    constructor(parent, loc, variable) {
+        super(parent, loc);
         this._variable = variable;
     }
+
+    _withParent(parent) { return new VarExpr(parent, this._loc, this._variable) };
 
     toString() { return this._variable; }
 
     freeVars() { return new Set([this._variable]); }
     allVars()  { return new Set([this._variable]); }
 
-    subst(x, e) {
-        if (x === this._variable) return e;
-        return this;
+    subst(x, e, parent) {
+        if (x === this._variable) return e._withParent(parent);
+        return this._withParent(parent);
     }
 }
 
 class PrimExpr extends Expr {
-    constructor(primitive, args, loc) {
-        super(loc);
+    constructor(parent, loc, primitive, args) {
+        super(parent, loc);
         this._primitive = primitive;
         this._args = args ? args : [];
+    }
+
+    _withParent(parent) {
+        return new PrimExpr(parent, this._loc, this._primitive, this._args);
     }
 
     toString() {
@@ -629,20 +656,22 @@ class PrimExpr extends Expr {
             this._args.map((a) => a.toString()).join(", ") + ")";
     }
 
-    async apply(ctx, arg) {
+    async apply(ctx, arg, parent) {
         const args = [...this._args, arg]
         if (args.length === this._primitive.arity) {
-            return this._primitive.implementation(ctx, args);
+            return this._primitive.implementation(ctx, args, parent);
         }
-        return new PrimExpr(this._primitive, args, this.location);
+        return new PrimExpr(parent, this.location, this._primitive, args);
     }
 }
 
 class LitExpr extends Expr {
-    constructor(value, loc) {
-        super(loc);
+    constructor(parent, loc, value) {
+        super(parent, loc);
         this._value = value;
     }
+
+    _withParent(parent) { return new LitExpr(parent, this._loc, this._value); }
 
     toString() { return this._value.toString(); }
 
@@ -650,13 +679,15 @@ class LitExpr extends Expr {
 }
 
 class IdExpr extends Expr {
-    constructor(exprf, loc) {
-        super(loc);
+    constructor(parent, loc, exprf) {
+        super(parent, loc);
         this._exprf = exprf;
     }
 
+    _withParent(parent) { return new IdExpr(parent, this._loc, this._exprf); }
+
     get expr() {
-        if (!this._expr) this._expr = this._exprf();
+        if (!this._expr) this._expr = this._exprf(this);
         return this._expr;
     }
 
@@ -673,8 +704,8 @@ class IdExpr extends Expr {
     freeVars() { return this.expr.freeVars(); }
     allVars()  { return this.expr.allVars();  }
 
-    subst(x, s) {
-        return new IdExpr(() => this.expr.subst(x, s), this.location);
+    subst(x, s, parent) {
+        return new IdExpr(parent, this._loc, (parent) => this.expr.subst(x, s, parent));
     }
 }
 
@@ -683,9 +714,9 @@ const Primitives = {
         1: {
             name: "in_num",
             arity: 2,
-            implementation: async (ctx, args) => {
+            implementation: async (ctx, args, parent) => {
                 const input = await ctx.inputNumber();
-                const lit = new LitExpr(new Num(new Rational(BigInt(input))));
+                const lit = new LitExpr(parent, null, new Num(new Rational(BigInt(input))));
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
@@ -693,10 +724,10 @@ const Primitives = {
         2: {
             name: "in_char",
             arity: 2,
-            implementation: async (ctx, args) => {
+            implementation: async (ctx, args, parent) => {
                 const input = await ctx.inputCharacter();
                 const codePoint = input.codePointAt(0);
-                const lit = new LitExpr(new Num(new Rational(BigInt(codePoint))));
+                const lit = new LitExpr(parent, null, new Num(new Rational(BigInt(codePoint))));
                 const applied = await args[0].apply(ctx, lit);
                 return applied.whnf(ctx);
             },
@@ -706,7 +737,7 @@ const Primitives = {
         1: {
             name: "out_num",
             arity: 2,
-            implementation: async (ctx, args) => {
+            implementation: async (ctx, args, parent) => {
                 const lhs = await args[0].whnf(ctx);
                 await ctx.outputNumber(lhs.value().toString());
                 return args[1].whnf(ctx);
@@ -715,7 +746,7 @@ const Primitives = {
         2: {
             name: "out_char",
             arity: 2,
-            implementation: async (ctx, args) => {
+            implementation: async (ctx, args, parent) => {
                 const lhs = await args[0].whnf(ctx);
                 await ctx.outputCharacter(String.fromCodePoint(lhs.value()));
                 return args[1].whnf(ctx);
@@ -726,10 +757,10 @@ const Primitives = {
         const binop = (name, f) => ({
             name,
             arity: 2,
-            implementation: async (ctx, args) => {
+            implementation: async (ctx, args, parent) => {
                 const lhs = await args[0].whnf(ctx);
                 const rhs = await args[1].whnf(ctx);
-                return new LitExpr(f(lhs.value(), rhs.value()));
+                return new LitExpr(parent, null, f(lhs.value(), rhs.value()));
             },
         });
         return {
@@ -762,9 +793,9 @@ const Primitives = {
         1: {
             name: "inexact_sqrt",
             arity: 1,
-            implementation: async (ctx, args) => {
+            implementation: async (ctx, args, parent) => {
                 const x = await args[0].whnf(ctx);
-                return new LitExpr(new Num(Math.sqrt(x.value().toNumber())));
+                return new LitExpr(parent, null, new Num(Math.sqrt(x.value().toNumber())));
             },
         },
     },
