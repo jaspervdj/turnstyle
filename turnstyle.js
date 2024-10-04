@@ -154,6 +154,15 @@ const Direction = {
     },
 };
 
+class Location {
+    constructor(pos, dir) {
+        this.position = pos;
+        this.direction = dir;
+    }
+
+    toString() { return `<${this.position.toString()},${this.direction}>`; }
+}
+
 const Pattern = {
     AAAA: "AAAA",
     AAAB: "AAAB",
@@ -311,22 +320,25 @@ class ImageDataSource extends Source {
 }
 
 class ParserError extends Error {
-    constructor(pos, dir, msg) {
-        super(`${pos.toString()},${dir}: ${msg}`);
+    constructor(loc, msg) {
+        super(`${loc.toString()}: ${msg}`);
         this.name = "ParserError";
     }
 }
 
 class Parser {
-    constructor(src, pos, dir) {
+    constructor(src, loc, map) {
         this._src = src;
-        this._pos = pos ? pos : new Position(0, Math.floor(src.height / 2));
-        this._dir = dir ? dir : Direction.RIGHT;
+        this._loc = loc ? loc : new Location(
+            new Position(0, Math.floor(src.height / 2)), Direction.RIGHT
+        );
+        this._pos = this._loc.position;
+        this._dir = this._loc.direction;
     }
 
-    _loc() { return {position: this._pos, direction: this._dir}; }
+    get loc() { return this._loc; }
 
-    _error(msg) { throw new ParserError(this._pos, this._dir, msg); }
+    _error(msg) { throw new ParserError(this._loc, msg); }
 
     _pixelL() {
         switch (this._dir) {
@@ -363,71 +375,66 @@ class Parser {
         );
         switch (pattern) {
             case Pattern.ABAC:
-                return new AppExpr(this._parseL(), this._parseF(), this._loc());
+                return new AppExpr(this._parseL(), this._parseF(), this._loc);
             case Pattern.ABCA:
-                return new AppExpr(this._parseL(), this._parseR(), this._loc());
+                return new AppExpr(this._parseL(), this._parseR(), this._loc);
             case Pattern.ABCC:
-                return new AppExpr(this._parseF(), this._parseR(), this._loc());
+                return new AppExpr(this._parseF(), this._parseR(), this._loc);
             case Pattern.AABC:
-                return new LamExpr(this._colorR(), this._parseL(), this._loc());
+                return new LamExpr(this._colorR(), this._parseL(), this._loc);
             case Pattern.ABBC:
-                return new LamExpr(this._colorC(), this._parseF(), this._loc());
+                return new LamExpr(this._colorC(), this._parseF(), this._loc);
             case Pattern.ABCB:
-                return new LamExpr(this._colorL(), this._parseR(), this._loc());
+                return new LamExpr(this._colorL(), this._parseR(), this._loc);
             case Pattern.AAAB:
-                return new VarExpr(this._colorR(), this._loc());
+                return new VarExpr(this._colorR(), this._loc);
             case Pattern.AABA:
-                return new VarExpr(this._colorF(), this._loc());
+                return new VarExpr(this._colorF(), this._loc);
             case Pattern.ABAA:
-                return new VarExpr(this._colorC(), this._loc());
+                return new VarExpr(this._colorC(), this._loc);
             case Pattern.ABBB:
-                return new VarExpr(this._colorL(), this._loc());
+                return new VarExpr(this._colorL(), this._loc);
             case Pattern.ABCD:
                 const left  = this._area(this._pixelL());
                 const front = this._area(this._pixelF());
                 const right = this._area(this._pixelR());
                 if (left === 1) {
                     const n = BigInt(front) ** BigInt(right);
-                    return new LitExpr(new Num(new Rational(n)), this._loc());
+                    return new LitExpr(new Num(new Rational(n)), this._loc);
                 } else if (left === 2) {
                     if (Primitives[front] && Primitives[front][right]) {
                         const primitive = Primitives[front][right];
-                        return new PrimExpr(primitive, [], this._loc());
+                        return new PrimExpr(primitive, [], this._loc);
                     }
                     this._error(`Unknown Prim(${front},${right})`);
                 }
                 this._error(`Unhandled symbol: ${left}`);
             case Pattern.AAAA:
-                return new IdExpr(this._parseF(), this._loc());
+                return new IdExpr(this._parseF(), this._loc);
             case Pattern.AABB:
-                return new IdExpr(this._parseL(), this._loc());
+                return new IdExpr(this._parseL(), this._loc);
             case Pattern.ABAB:
-                return new IdExpr(this._parseR(), this._loc());
+                return new IdExpr(this._parseR(), this._loc);
             case Pattern.ABBA:
-                return new IdExpr(this._parseF(), this._loc());
+                return new IdExpr(this._parseF(), this._loc);
             default:
                 this._error(`Unhandled pattern: ${pattern.toString()}`);
         }
     }
 
     _parseL() {
-        return () => new Parser(
-            this._src,
-            this._pixelL(),
-            Direction.turnLeft(this._dir),
-        ).parse();
+        const loc = new Location(this._pixelL(), Direction.turnLeft(this._dir));
+        return new LazyExpr(() => new Parser(this._src, loc).parse(), loc);
     }
 
     _parseF() {
-        return () => new Parser(this._src, this._pixelF(), this._dir).parse();
+        const loc = new Location(this._pixelF(), this._dir);
+        return new LazyExpr(() => new Parser(this._src, loc).parse(), loc);
     }
 
     _parseR() {
-        return () => new Parser(
-            this._src,
-            this._pixelR(),
-            Direction.turnRight(this._dir),
-        ).parse();
+        const loc = new Location(this._pixelR(), Direction.turnRight(this._dir));
+        return new LazyExpr(() => new Parser(this._src, loc).parse(), loc);
     }
 
     _color(pos) { return this._src.hex(pos.x, pos.y); }
@@ -465,23 +472,55 @@ class Parser {
     }
 }
 
+class LazyExpr {
+    constructor(exprf, loc) {
+        this._exprf = exprf;
+        this.loc = loc;
+    }
+
+    static pure(expr, loc) {
+        const l = new LazyExpr(() => expr, loc);
+        l._expr = expr;
+        return l;
+    };
+
+    get expr() {
+        if (!this._expr) this._expr = this._exprf();
+        return this._expr;
+    }
+
+    get sat() { return this._expr }
+
+    map(f) {
+        const l = new LazyExpr((e) => f(this._exprf()), this.loc);
+        if (this._expr) l._expr = f(this._expr);
+        return l;
+    }
+}
+
 class Expr {
     constructor(loc) {
         this._loc = loc;
     }
 
-    get location() { return this._loc; }
+    get loc() { return this._loc; }
 
-    async whnf(ctx) {
+    toString() { return this._loc.toString(); }
+
+    async whnf(ctx, back) {
         if (!this._whnf) {
-            await ctx.onWhnf(this);
+            await ctx.onWhnf(this, back);
             this._whnf = this;
         }
         return this._whnf;
     }
 
-    async apply(ctx, arg) {
-        return new AppExpr(() => this, () => arg, this._loc);
+    async apply(ctx, arg, back) {
+        return new AppExpr(
+            LazyExpr.pure(this, this._loc),
+            LazyExpr.pure(arg, arg.loc),
+            this._loc
+        );
     }
 
     freeVars() { return new Set(); }
@@ -493,33 +532,29 @@ class Expr {
 }
 
 class AppExpr extends Expr {
-    constructor(lhsf, rhsf, loc) {
+    constructor(lhs, rhs, loc) {
         super(loc);
-        this._lhsf = lhsf;
-        this._rhsf = rhsf;
+        this._lhs = lhs;
+        this._rhs = rhs;
     }
 
-    get lhs() {
-        if (!this._lhs) this._lhs = this._lhsf();
-        return this._lhs;
-    }
-
-    get rhs() {
-        if (!this._rhs) this._rhs = this._rhsf();
-        return this._rhs;
-    }
+    get lhs() { return this._lhs.expr };
+    get rhs() { return this._rhs.expr };
 
     toString() {
-        const lhs = this.lhs.toString();
-        const rhs = this.rhs.toString();
+        if (this._whnf) return this._whnf.toString();
+        const lhs = this._lhs.sat ? this._lhs.expr.toString() : this._lhs.loc.toString();
+        const rhs = this._rhs.sat ? this._rhs.expr.toString() : this._rhs.loc.toString();
         return `(${lhs} ${rhs})`;
     }
 
-    async whnf(ctx) {
+    async whnf(ctx, back) {
         if (!this._whnf) {
-            await ctx.onWhnf(this);
-            const lhs = await this.lhs.whnf(ctx);
-            this._whnf = await lhs.apply(ctx, this.rhs);
+            await ctx.onWhnf(this, back);
+            const lhs = await this.lhs.whnf(ctx,
+                (e) => back(new AppExpr(LazyExpr.pure(e), this._rhs, this._loc))
+            );
+            this._whnf = await lhs.apply(ctx, this.rhs, back);
         }
         return this._whnf;
     }
@@ -529,32 +564,29 @@ class AppExpr extends Expr {
 
     subst(x, s) {
         return new AppExpr(
-            () => this.lhs.subst(x, s),
-            () => this.rhs.subst(x, s),
-            this.location,
+            this._lhs.map((e) => e.subst(x, s)),
+            this._rhs.map((e) => e.subst(x, s)),
+            this.loc,
         );
     }
 }
 
 class LamExpr extends Expr {
-    constructor(variable, bodyf, loc) {
+    constructor(variable, body, loc) {
         super(loc);
         this._variable = variable;
-        this._bodyf = bodyf;
+        this._body = body;
     }
 
-    get body() {
-        if (!this._body) this._body = this._bodyf()
-        return this._body;
-    }
+    get body() { return this._body.expr }
 
     toString() {
-        const body = this.body.toString();
+        const body = this._body.sat ? this._body.expr.toString() : this._body.loc.toString();
         return `(\\${this._variable} -> ${body})`;
     }
 
-    async apply(ctx, arg) {
-        return this.body.subst(this._variable, arg).whnf(ctx);
+    async apply(ctx, arg, back) {
+        return this.body.subst(this._variable, arg).whnf(ctx, back);
     }
 
     freeVars() {
@@ -583,18 +615,18 @@ class LamExpr extends Expr {
             const variable = `fresh_${fresh}`;
             return new LamExpr(
                 variable,
-                () => body.
+                this._body.map((e) => e.
                     subst(this._variable, new VarExpr(variable)).
-                    subst(x, s),
-                this.location,
+                    subst(x, s)),
+                this.loc,
             )
         }
 
         // Continue substitution
         return new LamExpr(
             this._variable,
-            () => this.body.subst(x, s),
-            this.location,
+            this._body.map((e) => e.subst(x, s)),
+            this.loc,
         );
     }
 }
@@ -624,17 +656,19 @@ class PrimExpr extends Expr {
     }
 
     toString() {
-        if (this._args.length === 0) return this._primitive.name;
-        return this._primitive.name + "(" +
-            this._args.map((a) => a.toString()).join(", ") + ")";
+        let str = this._primitive.name;
+        for (const arg of this._args) str = `(${str} ${arg.toString()})`;
+        return str;
     }
 
-    async apply(ctx, arg) {
+    async apply(ctx, arg, back) {
         const args = [...this._args, arg]
         if (args.length === this._primitive.arity) {
-            return this._primitive.implementation(ctx, args);
+            return this._primitive.implementation(ctx, args, (args) => {
+                return back(new PrimExpr(this._primitive, args, this._loc));
+            }, back);
         }
-        return new PrimExpr(this._primitive, args, this.location);
+        return new PrimExpr(this._primitive, args, this.loc);
     }
 }
 
@@ -650,22 +684,23 @@ class LitExpr extends Expr {
 }
 
 class IdExpr extends Expr {
-    constructor(exprf, loc) {
+    constructor(expr, loc) {
         super(loc);
-        this._exprf = exprf;
+        this._expr = expr;
     }
 
-    get expr() {
-        if (!this._expr) this._expr = this._exprf();
-        return this._expr;
+    get expr() { return this._expr.expr }
+
+    toString() {
+        if (this._whnf) return this._whnf.toString();
+        if (this._expr.sat) return this._expr.expr.toString();
+        return super.toString();
     }
 
-    toString() { return this.expr.toString(); }
-
-    async whnf(ctx) {
+    async whnf(ctx, back) {
         if (!this._whnf) {
-            await ctx.onWhnf(this);
-            this._whnf = await this.expr.whnf(ctx);
+            await ctx.onWhnf(this, back);
+            this._whnf = await this.expr.whnf(ctx, back);  // back skips here
         }
         return this._whnf;
     }
@@ -674,7 +709,7 @@ class IdExpr extends Expr {
     allVars()  { return this.expr.allVars();  }
 
     subst(x, s) {
-        return new IdExpr(() => this.expr.subst(x, s), this.location);
+        return new IdExpr(this._expr.map((e) => e.subst(x, s)), this.loc);
     }
 }
 
@@ -683,22 +718,22 @@ const Primitives = {
         1: {
             name: "in_num",
             arity: 2,
-            implementation: async (ctx, args) => {
+            implementation: async (ctx, args, backArgs, back) => {
                 const input = await ctx.inputNumber();
                 const lit = new LitExpr(new Num(new Rational(BigInt(input))));
-                const applied = await args[0].apply(ctx, lit);
-                return applied.whnf(ctx);
+                const applied = await args[0].apply(ctx, lit, back);
+                return applied.whnf(ctx, back);
             },
         },
         2: {
             name: "in_char",
             arity: 2,
-            implementation: async (ctx, args) => {
+            implementation: async (ctx, args, backArgs, back) => {
                 const input = await ctx.inputCharacter();
                 const codePoint = input.codePointAt(0);
                 const lit = new LitExpr(new Num(new Rational(BigInt(codePoint))));
-                const applied = await args[0].apply(ctx, lit);
-                return applied.whnf(ctx);
+                const applied = await args[0].apply(ctx, lit, back);
+                return applied.whnf(ctx, back);
             },
         },
     },
@@ -706,19 +741,19 @@ const Primitives = {
         1: {
             name: "out_num",
             arity: 2,
-            implementation: async (ctx, args) => {
-                const lhs = await args[0].whnf(ctx);
+            implementation: async (ctx, args, backArgs, back) => {
+                const lhs = await args[0].whnf(ctx, (e) => backArgs([e, args[1]]));
                 await ctx.outputNumber(lhs.value().toString());
-                return args[1].whnf(ctx);
+                return args[1].whnf(ctx, back);
             },
         },
         2: {
             name: "out_char",
             arity: 2,
-            implementation: async (ctx, args) => {
-                const lhs = await args[0].whnf(ctx);
+            implementation: async (ctx, args, backArgs, back) => {
+                const lhs = await args[0].whnf(ctx, (e) => backArgs([e, args[1]]));
                 await ctx.outputCharacter(String.fromCodePoint(lhs.value()));
-                return args[1].whnf(ctx);
+                return args[1].whnf(ctx, back);
             },
         },
     },
@@ -726,9 +761,9 @@ const Primitives = {
         const binop = (name, f) => ({
             name,
             arity: 2,
-            implementation: async (ctx, args) => {
-                const lhs = await args[0].whnf(ctx);
-                const rhs = await args[1].whnf(ctx);
+            implementation: async (ctx, args, backArgs, back) => {
+                const lhs = await args[0].whnf(ctx, (e) => backArgs([e, args[1]]));
+                const rhs = await args[1].whnf(ctx, (e) => backArgs([lhs, e]));
                 return new LitExpr(f(lhs.value(), rhs.value()));
             },
         });
@@ -744,10 +779,10 @@ const Primitives = {
         const cmp = (name, p) => ({
             name,
             arity: 4,
-            implementation: async (ctx, args) => {
-                const lhs = await args[0].whnf(ctx);
-                const rhs = await args[1].whnf(ctx);
-                return args[p(lhs.value(), rhs.value()) ? 2 : 3].whnf(ctx);
+            implementation: async (ctx, args, backArgs, back) => {
+                const lhs = await args[0].whnf(ctx, (e) => backArgs([e, args[1]]));
+                const rhs = await args[1].whnf(ctx, (e) => backArgs([lhs, e]));
+                return args[p(lhs.value(), rhs.value()) ? 2 : 3].whnf(ctx, back);
             },
         });
         return {
@@ -762,8 +797,8 @@ const Primitives = {
         1: {
             name: "inexact_sqrt",
             arity: 1,
-            implementation: async (ctx, args) => {
-                const x = await args[0].whnf(ctx);
+            implementation: async (ctx, args, backArgs, back) => {
+                const x = await args[0].whnf(ctx, (e) => backArgs([e]));
                 return new LitExpr(new Num(Math.sqrt(x.value().toNumber())));
             },
         },
@@ -807,14 +842,14 @@ class AnnotatedView {
 
     get element() { return this._svg; }
 
-    focus(pos, dir) {
+    focus(loc) {
         if (this._focus) this._svg.removeChild(this._focus);
 
         const points = [
             [0, -1], [1, -1], [1, 0], [2, 0],
             [2, 1], [1, 1], [1, 2], [0, 2], [0, -1],
         ].map(([x, y]) => {
-            switch (dir) {
+            switch (loc.direction) {
                 case Direction.RIGHT: return [x, y];
                 case Direction.DOWN:  return [y, x];
                 case Direction.LEFT:  return [1 - x, y];
@@ -823,6 +858,7 @@ class AnnotatedView {
         }).map((xy) => xy.join(",")).join(" ");
 
         const rect = this._doc.createElementNS(this._ns, "polyline");
+        const pos = loc.position;
         rect.setAttribute("fill", "none");
         rect.setAttribute("stroke", "black");
         rect.setAttribute("stroke-width", "0.1");
@@ -961,18 +997,17 @@ class Interpreter {
             inputCharacter: async () => this._terminal.inputCharacter(),
             outputNumber: (num) => this._output(num.toString()),
             outputCharacter: (char) => this._terminal.print(char),
-            onWhnf: async (expr) => {
+            onWhnf: async (expr, back) => {
                 if (this.skipIds && expr instanceof IdExpr) return;
-                if (expr.location) {
-                    this._view.focus(expr.location.position, expr.location.direction);
-                }
+                if (expr.loc) this._view.focus(expr.loc);
                 if (this._paused) await this._paused;
+                console.log(back(expr).toString());
                 await new Promise(r => setTimeout(r, this.delay));
             }
         }
 
         try {
-            const whnf = await this._parser.parse().whnf(evalCtx);
+            const whnf = await this._parser.parse().whnf(evalCtx, (e) => e);
             if (whnf.value() === null) {
                 this._output("Interpreter exited with expression:");
                 this._output(whnf.toString());
