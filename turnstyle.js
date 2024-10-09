@@ -776,8 +776,8 @@ const Primitives = {
             name,
             arity: 4,
             implementation: async (ctx, args, backArgs, back) => {
-                const lhs = await args[0].whnf(ctx, (e) => backArgs([e, args[1]]));
-                const rhs = await args[1].whnf(ctx, (e) => backArgs([lhs, e]));
+                const lhs = await args[0].whnf(ctx, (e) => backArgs([e, args[1], args[2], args[3]]));
+                const rhs = await args[1].whnf(ctx, (e) => backArgs([lhs, e, args[2], args[3]]));
                 return args[p(lhs.value(), rhs.value()) ? 2 : 3].whnf(ctx, back);
             },
         });
