@@ -156,11 +156,11 @@ const Direction = {
 
 class Location {
     constructor(pos, dir) {
-        this.position = pos;
-        this.direction = dir;
+        this.pos = pos;
+        this.dir = dir;
     }
 
-    toString() { return `<${this.position.toString()},${this.direction}>`; }
+    toString() { return `<${this.pos.toString()},${this.dir}>`; }
 }
 
 const Pattern = {
@@ -327,122 +327,118 @@ class ParserError extends Error {
 }
 
 class Parser {
-    constructor(src, loc, map) {
+    constructor(src) {
         this._src = src;
-        this._loc = loc ? loc : new Location(
-            new Position(0, Math.floor(src.height / 2)), Direction.RIGHT
+    }
+
+    _error(loc, msg) { throw new ParserError(loc, msg); }
+
+    _pixelL(loc) {
+        switch (loc.dir) {
+            case Direction.RIGHT: return loc.pos.up();
+            case Direction.DOWN:  return loc.pos.right();
+            case Direction.LEFT:  return loc.pos.down();
+            case Direction.UP:    return loc.pos.left();
+        }
+    }
+
+    _pixelC(loc) { return loc.pos; }
+
+    _pixelF(loc) {
+        switch (loc.dir) {
+            case Direction.RIGHT: return loc.pos.right();
+            case Direction.DOWN:  return loc.pos.down();
+            case Direction.LEFT:  return loc.pos.left();
+            case Direction.UP:    return loc.pos.up();
+        }
+    }
+
+    _pixelR(loc) {
+        switch (loc.dir) {
+            case Direction.RIGHT: return loc.pos.down();
+            case Direction.DOWN:  return loc.pos.left();
+            case Direction.LEFT:  return loc.pos.up();
+            case Direction.UP:    return loc.pos.right();
+        }
+    }
+
+    parse(loc) {
+        loc = loc ? loc : new Location(
+            new Position(0, Math.floor(this._src.height / 2)), Direction.RIGHT
         );
-        this._pos = this._loc.position;
-        this._dir = this._loc.direction;
-    }
-
-    get loc() { return this._loc; }
-
-    _error(msg) { throw new ParserError(this._loc, msg); }
-
-    _pixelL() {
-        switch (this._dir) {
-            case Direction.RIGHT: return this._pos.up();
-            case Direction.DOWN:  return this._pos.right();
-            case Direction.LEFT:  return this._pos.down();
-            case Direction.UP:    return this._pos.left();
-        }
-    }
-
-    _pixelC() { return this._pos; }
-
-    _pixelF() {
-        switch (this._dir) {
-            case Direction.RIGHT: return this._pos.right();
-            case Direction.DOWN:  return this._pos.down();
-            case Direction.LEFT:  return this._pos.left();
-            case Direction.UP:    return this._pos.up();
-        }
-    }
-
-    _pixelR() {
-        switch (this._dir) {
-            case Direction.RIGHT: return this._pos.down();
-            case Direction.DOWN:  return this._pos.left();
-            case Direction.LEFT:  return this._pos.up();
-            case Direction.UP:    return this._pos.right();
-        }
-    }
-
-    parse() {
         const pattern = Pattern.parse(
-            this._colorL(), this._colorC(), this._colorF(), this._colorR(),
+            this._colorL(loc), this._colorC(loc), this._colorF(loc), this._colorR(loc),
         );
         switch (pattern) {
             case Pattern.ABAC:
-                return new AppExpr(this._parseL(), this._parseF(), this._loc);
+                return new AppExpr(this._parseL(loc), this._parseF(loc), loc);
             case Pattern.ABCA:
-                return new AppExpr(this._parseL(), this._parseR(), this._loc);
+                return new AppExpr(this._parseL(loc), this._parseR(loc), loc);
             case Pattern.ABCC:
-                return new AppExpr(this._parseF(), this._parseR(), this._loc);
+                return new AppExpr(this._parseF(loc), this._parseR(loc), loc);
             case Pattern.AABC:
-                return new LamExpr(this._colorR(), this._parseL(), this._loc);
+                return new LamExpr(this._colorR(loc), this._parseL(loc), loc);
             case Pattern.ABBC:
-                return new LamExpr(this._colorC(), this._parseF(), this._loc);
+                return new LamExpr(this._colorC(loc), this._parseF(loc), loc);
             case Pattern.ABCB:
-                return new LamExpr(this._colorL(), this._parseR(), this._loc);
+                return new LamExpr(this._colorL(loc), this._parseR(loc), loc);
             case Pattern.AAAB:
-                return new VarExpr(this._colorR(), this._loc);
+                return new VarExpr(this._colorR(loc), loc);
             case Pattern.AABA:
-                return new VarExpr(this._colorF(), this._loc);
+                return new VarExpr(this._colorF(loc), loc);
             case Pattern.ABAA:
-                return new VarExpr(this._colorC(), this._loc);
+                return new VarExpr(this._colorC(loc), loc);
             case Pattern.ABBB:
-                return new VarExpr(this._colorL(), this._loc);
+                return new VarExpr(this._colorL(loc), loc);
             case Pattern.ABCD:
-                const left  = this._area(this._pixelL());
-                const front = this._area(this._pixelF());
-                const right = this._area(this._pixelR());
+                const left  = this._area(this._pixelL(loc));
+                const front = this._area(this._pixelF(loc));
+                const right = this._area(this._pixelR(loc));
                 if (left === 1) {
                     const n = BigInt(front) ** BigInt(right);
-                    return new LitExpr(new Num(new Rational(n)), this._loc);
+                    return new LitExpr(new Num(new Rational(n)), loc);
                 } else if (left === 2) {
                     if (Primitives[front] && Primitives[front][right]) {
                         const primitive = Primitives[front][right];
-                        return new PrimExpr(primitive, [], this._loc);
+                        return new PrimExpr(primitive, [], loc);
                     }
-                    this._error(`Unknown Prim(${front},${right})`);
+                    this._error(loc, `Unknown Prim(${front},${right})`);
                 }
-                this._error(`Unhandled symbol: ${left}`);
+                this._error(loc, `Unhandled symbol: ${left}`);
             case Pattern.AAAA:
-                return new IdExpr(this._parseF(), this._loc);
+                return new IdExpr(this._parseF(loc), loc);
             case Pattern.AABB:
-                return new IdExpr(this._parseL(), this._loc);
+                return new IdExpr(this._parseL(loc), loc);
             case Pattern.ABAB:
-                return new IdExpr(this._parseR(), this._loc);
+                return new IdExpr(this._parseR(loc), loc);
             case Pattern.ABBA:
-                return new IdExpr(this._parseF(), this._loc);
+                return new IdExpr(this._parseF(loc), loc);
             default:
-                this._error(`Unhandled pattern: ${pattern.toString()}`);
+                this._error(loc, `Unhandled pattern: ${pattern.toString()}`);
         }
     }
 
-    _parseL() {
-        const loc = new Location(this._pixelL(), Direction.turnLeft(this._dir));
-        return new LazyExpr(() => new Parser(this._src, loc).parse(), loc);
+    _parseL(loc) {
+        const l = new Location(this._pixelL(loc), Direction.turnLeft(loc.dir));
+        return new LazyExpr(() => this.parse(l), l);
     }
 
-    _parseF() {
-        const loc = new Location(this._pixelF(), this._dir);
-        return new LazyExpr(() => new Parser(this._src, loc).parse(), loc);
+    _parseF(loc) {
+        const f = new Location(this._pixelF(loc), loc.dir);
+        return new LazyExpr(() => this.parse(f), f);
     }
 
-    _parseR() {
-        const loc = new Location(this._pixelR(), Direction.turnRight(this._dir));
-        return new LazyExpr(() => new Parser(this._src, loc).parse(), loc);
+    _parseR(loc) {
+        const r = new Location(this._pixelR(loc), Direction.turnRight(loc.dir));
+        return new LazyExpr(() => this.parse(r), r);
     }
 
     _color(pos) { return this._src.hex(pos.x, pos.y); }
 
-    _colorL() { return this._color(this._pixelL()); }
-    _colorC() { return this._color(this._pixelC()); }
-    _colorF() { return this._color(this._pixelF()); }
-    _colorR() { return this._color(this._pixelR()); }
+    _colorL(loc) { return this._color(this._pixelL(loc)); }
+    _colorC(loc) { return this._color(this._pixelC(loc)); }
+    _colorF(loc) { return this._color(this._pixelF(loc)); }
+    _colorR(loc) { return this._color(this._pixelR(loc)); }
 
     _has(pos) {
         return pos.x >= 0 && pos.x < this._src.width &&
@@ -849,7 +845,7 @@ class AnnotatedView {
             [0, -1], [1, -1], [1, 0], [2, 0],
             [2, 1], [1, 1], [1, 2], [0, 2], [0, -1],
         ].map(([x, y]) => {
-            switch (loc.direction) {
+            switch (loc.dir) {
                 case Direction.RIGHT: return [x, y];
                 case Direction.DOWN:  return [y, x];
                 case Direction.LEFT:  return [1 - x, y];
@@ -858,7 +854,7 @@ class AnnotatedView {
         }).map((xy) => xy.join(",")).join(" ");
 
         const rect = this._doc.createElementNS(this._ns, "polyline");
-        const pos = loc.position;
+        const pos = loc.pos;
         rect.setAttribute("fill", "none");
         rect.setAttribute("stroke", "black");
         rect.setAttribute("stroke-width", "0.1");
