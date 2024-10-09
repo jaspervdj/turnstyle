@@ -710,49 +710,37 @@ class IdExpr extends Expr {
 }
 
 const Primitives = {
-    1: {
-        1: {
-            name: "in_num",
+    1: (() => {
+        const input = (name, f) => ({
+            name,
             arity: 2,
             implementation: async (ctx, args, backArgs, back) => {
-                const input = await ctx.inputNumber();
-                const lit = new LitExpr(new Num(new Rational(BigInt(input))));
+                const num = await f(ctx);
+                const lit = new LitExpr(new Num(new Rational(BigInt(num))));
                 const applied = await args[0].apply(ctx, lit, back);
                 return applied.whnf(ctx, back);
             },
-        },
-        2: {
-            name: "in_char",
-            arity: 2,
-            implementation: async (ctx, args, backArgs, back) => {
-                const input = await ctx.inputCharacter();
-                const codePoint = input.codePointAt(0);
-                const lit = new LitExpr(new Num(new Rational(BigInt(codePoint))));
-                const applied = await args[0].apply(ctx, lit, back);
-                return applied.whnf(ctx, back);
-            },
-        },
-    },
-    2: {
-        1: {
-            name: "out_num",
+        });
+        return {
+            1: input("in_num", async (ctx) => ctx.inputNumber()),
+            2: input("in_char", async (ctx) => (await ctx.inputCharacter()).codePointAt(0)),
+        };
+    })(),
+    2: (() => {
+        const output = (name, f) => ({
+            name,
             arity: 2,
             implementation: async (ctx, args, backArgs, back) => {
                 const lhs = await args[0].whnf(ctx, (e) => backArgs([e, args[1]]));
-                await ctx.outputNumber(lhs.value().toString());
+                await f(ctx, lhs.value());
                 return args[1].whnf(ctx, back);
             },
-        },
-        2: {
-            name: "out_char",
-            arity: 2,
-            implementation: async (ctx, args, backArgs, back) => {
-                const lhs = await args[0].whnf(ctx, (e) => backArgs([e, args[1]]));
-                await ctx.outputCharacter(String.fromCodePoint(lhs.value()));
-                return args[1].whnf(ctx, back);
-            },
-        },
-    },
+        });
+        return {
+            1: output("out_num",  (ctx, val) => ctx.outputNumber(val)),
+            2: output("out_char", (ctx, val) => ctx.outputCharacter(String.fromCodePoint(val.toNumber()))),
+        };
+    })(),
     3: (() => {
         const binop = (name, f) => ({
             name,
