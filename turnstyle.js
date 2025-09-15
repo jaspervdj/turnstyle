@@ -938,12 +938,13 @@ class Interpreter {
         this._div.appendChild(this._terminal.element);
         this._done = false;
         this._paused = null;
+        this._killed = false;
         this._unpause = () => {};
     }
 
     _output (line) { this._terminal.print(line + "\n") };
 
-    get done() { return this._done; }
+    get done() { return this._done || this._killed; }
 
     get element() { return this._div; }
 
@@ -961,6 +962,8 @@ class Interpreter {
     }
 
     unpause() { this._unpause(); }
+
+    kill() { this._killed = true; }
 
     async load() {
         try {
@@ -982,6 +985,7 @@ class Interpreter {
             outputNumber: (num) => this._output(num.toString()),
             outputCharacter: (char) => this._terminal.print(char),
             onWhnf: async (expr, back) => {
+                if (this._killed) return new Promise(() => {});
                 if (this.skipIds && expr instanceof IdExpr) return;
                 if (expr.loc) this._view.focus(expr.loc);
                 if (this._paused) await this._paused;

@@ -6,5 +6,6 @@ pkgs.mkShell {
         pkgs.entr
         pkgs.git
         pkgs.stylish-haskell
+        pkgs.zlib
     ];
 }

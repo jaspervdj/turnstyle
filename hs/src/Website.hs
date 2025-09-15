@@ -58,6 +58,9 @@ main = hakyllWith config $ do
     match "website/style.css" $ do
         route $ constRoute "style.css"
         compile compressCssCompiler
+    match "website/interpreter.css" $ do
+        route $ constRoute "interpreter.css"
+        compile compressCssCompiler
     match "website/template.html" $ compile templateCompiler
 
 config :: Configuration

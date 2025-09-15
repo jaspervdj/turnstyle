@@ -1,0 +1,49 @@
+.interpreter {
+    text-align: center;
+}
+
+.interpreter svg {
+    max-width: 90%;
+    height: auto;
+    margin-bottom: .5em; /* Some space in between svg and terminal */
+}
+
+.interpreter .terminal {
+    text-align: left;
+    display: block;
+    overflow-y: scroll;
+    max-height: 5em;
+    background-color: #2228;
+    color: #fff;
+    padding: .5em;
+}
+
+.interpreter .terminal pre {
+    margin: 0px;
+}
+
+.interpreter .terminal textarea {
+    padding: 0px;
+    margin: 0px;
+    opacity: 0;
+    width: 0px;
+    height: 0px;
+    border: none;
+}
+
+.interpreter .terminal:has(textarea:focus) .cursor {
+    animation: cursor 1s linear infinite;
+}
+
+.interpreter .terminal .cursor {
+    display: inline-block;
+    height: 1.2em;
+    margin-bottom: -0.1em;
+    width: 0.5em;
+    background: #fff;
+}
+
+@keyframes cursor {
+    0%  {  background: transparent; }
+    50% {  background: inherit;     }
+}
