@@ -112,7 +112,7 @@ Executable turnstyle-website
   Build-depends:
     base    >= 4.7  && < 5,
     hakyll  >= 4.16 && < 4.17,
-    pandoc  >= 3.1  && < 3.2,
+    pandoc  >= 3.1  && < 3.9,
     process >= 1.6  && < 1.7
 
 Test-suite turnstyle-test
