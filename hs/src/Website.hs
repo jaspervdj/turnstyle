@@ -67,6 +67,6 @@ config :: Configuration
 config = defaultConfiguration
     { deploySite = \_  -> Process.rawSystem "rsync"
         [ "--checksum", "-ave", "ssh -p 2222"
-        , "_site/", "jaspervdj@jaspervdj.be:jaspervdj.be/turnstyle/"
+        , "_site/", "jasper@jaspervdj.be:jaspervdj.be/turnstyle/"
         ]
     }
