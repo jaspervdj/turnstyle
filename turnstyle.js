@@ -790,11 +790,11 @@ const Primitives = {
 };
 
 class AnnotatedView {
-    constructor(doc, src) {
+    constructor(doc, src, options) {
         this._doc = doc;
         this._ns = "http://www.w3.org/2000/svg";
         this._src = src;
-        this._factor = 20;
+        this._factor = options?.factor || 20;
         this._padding = 0.1;
         this._focus = null;
         this._svg = doc.createElementNS(this._ns, "svg");
@@ -831,7 +831,7 @@ class AnnotatedView {
 
         const points = [
             [0, -1], [1, -1], [1, 0], [2, 0],
-            [2, 1], [1, 1], [1, 2], [0, 2], [0, -1],
+            [2, 1], [1, 1], [1, 2], [0, 2],
         ].map(([x, y]) => {
             switch (loc.dir) {
                 case Direction.RIGHT: return [x, y];
@@ -841,7 +841,7 @@ class AnnotatedView {
             }
         }).map((xy) => xy.join(",")).join(" ");
 
-        const rect = this._doc.createElementNS(this._ns, "polyline");
+        const rect = this._doc.createElementNS(this._ns, "polygon");
         const pos = loc.pos;
         rect.setAttribute("fill", "none");
         rect.setAttribute("stroke", "black");
@@ -926,23 +926,34 @@ class Terminal {
     get element() { return this._code; }
 }
 
+// options: {
+//     annotatedView: {
+//         factor: number
+//     },
+//     terminal: {
+//         enabled: boolean
+//     }
+// }
 class Interpreter {
-    constructor(doc, src) {
+    constructor(doc, src, options) {
         this.delay = 50;
         this.skipIds = false;
         this._doc = doc;
         this._src = src;
+        this._options = options;
         this._div = doc.createElement("div");
         this._div.setAttribute("class", "interpreter");
-        this._terminal = new Terminal(this._doc);
-        this._div.appendChild(this._terminal.element);
+        if (options?.terminal?.enabled !== false) {
+            this._terminal = new Terminal(this._doc);
+            this._div.appendChild(this._terminal.element);
+        }
         this._done = false;
         this._paused = null;
         this._killed = false;
         this._unpause = () => {};
     }
 
-    _output (line) { this._terminal.print(line + "\n") };
+    _output (line) { this._terminal?.print(line + "\n") };
 
     get done() { return this._done || this._killed; }
 
@@ -969,7 +980,7 @@ class Interpreter {
         try {
             const noisy = await ImageDataSource.load(this._doc, this._src);
             const source = new DenoiseSource(noisy);
-            this._view = new AnnotatedView(this._doc, source);
+            this._view = new AnnotatedView(this._doc, source, this._options?.annotatedView);
             this._div.insertBefore(this._view.element, this._div.firstChild);
             this._output("Starting interpreter...");
             this._parser = new Parser(source);
@@ -980,10 +991,12 @@ class Interpreter {
 
     async run() {
         const evalCtx = {
-            inputNumber: async () => this._terminal.inputNumber(),
-            inputCharacter: async () => this._terminal.inputCharacter(),
+            inputNumber: () => this._terminal ?
+                this._terminal.inputNumber() : new Promise(() => {}),
+            inputCharacter: () => this._terminal ?
+                this._terminal.inputCharacter() : new Promise(() => {}),
             outputNumber: (num) => this._output(num.toString()),
-            outputCharacter: (char) => this._terminal.print(char),
+            outputCharacter: (char) => this._terminal?.print(char),
             onWhnf: async (expr, back) => {
                 if (this._killed) return new Promise(() => {});
                 if (this.skipIds && expr instanceof IdExpr) return;
