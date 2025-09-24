@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Rank2Types       #-}
 module Turnstyle.Main
     ( main
     ) where
@@ -6,13 +8,16 @@ import qualified Codec.Picture         as JP
 import           Data.Foldable         (for_, toList)
 import qualified Data.Map              as M
 import           Data.Maybe            (fromMaybe)
+import qualified Data.Text.IO          as T
 import           Data.Traversable      (for)
 import qualified Options.Applicative   as OA
+import           System.FilePath       (takeExtension)
 import qualified System.IO             as IO
 import           Text.Read             (readMaybe)
 import qualified Turnstyle.Compile     as Compile
 import           Turnstyle.Eval        (eval)
 import           Turnstyle.Expr
+import           Turnstyle.Image
 import           Turnstyle.JuicyPixels (loadImage)
 import           Turnstyle.Parse
 import           Turnstyle.Scale       (autoScale)
@@ -74,6 +79,18 @@ data Error
     | CycleError
     deriving (Show)
 
+withImage
+    :: FilePath
+    -> (forall img. (Image img, Ord (Pixel img), Show (Pixel img))
+            => img -> IO a)
+    -> IO a
+withImage path f
+    | takeExtension path == ".txt" = do
+        contents <- T.readFile path
+        img <- either fail pure $ textToTextImage contents
+        f img
+    | otherwise = loadImage path >>= f
+
 main :: IO ()
 main = do
     args <- OA.execParser opts
@@ -81,11 +98,11 @@ main = do
         Run ropts -> do
             for_ [IO.stdin, IO.stdout, IO.stderr] $ \h ->
                 IO.hSetBuffering h IO.LineBuffering
-            img <- loadImage $ roFilePath ropts
-            let expr = parseImage (roInitialPosition ropts) (autoScale img)
-            putStrLn $ Text.prettyExpr $ checkCycles (const CycleError) $
-                mapErr ParseError expr
-            eval expr >>= print
+            withImage (roFilePath ropts) $ \img -> do
+                let expr = parseImage (roInitialPosition ropts) (autoScale img)
+                putStrLn $ Text.prettyExpr $ checkCycles (const CycleError) $
+                    mapErr ParseError expr
+                eval expr >>= print
         Compile copts -> do
             let out = fromMaybe "a.png" (coOut copts)
             contents <- readFile $ coFilePath copts

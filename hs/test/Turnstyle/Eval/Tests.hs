@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedStrings          #-}
 module Turnstyle.Eval.Tests
     ( EvalState (..)
     , emptyEvalState
@@ -13,6 +14,7 @@ import           Control.Monad.State   (State, modify, runState, state)
 import           Test.Tasty            (TestTree, testGroup)
 import           Test.Tasty.HUnit      (testCase, (@?=))
 import           Turnstyle.Eval
+import           Turnstyle.Image       (textToTextImage)
 import           Turnstyle.JuicyPixels (loadImage)
 import           Turnstyle.Number
 import           Turnstyle.Parse       (parseImage)
@@ -57,4 +59,15 @@ tests = testGroup "Turnstyle.Eval"
                 runState (runExceptT $ unEvalPure $ eval expr) emptyEvalState
         result @?= Right (Lit 0)
         esOutNumbers finalState @?= [Exact $ 5284 / 1681]
+    , testCase "lifthrasiir" $ do
+        img <- either fail pure $ textToTextImage
+            "......\n\
+            \CADABB\n\
+            \>>BBCD\n\
+            \CBDCAD\n\
+            \AAABBD\n"
+        let expr = parseImage Nothing img
+            (result, _) = runState
+                (runExceptT $ unEvalPure $ eval expr) emptyEvalState
+        result @?= Right (Lit 5)
     ]
