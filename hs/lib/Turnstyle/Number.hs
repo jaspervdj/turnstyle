@@ -68,3 +68,10 @@ instance Num Number where
 instance Fractional Number where
     (/) = binop (\x y -> Exact $ x / y) (\x y -> Inexact $ x / y)
     fromRational = Exact
+
+instance Real Number where
+    toRational = unNumber id toRational
+
+instance RealFrac Number where
+    properFraction (Exact x)   = let (n, f) = properFraction x in (n, Exact f)
+    properFraction (Inexact x) = let (n, f) = properFraction x in (n, Inexact f)

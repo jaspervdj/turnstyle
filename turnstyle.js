@@ -46,6 +46,27 @@ class Rational {
         return new Rational(lhs % rhs);
     }
 
+    floor() {
+        if (this._denom === 1n) return new Rational(this._num);
+        const n = this._num;
+        const d = this._denom;
+        if (d < 0n) { // Normalize so denominator is always positive
+            n = -n;
+            d = -d;
+        }
+        const q = n / d;
+        const r = n % d;
+        if (r === 0n) return new Rational(q);
+        if (n >= 0n) return new Rational(q);
+        else return new Rational(q - 1n);
+    }
+
+    ceil() {
+        const floor = this.floor();
+        if (this.eq(floor)) return floor;
+        return floor.add(new Rational(1n));
+    }
+
     eq(that)  { return this._num === that._num && this._denom === that._denom; }
     lt(that)  { return this._num * that._denom <  that._num * this._denom; }
     gt(that)  { return this._num * that._denom >  that._num * this._denom; }
@@ -102,6 +123,16 @@ class Num {
             throw new Error("Number: modulo arguments must be integrals");
         }
         return new Num(this._value.mod(that._value));
+    }
+
+    floor() {
+        if (this._exact) return new Num(this._value.floor());
+        else return new Num(Math.floor(this._value));
+    }
+
+    ceil() {
+        if (this._exact) return new Num(this._value.ceil());
+        else return new Num(Math.ceil(this._value));
     }
 
     eq(that)  { return this._binop(that, (x, y) => x.eq(y),  (x, y) => x == y); }
@@ -751,12 +782,22 @@ const Primitives = {
                 return new LitExpr(f(lhs.value(), rhs.value()));
             },
         });
+        const unop = (name, f) => ({
+            name,
+            arity: 1,
+            implementation: async (ctx, args, backArgs, back) => {
+                const lhs = await args[0].whnf(ctx, (e) => backArgs([e]));
+                return new LitExpr(f(lhs.value()));
+            },
+        });
         return {
             1: binop("num_add", (lhs, rhs) => lhs.add(rhs)),
             2: binop("num_sub", (lhs, rhs) => lhs.sub(rhs)),
             3: binop("num_mul", (lhs, rhs) => lhs.mul(rhs)),
             4: binop("num_div", (lhs, rhs) => lhs.div(rhs)),
             5: binop("num_mod", (lhs, rhs) => lhs.mod(rhs)),
+            6: unop("num_floor", (x) => x.floor()),
+            7: unop("num_ceil", (x) => x.ceil()),
         };
     })(),
     4: (() => {

@@ -1,7 +1,7 @@
 ---
 title: Turnstyle Specification
 author: Jasper Van der Jeugt
-version: v0.0.1
+version: v0.0.2
 ---
 
 The program is encoded as an image.  A **lossless** image format should be used
@@ -146,6 +146,8 @@ This is an overview of the different primitive functions and what they do.
 | 3      | _((`num_mul` x) y)_ evaluates to _x * y_.                                          |
 | 4      | _((`num_div` x) y)_ evaluates to _x / y_.                                          |
 | 5      | _((`num_mod` x) y)_ evaluates to _x % y_.  Both operands must be integral numbers. |
+| 6      | _(`num_floor` x)_ evaluates to _⌊x⌋_.                                              |
+| 7      | _(`num_ceil` x)_ evaluates to _⌈x⌉_.                                               |
 
 ### Comparisons (module=4)
 
@@ -200,6 +202,10 @@ Exactness]:
 The following primitives in Turnstyle are **inexact**:
 
 - `inexact_sqrt`
+
+# Changes
+
+ -  `v0.0.2`: Added `num_floor` and `num_ceil`.
 
 [Church encoding]: https://en.wikipedia.org/wiki/Church_encoding
 [PNG]: http://libpng.org/pub/png/

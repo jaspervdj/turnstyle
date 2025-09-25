@@ -137,6 +137,12 @@ prim _ p@(POut outMode) [outE, kE] = do
             Nothing -> evalThrow $ PrimBadArg p 1 IntegralTy NumberTy
             Just n  -> evalOutputChar $ chr n
     whnf kE
+prim _ p@(PNumOp NumOpFloor) [xE] = do
+    x <- whnf xE >>= castArgNumber p 1
+    pure $ Lit $ fromIntegral $ floor x
+prim _ p@(PNumOp NumOpCeil) [xE] = do
+    x <- whnf xE >>= castArgNumber p 1
+    pure $ Lit $ fromIntegral $ ceiling x
 prim _ p@(PNumOp numOp) [xE, yE] = do
     x <- whnf xE >>= castArgNumber p 1
     y <- whnf yE >>= castArgNumber p 2

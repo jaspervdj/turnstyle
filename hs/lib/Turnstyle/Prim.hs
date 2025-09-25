@@ -39,6 +39,8 @@ data NumOpMode
     | NumOpMultiply
     | NumOpDivide
     | NumOpModulo
+    | NumOpFloor
+    | NumOpCeil
     deriving (Bounded, Enum, Eq, Show)
 
 data CmpMode
@@ -64,6 +66,8 @@ knownPrims =
 primArity :: Prim -> Int
 primArity (PIn      _)           = 2
 primArity (POut     _)           = 2
+primArity (PNumOp   NumOpFloor)  = 1
+primArity (PNumOp   NumOpCeil)   = 1
 primArity (PNumOp   _)           = 2
 primArity (PCompare _)           = 4
 primArity (PInexact InexactSqrt) = 1
@@ -78,6 +82,8 @@ primName (PNumOp NumOpSubtract)           = "num_sub"
 primName (PNumOp NumOpMultiply)           = "num_mul"
 primName (PNumOp NumOpDivide)             = "num_div"
 primName (PNumOp NumOpModulo)             = "num_mod"
+primName (PNumOp NumOpFloor)              = "num_floor"
+primName (PNumOp NumOpCeil)               = "num_ceil"
 primName (PCompare CmpEq)                 = "cmp_eq"
 primName (PCompare CmpLessThan)           = "cmp_lt"
 primName (PCompare CmpGreaterThan)        = "cmp_gt"
@@ -95,6 +101,8 @@ encodePrim (PNumOp NumOpSubtract)           = (3, 2)
 encodePrim (PNumOp NumOpMultiply)           = (3, 3)
 encodePrim (PNumOp NumOpDivide)             = (3, 4)
 encodePrim (PNumOp NumOpModulo)             = (3, 5)
+encodePrim (PNumOp NumOpFloor)              = (3, 6)
+encodePrim (PNumOp NumOpCeil)               = (3, 7)
 encodePrim (PCompare CmpEq)                 = (4, 1)
 encodePrim (PCompare CmpLessThan)           = (4, 2)
 encodePrim (PCompare CmpGreaterThan)        = (4, 3)
