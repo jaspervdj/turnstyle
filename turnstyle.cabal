@@ -107,6 +107,17 @@ Executable turnstyle-recolor
     optparse-applicative >= 0.18 && < 0.19,
     turnstyle
 
+Executable turnstyle-image-to-ascii
+  Main-is:          ImageToASCII.hs
+  Hs-source-dirs:   hs/src
+  Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
+  Default-language: Haskell2010
+  Build-depends:
+    base                 >= 4.7  && < 5,
+    containers           >= 0.6  && < 0.7,
+    JuicyPixels          >= 3.3  && < 3.4,
+    optparse-applicative >= 0.18 && < 0.19
+
 Executable turnstyle-website
   Main-is:          Website.hs
   Hs-source-dirs:   hs/src
