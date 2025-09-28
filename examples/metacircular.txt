@@ -153,132 +153,91 @@ LET image_area = \dims img pos.
                     rec next_visited next)) IN
         go set_empty (set_singleton pos) IN
 
+LET vars_lookup = \key l. l
+        (\h t. cmp_eq key (pair_fst h) (pair_snd h) t)
+        undefined IN
+LET vars_insert = \key val l.
+        list_cons (pair_make key val) (
+        list_filter (\p. boolean_not (cmp_eq key (pair_fst p))) l) IN
+
+LET turnstyle_prim = \modul opcode.
+        (cmp_eq modul 2
+            (cmp_eq opcode 1 out_num out_char)
+        (cmp_eq modul 3
+            (cmp_eq opcode 1 num_add
+            (cmp_eq opcode 2 num_sub
+            (cmp_eq opcode 3 num_mul
+            (cmp_eq opcode 4 num_div undefined)))))
+        undefined) IN
+
+
+LET turnstyle_eval = fix (\rec dims img vars dir pos.
+        LET pattern = turnstyle_pattern dir pos img IN
+        (cmp_lte pattern 8
+            # [1 .. 8]
+            (cmp_lte pattern 4
+                # [1 .. 4]
+                (cmp_lte pattern 2
+                    # [1 .. 2]
+                    undefined
+                    # [3 .. 4]
+                    (cmp_eq pattern 3
+                        # [3]: aaba - var
+                        (vars_lookup (image_index (turnstyle_front dir pos) img) vars)
+                        # [4] - aabb - id
+                        (rec dims img vars (dir_turn_left dir) (turnstyle_left dir pos))))
+                # [5 .. 8]
+                (cmp_lte pattern 6
+                    # [5 .. 6]
+                    (cmp_eq pattern 5
+                        # [5]
+                        undefined
+                        # [6]: abaa - var
+                        (vars_lookup (image_index pos img) vars))
+                    # [7 .. 8]
+                    (cmp_eq pattern 7
+                        # [7]: abab - id right
+                        (rec dims img vars (dir_turn_right dir) (turnstyle_right dir pos))
+                        # [8]: app
+                        ((rec dims img vars (dir_turn_left dir) (turnstyle_left dir pos))
+                            (rec dims img vars dir (turnstyle_front dir pos))))))
+            # [9 .. 15]
+            (cmp_lte pattern 12
+                # [9 .. 12]
+                (cmp_lte pattern 10
+                    # [9 .. 10]
+                    (cmp_eq pattern 9
+                        # [9]: id
+                        (rec dims img vars dir (turnstyle_front dir pos))
+                        undefined)
+                    # [11 .. 12]
+                    (cmp_eq pattern 11
+                        # [11]: abbc - lam
+                        (\val.
+                            LET key = image_index pos img IN
+                            LET new_vars = vars_insert key val vars IN
+                            rec dims img new_vars dir (turnstyle_front dir pos))
+                        # [12]: app
+                        ((rec dims img vars (dir_turn_left dir) (turnstyle_left dir pos))
+                            (rec dims img vars (dir_turn_right dir) (turnstyle_right dir pos)))))
+                # [13 .. 15]
+                (cmp_lte pattern 14
+                    # [13 .. 14]
+                    (cmp_eq pattern 13
+                        # [13]
+                        undefined
+                        # [14]: app
+                        ((rec dims img vars dir (turnstyle_front dir pos))
+                            (rec dims img vars (dir_turn_right dir) (turnstyle_right dir pos))))
+                    # [15]: sym
+                    (LET al = image_area dims img (turnstyle_left dir pos) IN
+                     LET af = image_area dims img (turnstyle_front dir pos) IN
+                     LET ar = image_area dims img (turnstyle_right dir pos) IN
+                        (cmp_eq al 1
+                            af  # TODO: pow
+                            (turnstyle_prim af ar))))))) IN
+
 in_lines (\img.
     LET dims = image_dimensions img IN
     LET pos = image_dimensions_to_initial_pos dims IN
-    image_area dims img pos)
-
-# 
-# 
-# image_area :: Dimensions -> Image -> Pos -> Number
-# 
-# val_to_number :: Val -> Number
-# val_to_number (NumberVal n) = n
-# val_to_number (LambdaVal _) = error "val_to_number (LambdaVal _)"
-# 
-# val_apply :: Val -> Val -> Val
-# val_apply (LambdaVal f) v = f v
-# val_apply (NumberVal _) _ = error "val_apply (NumberVal _)"
-# 
-# vars_lookup :: Codepoint -> Vars -> Val
-# vars_lookup key (List l) = l
-#     (\h t -> cmp_eq key (pair_fst h) (pair_snd h) t)
-#     (error $ "vars_lookup " ++ show key)
-# 
-# vars_insert :: Codepoint -> Val -> Vars -> Vars
-# vars_insert key val l =
-#     list_cons (pair_make key val) (
-#     list_filter (\p -> boolean_not (Boolean (cmp_eq key (pair_fst p)))) l)
-# 
-# turnstyle_prim :: Number -> Number -> Val
-# turnstyle_prim = \modul opcode ->
-#     (cmp_eq modul 2
-#         (cmp_eq opcode 1
-#             (LambdaVal (\x -> LambdaVal (\k -> out_num (val_to_number x) k)))
-#             (LambdaVal (\c -> LambdaVal (\k -> out_char (val_to_number c) k))))
-#     (cmp_eq modul 3
-#         (let op :: Number -> Number -> Number
-#              op =
-#                 (cmp_eq opcode 1 num_add
-#                 (cmp_eq opcode 2 num_sub
-#                 (cmp_eq opcode 3 num_mul
-#                 (cmp_eq opcode 4 num_div undefined)))) in
-#             (LambdaVal (\x -> LambdaVal (\y -> NumberVal (op (val_to_number x) (val_to_number y))))))
-#     undefined))
-# 
-# turnstyle_eval :: Dimensions -> Image -> Vars -> Dir -> Pos -> Val
-# turnstyle_eval dimensions img vars dir pos =
-#     let pattern = turnstyle_pattern dir pos img in
-#     (cmp_lte pattern (Pattern 8)
-#         -- [1 .. 8]
-#         (cmp_lte pattern (Pattern 4)
-#             -- [1 .. 4]
-#             (cmp_lte pattern (Pattern 2)
-#                 -- [1 .. 2]
-#                 undefined
-#                 -- [3 .. 4]
-#                 (cmp_eq pattern (Pattern 3)
-#                     -- [3]: aaba - var
-#                     (vars_lookup (image_index (turnstyle_front dir pos) img) vars)
-#                     -- [4] - aabb - id
-#                     (turnstyle_eval dimensions img vars (dir_turn_left dir) (turnstyle_left dir pos))))
-#             -- [5 .. 8]
-#             (cmp_lte pattern (Pattern 6)
-#                 -- [5 .. 6]
-#                 (cmp_eq pattern (Pattern 5)
-#                     -- [5]
-#                     undefined
-#                     -- [6]: abaa - var
-#                     (vars_lookup (image_index pos img) vars))
-#                 -- [7 .. 8]
-#                 (cmp_eq pattern (Pattern 7)
-#                     -- [7]: abab - id right
-#                     (turnstyle_eval dimensions img vars (dir_turn_right dir) (turnstyle_right dir pos))
-#                     -- [8]: app
-#                     (val_apply
-#                         (turnstyle_eval dimensions img vars (dir_turn_left dir) (turnstyle_left dir pos))
-#                         (turnstyle_eval dimensions img vars dir (turnstyle_front dir pos))))))
-#         -- [9 .. 15]
-#         (cmp_lte pattern (Pattern 12)
-#             -- [9 .. 12]
-#             (cmp_lte pattern (Pattern 10)
-#                 -- [9 .. 10]
-#                 (cmp_eq pattern (Pattern 9)
-#                     -- [9]: id
-#                     (turnstyle_eval dimensions img vars dir (turnstyle_front dir pos))
-#                     undefined)
-#                 -- [11 .. 12]
-#                 (cmp_eq pattern (Pattern 11)
-#                     -- [11]: abbc - lam
-#                     (LambdaVal (\val ->
-#                         let key = image_index pos img
-#                             new_vars = vars_insert key val vars in
-#                         turnstyle_eval dimensions img new_vars dir (turnstyle_front dir pos)))
-#                     -- [12]: app
-#                     (val_apply
-#                         (turnstyle_eval dimensions img vars (dir_turn_left dir) (turnstyle_left dir pos))
-#                         (turnstyle_eval dimensions img vars (dir_turn_right dir) (turnstyle_right dir pos)))))
-#             -- [13 .. 15]
-#             (cmp_lte pattern (Pattern 14)
-#                 -- [13 .. 14]
-#                 (cmp_eq pattern (Pattern 13)
-#                     -- [13]
-#                     undefined
-#                     -- [14]: app
-#                     (val_apply
-#                         (turnstyle_eval dimensions img vars dir (turnstyle_front dir pos))
-#                         (turnstyle_eval dimensions img vars (dir_turn_right dir) (turnstyle_right dir pos))))
-#                 -- [15]: sym
-#                 (let al = image_area dimensions img (turnstyle_left dir pos)
-#                      af = image_area dimensions img (turnstyle_front dir pos)
-#                      ar = image_area dimensions img (turnstyle_right dir pos) in
-#                     (cmp_eq al 1
-#                         (NumberVal af)  -- TODO: pow
-#                         (turnstyle_prim af ar))))))
-# 
-# main :: IO ()
-# main = print $
-#     in_lines (\rows ->
-#     let dimensions = image_dimensions rows in
-#     let initial_pos = image_dimensions_to_initial_pos dimensions in
-#     let initial_dir = dir_right in
-#     let initial_c = image_index initial_pos rows in
-#     let (Pattern initial_pattern) = turnstyle_pattern initial_dir initial_pos rows in
-#     out_num (pos_x initial_pos) (
-#     out_num (pos_y initial_pos) (
-#     out_lines rows (
-#     out_char initial_c (
-#     out_char newline (
-#     out_num (image_area dimensions rows initial_pos) (
-#     out_num initial_pattern (
-#     val_to_number (turnstyle_eval dimensions rows list_nil initial_dir initial_pos)))))))))
+    turnstyle_eval dims img list_nil dir_right pos)
