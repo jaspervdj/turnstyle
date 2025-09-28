@@ -1,0 +1,300 @@
+LET boolean_true = \t f. t IN
+LET boolean_false = \t f. f IN
+LET boolean_not = \b t f. b f t IN
+
+LET num_zero = num_sub 1 1 IN
+
+LET fix = \f. (\x. f (x x)) (\x. f (x x)) IN
+LET undefined = fix (\x. x) IN
+
+LET pair_make = \x y p. p x y IN
+LET pair_fst = \p. p (\x y. x) IN
+LET pair_snd = \p. p (\x y. y) IN
+
+LET list_nil = \c n. n IN
+LET list_null = \l. l (\h t. boolean_false) boolean_true IN
+LET list_length = \l. l (\h. num_add 1) num_zero IN
+LET list_cons = \x l c n. c x (l c n) IN
+LET list_head = \l. l (\h t. h) undefined IN
+LET list_tail = \l. pair_fst (l
+        (\h p. pair_make (pair_snd p) (list_cons h (pair_snd p)))
+        (pair_make list_nil list_nil)) IN
+LET list_drop = fix (\rec n l.
+    cmp_lt n 1 l (rec (num_sub n 1) (list_tail l))) IN
+LET list_index = \n l. list_head (list_drop n l) IN
+LET list_map = \f l c n. l (\h t. c (f h) t) n IN
+LET list_concat = \xss. xss (\xs acc. xs list_cons acc) list_nil IN
+LET list_concat_map = \f l. list_concat (list_map f l) IN
+LET list_filter = \p l c n. l (\h t. (p h) (c h t) t) n IN
+
+LET set_empty = list_nil IN
+LET set_singleton = \x. list_cons x list_nil IN
+LET set_size = list_length IN
+LET set_any = \p l. boolean_not (list_null (list_filter p l)) IN
+LET set_insert = \eq x l. (set_any (eq x) l) l (list_cons x l) IN
+LET set_union = \eq l. l (\x acc. set_insert eq x acc) IN
+LET set_to_list = \l. l IN
+LET list_to_set = \eq l. l (set_insert eq) set_empty IN
+
+LET dir_right = \r d l u. r IN
+LET dir_down = \r d l u. d IN
+LET dir_left = \r d l u. l IN
+LET dir_up = \r d l u. u IN
+LET dir_turn_right = \dir r d l u. dir d l u r IN
+LET dir_turn_left = \dir r d l u. dir u r d l IN
+
+LET pos_make = pair_make IN
+LET pos_x = pair_fst IN
+LET pos_y = pair_snd IN
+LET pos_eq = \p q. cmp_eq (pos_x p) (pos_x q)
+        (cmp_eq (pos_y p) (pos_y q))
+        boolean_false IN
+LET pos_move = \dir pos.
+        (pos_make (num_add (pos_x pos) 1) (pos_y pos))     # R
+        (pos_make (pos_x pos) (num_add (pos_y pos) 1))     # D
+        (pos_make (num_sub (pos_x pos) 1) (pos_y pos))     # L
+        (pos_make (pos_x pos) (num_sub (pos_y pos) 1)) IN  # U
+LET pos_neighbours = \pos.
+        list_cons (pos_move dir_right pos) (
+        list_cons (pos_move dir_down pos) (
+        list_cons (pos_move dir_left pos) (
+        list_cons (pos_move dir_up pos) list_nil))) IN
+
+LET pattern_aaaa = 1 IN
+LET pattern_aaab = 2 IN
+LET pattern_aaba = 3 IN
+LET pattern_aabb = 4 IN
+LET pattern_aabc = 5 IN
+LET pattern_abaa = 6 IN
+LET pattern_abab = 7 IN
+LET pattern_abac = 8 IN
+LET pattern_abba = 9 IN
+LET pattern_abbb = 10 IN
+LET pattern_abbc = 11 IN
+LET pattern_abca = 12 IN
+LET pattern_abcb = 13 IN
+LET pattern_abcc = 14 IN
+LET pattern_abcd = 15 IN
+
+LET pattern_make = \a x y z.
+        cmp_eq x a
+            (cmp_eq y a
+                (cmp_eq z a pattern_aaaa pattern_aaab)
+                (cmp_eq z a
+                    (pattern_aaba)
+                    (cmp_eq z y pattern_aabb pattern_aabc)))
+            (cmp_eq y a
+                (cmp_eq z a
+                    pattern_abaa
+                    (cmp_eq z x pattern_abab pattern_abac))
+                (cmp_eq y x
+                    (cmp_eq z a
+                        pattern_abba
+                        (cmp_eq z x pattern_abbb pattern_abbc))
+                    (cmp_eq z a
+                        pattern_abca
+                        (cmp_eq z x
+                            pattern_abcb
+                            (cmp_eq z y
+                                pattern_abcc
+                                pattern_abcd))))) IN
+
+pattern_make 1 2 3 4
+
+# 
+# 
+# turnstyle_front :: Dir -> Pos -> Pos
+# turnstyle_front (Dir d) = d
+#     (pos_move dir_right)  -- R
+#     (pos_move dir_down)   -- D
+#     (pos_move dir_left)   -- L
+#     (pos_move dir_up)     -- U
+# 
+# turnstyle_left :: Dir -> Pos -> Pos
+# turnstyle_left d = turnstyle_front (dir_turn_left d)
+# 
+# turnstyle_right :: Dir -> Pos -> Pos
+# turnstyle_right d = turnstyle_front (dir_turn_right d)
+# 
+# turnstyle_pattern :: Dir -> Pos -> Image -> Pattern
+# turnstyle_pattern dir pos img = pattern_make
+#     (image_index (turnstyle_left dir pos) img)
+#     (image_index pos img)
+#     (image_index (turnstyle_front dir pos) img)
+#     (image_index (turnstyle_right dir pos) img)
+# 
+# newline :: Codepoint
+# newline = 10
+# 
+# in_line :: (List Codepoint -> a) -> a -> a
+# in_line = fix $ \rec k err -> in_char
+#     (\c -> if c == newline then k list_nil else rec (\l -> k $ list_cons c l) err)
+#     err
+# 
+# out_line :: List Codepoint -> a -> a
+# out_line (List l) k = l out_char (out_char newline k)
+# 
+# in_lines :: (List (List Codepoint) -> a) -> a
+# in_lines = fix $ \rec k -> in_line
+#     (\l -> rec (\t -> k (list_cons l t)))
+#     (k list_nil)
+# 
+# out_lines :: List (List Codepoint) -> a -> a
+# out_lines (List l) k = l out_line k
+# 
+# dimensions_inside :: Dimensions -> Pos -> Boolean
+# dimensions_inside (Dimensions dims) pos =
+#     cmp_lt (pos_x pos) 0 false (
+#     cmp_gte (pos_x pos) (pair_fst dims) false (
+#     cmp_lt (pos_y pos) 0 false (
+#     cmp_gte (pos_y pos) (pair_snd dims) false true)))
+# 
+# image_dimensions :: Image -> Dimensions
+# image_dimensions rows = Dimensions
+#     (pair_make (list_length (list_head rows)) (list_length rows))
+# 
+# image_dimensions_to_initial_pos :: Dimensions -> Pos
+# image_dimensions_to_initial_pos (Dimensions dims) = Pos
+#     (pair_make 0 (num_floor ((num_div (pair_snd dims)) 2)))
+# 
+# image_index :: Pos -> Image -> Codepoint
+# image_index pos img = list_index (pos_x pos) (list_index (pos_y pos) img)
+# 
+# image_area :: Dimensions -> Image -> Pos -> Number
+# image_area dimensions img pos =
+#     let color = image_index pos img in
+#     let go = fix $ \rec visited fringe ->
+#             cmp_eq (set_size fringe) 0
+#             (set_size visited)
+#             (let
+#                 next_visited = set_union pos_eq visited fringe
+#                 next =
+#                     list_to_set pos_eq (
+#                     list_filter (\p -> boolean_not (set_any (pos_eq p) next_visited)) (
+#                     list_filter (\p -> Boolean (cmp_eq (image_index p img) color)) (
+#                     list_filter (dimensions_inside dimensions) (
+#                     list_concat_map pos_neighbours (
+#                     set_to_list fringe))))) in
+#                 rec next_visited next) in
+#     go set_empty (set_singleton pos)
+# 
+# val_to_number :: Val -> Number
+# val_to_number (NumberVal n) = n
+# val_to_number (LambdaVal _) = error "val_to_number (LambdaVal _)"
+# 
+# val_apply :: Val -> Val -> Val
+# val_apply (LambdaVal f) v = f v
+# val_apply (NumberVal _) _ = error "val_apply (NumberVal _)"
+# 
+# vars_lookup :: Codepoint -> Vars -> Val
+# vars_lookup key (List l) = l
+#     (\h t -> cmp_eq key (pair_fst h) (pair_snd h) t)
+#     (error $ "vars_lookup " ++ show key)
+# 
+# vars_insert :: Codepoint -> Val -> Vars -> Vars
+# vars_insert key val l =
+#     list_cons (pair_make key val) (
+#     list_filter (\p -> boolean_not (Boolean (cmp_eq key (pair_fst p)))) l)
+# 
+# turnstyle_prim :: Number -> Number -> Val
+# turnstyle_prim = \modul opcode ->
+#     (cmp_eq modul 2
+#         (cmp_eq opcode 1
+#             (LambdaVal (\x -> LambdaVal (\k -> out_num (val_to_number x) k)))
+#             (LambdaVal (\c -> LambdaVal (\k -> out_char (val_to_number c) k))))
+#     (cmp_eq modul 3
+#         (let op :: Number -> Number -> Number
+#              op =
+#                 (cmp_eq opcode 1 num_add
+#                 (cmp_eq opcode 2 num_sub
+#                 (cmp_eq opcode 3 num_mul
+#                 (cmp_eq opcode 4 num_div undefined)))) in
+#             (LambdaVal (\x -> LambdaVal (\y -> NumberVal (op (val_to_number x) (val_to_number y))))))
+#     undefined))
+# 
+# turnstyle_eval :: Dimensions -> Image -> Vars -> Dir -> Pos -> Val
+# turnstyle_eval dimensions img vars dir pos =
+#     let pattern = turnstyle_pattern dir pos img in
+#     (cmp_lte pattern (Pattern 8)
+#         -- [1 .. 8]
+#         (cmp_lte pattern (Pattern 4)
+#             -- [1 .. 4]
+#             (cmp_lte pattern (Pattern 2)
+#                 -- [1 .. 2]
+#                 undefined
+#                 -- [3 .. 4]
+#                 (cmp_eq pattern (Pattern 3)
+#                     -- [3]: aaba - var
+#                     (vars_lookup (image_index (turnstyle_front dir pos) img) vars)
+#                     -- [4] - aabb - id
+#                     (turnstyle_eval dimensions img vars (dir_turn_left dir) (turnstyle_left dir pos))))
+#             -- [5 .. 8]
+#             (cmp_lte pattern (Pattern 6)
+#                 -- [5 .. 6]
+#                 (cmp_eq pattern (Pattern 5)
+#                     -- [5]
+#                     undefined
+#                     -- [6]: abaa - var
+#                     (vars_lookup (image_index pos img) vars))
+#                 -- [7 .. 8]
+#                 (cmp_eq pattern (Pattern 7)
+#                     -- [7]: abab - id right
+#                     (turnstyle_eval dimensions img vars (dir_turn_right dir) (turnstyle_right dir pos))
+#                     -- [8]: app
+#                     (val_apply
+#                         (turnstyle_eval dimensions img vars (dir_turn_left dir) (turnstyle_left dir pos))
+#                         (turnstyle_eval dimensions img vars dir (turnstyle_front dir pos))))))
+#         -- [9 .. 15]
+#         (cmp_lte pattern (Pattern 12)
+#             -- [9 .. 12]
+#             (cmp_lte pattern (Pattern 10)
+#                 -- [9 .. 10]
+#                 (cmp_eq pattern (Pattern 9)
+#                     -- [9]: id
+#                     (turnstyle_eval dimensions img vars dir (turnstyle_front dir pos))
+#                     undefined)
+#                 -- [11 .. 12]
+#                 (cmp_eq pattern (Pattern 11)
+#                     -- [11]: abbc - lam
+#                     (LambdaVal (\val ->
+#                         let key = image_index pos img
+#                             new_vars = vars_insert key val vars in
+#                         turnstyle_eval dimensions img new_vars dir (turnstyle_front dir pos)))
+#                     -- [12]: app
+#                     (val_apply
+#                         (turnstyle_eval dimensions img vars (dir_turn_left dir) (turnstyle_left dir pos))
+#                         (turnstyle_eval dimensions img vars (dir_turn_right dir) (turnstyle_right dir pos)))))
+#             -- [13 .. 15]
+#             (cmp_lte pattern (Pattern 14)
+#                 -- [13 .. 14]
+#                 (cmp_eq pattern (Pattern 13)
+#                     -- [13]
+#                     undefined
+#                     -- [14]: app
+#                     (val_apply
+#                         (turnstyle_eval dimensions img vars dir (turnstyle_front dir pos))
+#                         (turnstyle_eval dimensions img vars (dir_turn_right dir) (turnstyle_right dir pos))))
+#                 -- [15]: sym
+#                 (let al = image_area dimensions img (turnstyle_left dir pos)
+#                      af = image_area dimensions img (turnstyle_front dir pos)
+#                      ar = image_area dimensions img (turnstyle_right dir pos) in
+#                     (cmp_eq al 1
+#                         (NumberVal af)  -- TODO: pow
+#                         (turnstyle_prim af ar))))))
+# 
+# main :: IO ()
+# main = print $
+#     in_lines (\rows ->
+#     let dimensions = image_dimensions rows in
+#     let initial_pos = image_dimensions_to_initial_pos dimensions in
+#     let initial_dir = dir_right in
+#     let initial_c = image_index initial_pos rows in
+#     let (Pattern initial_pattern) = turnstyle_pattern initial_dir initial_pos rows in
+#     out_num (pos_x initial_pos) (
+#     out_num (pos_y initial_pos) (
+#     out_lines rows (
+#     out_char initial_c (
+#     out_char newline (
+#     out_num (image_area dimensions rows initial_pos) (
+#     out_num initial_pattern (
+#     val_to_number (turnstyle_eval dimensions rows list_nil initial_dir initial_pos)))))))))
