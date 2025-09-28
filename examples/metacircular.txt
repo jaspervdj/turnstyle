@@ -49,7 +49,7 @@ LET pos_y = pair_snd IN
 LET pos_eq = \p q. cmp_eq (pos_x p) (pos_x q)
         (cmp_eq (pos_y p) (pos_y q))
         boolean_false IN
-LET pos_move = \dir pos.
+LET pos_move = \dir pos. dir
         (pos_make (num_add (pos_x pos) 1) (pos_y pos))     # R
         (pos_make (pos_x pos) (num_add (pos_y pos) 1))     # D
         (pos_make (num_sub (pos_x pos) 1) (pos_y pos))     # L
