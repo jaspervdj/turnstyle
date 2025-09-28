@@ -20,7 +20,7 @@ LET list_tail = \l. pair_fst (l
         (\h p. pair_make (pair_snd p) (list_cons h (pair_snd p)))
         (pair_make list_nil list_nil)) IN
 LET list_drop = fix (\rec n l.
-    cmp_lt n 1 l (rec (num_sub n 1) (list_tail l))) IN
+        cmp_lt n 1 l (rec (num_sub n 1) (list_tail l))) IN
 LET list_index = \n l. list_head (list_drop n l) IN
 LET list_map = \f l c n. l (\h t. c (f h) t) n IN
 LET list_concat = \xss. xss (\xs acc. xs list_cons acc) list_nil IN
@@ -99,84 +99,68 @@ LET pattern_make = \a x y z.
                                 pattern_abcc
                                 pattern_abcd))))) IN
 
-pattern_make 1 2 3 4
+LET turnstyle_front = \dir. dir
+        (pos_move dir_right)  # R
+        (pos_move dir_down)   # D
+        (pos_move dir_left)   # L
+        (pos_move dir_up) IN  # U
+LET turnstyle_left = \dir. turnstyle_front (dir_turn_left dir) IN
+LET turnstyle_right = \dir. turnstyle_front (dir_turn_right dir) IN
+
+LET newline = 10 IN
+LET in_line = fix (\rec k err. in_char
+     (\c. cmp_eq c newline (k list_nil) (rec (\l. k (list_cons c l)) err))
+     err) IN
+LET out_line = \l k. l out_char (out_char newline k) IN
+LET in_lines = fix (\rec k. in_line
+        (\l. rec (\t. k (list_cons l t)))
+        (k list_nil)) IN
+LET out_lines = \l k. l out_line k IN
+
+LET image_dimensions = \img.
+        pair_make (list_length (list_head img)) (list_length img) IN
+LET image_dimensions_to_initial_pos = \dims.
+        pair_make num_zero (num_floor ((num_div (pair_snd dims)) 2)) IN
+LET image_index = \pos img.
+        list_index (pos_x pos) (list_index (pos_y pos) img) IN
+
+LET turnstyle_pattern = \dir pos img. pattern_make
+        (image_index (turnstyle_left dir pos) img)
+        (image_index pos img)
+        (image_index (turnstyle_front dir pos) img)
+        (image_index (turnstyle_right dir pos) img) IN
+
+LET dimensions_inside = \dims pos.
+        # boolean_false IN
+        cmp_lt (pos_x pos) num_zero boolean_false (
+        cmp_gte (pos_x pos) (pair_fst dims) boolean_false (
+        cmp_lt (pos_y pos) num_zero boolean_false (
+        cmp_gte (pos_y pos) (pair_snd dims) boolean_false boolean_true))) IN
+
+LET image_area = \dims img pos.
+        LET color = image_index pos img IN
+        LET go = fix (\rec visited fringe.
+                cmp_eq (set_size fringe) num_zero
+                (set_size visited)
+                (LET next_visited = set_union pos_eq visited fringe IN
+                 LET next =
+                        list_to_set pos_eq (
+                        list_filter (\p. boolean_not (set_any (pos_eq p) next_visited)) (
+                        list_filter (\p. cmp_eq (image_index p img) color) (
+                        list_filter (\p. dimensions_inside dims p) (
+                        list_concat_map pos_neighbours (
+                        set_to_list fringe))))) IN
+                    rec next_visited next)) IN
+        go set_empty (set_singleton pos) IN
+
+in_lines (\img.
+    LET dims = image_dimensions img IN
+    LET pos = image_dimensions_to_initial_pos dims IN
+    image_area dims img pos)
 
 # 
 # 
-# turnstyle_front :: Dir -> Pos -> Pos
-# turnstyle_front (Dir d) = d
-#     (pos_move dir_right)  -- R
-#     (pos_move dir_down)   -- D
-#     (pos_move dir_left)   -- L
-#     (pos_move dir_up)     -- U
-# 
-# turnstyle_left :: Dir -> Pos -> Pos
-# turnstyle_left d = turnstyle_front (dir_turn_left d)
-# 
-# turnstyle_right :: Dir -> Pos -> Pos
-# turnstyle_right d = turnstyle_front (dir_turn_right d)
-# 
-# turnstyle_pattern :: Dir -> Pos -> Image -> Pattern
-# turnstyle_pattern dir pos img = pattern_make
-#     (image_index (turnstyle_left dir pos) img)
-#     (image_index pos img)
-#     (image_index (turnstyle_front dir pos) img)
-#     (image_index (turnstyle_right dir pos) img)
-# 
-# newline :: Codepoint
-# newline = 10
-# 
-# in_line :: (List Codepoint -> a) -> a -> a
-# in_line = fix $ \rec k err -> in_char
-#     (\c -> if c == newline then k list_nil else rec (\l -> k $ list_cons c l) err)
-#     err
-# 
-# out_line :: List Codepoint -> a -> a
-# out_line (List l) k = l out_char (out_char newline k)
-# 
-# in_lines :: (List (List Codepoint) -> a) -> a
-# in_lines = fix $ \rec k -> in_line
-#     (\l -> rec (\t -> k (list_cons l t)))
-#     (k list_nil)
-# 
-# out_lines :: List (List Codepoint) -> a -> a
-# out_lines (List l) k = l out_line k
-# 
-# dimensions_inside :: Dimensions -> Pos -> Boolean
-# dimensions_inside (Dimensions dims) pos =
-#     cmp_lt (pos_x pos) 0 false (
-#     cmp_gte (pos_x pos) (pair_fst dims) false (
-#     cmp_lt (pos_y pos) 0 false (
-#     cmp_gte (pos_y pos) (pair_snd dims) false true)))
-# 
-# image_dimensions :: Image -> Dimensions
-# image_dimensions rows = Dimensions
-#     (pair_make (list_length (list_head rows)) (list_length rows))
-# 
-# image_dimensions_to_initial_pos :: Dimensions -> Pos
-# image_dimensions_to_initial_pos (Dimensions dims) = Pos
-#     (pair_make 0 (num_floor ((num_div (pair_snd dims)) 2)))
-# 
-# image_index :: Pos -> Image -> Codepoint
-# image_index pos img = list_index (pos_x pos) (list_index (pos_y pos) img)
-# 
 # image_area :: Dimensions -> Image -> Pos -> Number
-# image_area dimensions img pos =
-#     let color = image_index pos img in
-#     let go = fix $ \rec visited fringe ->
-#             cmp_eq (set_size fringe) 0
-#             (set_size visited)
-#             (let
-#                 next_visited = set_union pos_eq visited fringe
-#                 next =
-#                     list_to_set pos_eq (
-#                     list_filter (\p -> boolean_not (set_any (pos_eq p) next_visited)) (
-#                     list_filter (\p -> Boolean (cmp_eq (image_index p img) color)) (
-#                     list_filter (dimensions_inside dimensions) (
-#                     list_concat_map pos_neighbours (
-#                     set_to_list fringe))))) in
-#                 rec next_visited next) in
-#     go set_empty (set_singleton pos)
 # 
 # val_to_number :: Val -> Number
 # val_to_number (NumberVal n) = n

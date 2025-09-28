@@ -23,7 +23,7 @@ defaultPalette = concat $ transpose
     , [JP.PixelRGBA8 c 0 r 255 | (c, r) <- zip steps (reverse steps)]
     ]
   where
-    steps = reverse [31, 63 .. 255]
+    steps = reverse [15, 31 .. 255]
 
 paint
     :: (Pos -> Maybe JP.PixelRGBA8) -> Shape
