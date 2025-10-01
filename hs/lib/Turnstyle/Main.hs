@@ -15,7 +15,7 @@ import           System.FilePath       (takeExtension)
 import qualified System.IO             as IO
 import           Text.Read             (readMaybe)
 import qualified Turnstyle.Compile     as Compile
-import           Turnstyle.Eval        (eval)
+import           Turnstyle.Eval        (eval, eval2)
 import           Turnstyle.Expr
 import           Turnstyle.Image
 import           Turnstyle.JuicyPixels (loadImage)
@@ -102,7 +102,7 @@ main = do
                 let expr = parseImage (roInitialPosition ropts) (autoScale img)
                 putStrLn $ Text.prettyExpr $ checkCycles (const CycleError) $
                     mapErr ParseError expr
-                eval expr >>= print
+                eval2 expr >>= print
         Compile copts -> do
             let out = fromMaybe "a.png" (coOut copts)
             contents <- readFile $ coFilePath copts

@@ -4,8 +4,15 @@ LET boolean_not = \b t f. b f t IN
 
 LET num_zero = num_sub 1 1 IN
 
+LET char_newline = 10 IN
+LET char_question = num_add (num_mul char_newline 6) 3 IN
+LET char_tilde = num_mul char_question 2 IN
+
 LET fix = \f. (\x. f (x x)) (\x. f (x x)) IN
-LET undefined = fix (\x. x) IN
+LET undefined = \c.
+    out_char c (
+    out_char char_newline (
+    fix (\x. x))) IN
 
 LET pair_make = \x y p. p x y IN
 LET pair_fst = \p. p (\x y. x) IN
@@ -15,7 +22,7 @@ LET list_nil = \c n. n IN
 LET list_null = \l. l (\h t. boolean_false) boolean_true IN
 LET list_length = \l. l (\h. num_add 1) num_zero IN
 LET list_cons = \x l c n. c x (l c n) IN
-LET list_head = \l. l (\h t. h) undefined IN
+LET list_head = \l. l (\h t. h) (undefined char_question) IN
 LET list_tail = \l. pair_fst (l
         (\h p. pair_make (pair_snd p) (list_cons h (pair_snd p)))
         (pair_make list_nil list_nil)) IN
@@ -107,11 +114,10 @@ LET turnstyle_front = \dir. dir
 LET turnstyle_left = \dir. turnstyle_front (dir_turn_left dir) IN
 LET turnstyle_right = \dir. turnstyle_front (dir_turn_right dir) IN
 
-LET newline = 10 IN
 LET in_line = fix (\rec k err. in_char
-     (\c. cmp_eq c newline (k list_nil) (rec (\l. k (list_cons c l)) err))
+     (\c. cmp_eq c char_newline (k list_nil) (rec (\l. k (list_cons c l)) err))
      err) IN
-LET out_line = \l k. l out_char (out_char newline k) IN
+LET out_line = \l k. l out_char (out_char char_newline k) IN
 LET in_lines = fix (\rec k. in_line
         (\l. rec (\t. k (list_cons l t)))
         (k list_nil)) IN
@@ -155,50 +161,57 @@ LET image_area = \dims img pos.
 
 LET vars_lookup = \key l. l
         (\h t. cmp_eq key (pair_fst h) (pair_snd h) t)
-        undefined IN
+        (undefined char_question) IN
 LET vars_insert = \key val l.
         list_cons (pair_make key val) (
         list_filter (\p. boolean_not (cmp_eq key (pair_fst p))) l) IN
 
 LET turnstyle_prim = \modul opcode.
         (cmp_eq modul 2
-            (cmp_eq opcode 1 out_num out_char)
+            (out_num 42 (cmp_eq opcode 1 (\x k. k) out_char))
         (cmp_eq modul 3
             (cmp_eq opcode 1 num_add
             (cmp_eq opcode 2 num_sub
             (cmp_eq opcode 3 num_mul
-            (cmp_eq opcode 4 num_div undefined)))))
-        undefined) IN
-
+            (cmp_eq opcode 4 num_div (undefined char_question))))))
+        (undefined char_tilde)) IN
 
 LET turnstyle_eval = fix (\rec dims img vars dir pos.
         LET pattern = turnstyle_pattern dir pos img IN
+        out_num pattern (
         (cmp_lte pattern 8
             # [1 .. 8]
             (cmp_lte pattern 4
                 # [1 .. 4]
                 (cmp_lte pattern 2
                     # [1 .. 2]
-                    undefined
+                    (cmp_eq pattern 1
+                        # [1]: aaaa - id
+                        (rec dims img vars dir (turnstyle_front dir pos))
+                        # [2]: aaab - var
+                        (vars_lookup (image_index (turnstyle_right dir pos) img) vars))
                     # [3 .. 4]
                     (cmp_eq pattern 3
                         # [3]: aaba - var
                         (vars_lookup (image_index (turnstyle_front dir pos) img) vars)
-                        # [4] - aabb - id
+                        # [4] aabb - id
                         (rec dims img vars (dir_turn_left dir) (turnstyle_left dir pos))))
                 # [5 .. 8]
                 (cmp_lte pattern 6
                     # [5 .. 6]
                     (cmp_eq pattern 5
-                        # [5]
-                        undefined
+                        # [5]: aabc - lam
+                        (\val.
+                            LET key = image_index (turnstyle_right dir pos) img IN
+                            LET new_vars = vars_insert key val vars IN
+                            rec dims img new_vars (dir_turn_left dir) (turnstyle_left dir pos))
                         # [6]: abaa - var
                         (vars_lookup (image_index pos img) vars))
                     # [7 .. 8]
                     (cmp_eq pattern 7
                         # [7]: abab - id right
                         (rec dims img vars (dir_turn_right dir) (turnstyle_right dir pos))
-                        # [8]: app
+                        # [8]: abac - app
                         ((rec dims img vars (dir_turn_left dir) (turnstyle_left dir pos))
                             (rec dims img vars dir (turnstyle_front dir pos))))))
             # [9 .. 15]
@@ -207,9 +220,10 @@ LET turnstyle_eval = fix (\rec dims img vars dir pos.
                 (cmp_lte pattern 10
                     # [9 .. 10]
                     (cmp_eq pattern 9
-                        # [9]: id
+                        # [9]: abba - id
                         (rec dims img vars dir (turnstyle_front dir pos))
-                        undefined)
+                        # [10]: abbb - var
+                        (vars_lookup (image_index (turnstyle_left dir pos) img) vars))
                     # [11 .. 12]
                     (cmp_eq pattern 11
                         # [11]: abbc - lam
@@ -224,8 +238,11 @@ LET turnstyle_eval = fix (\rec dims img vars dir pos.
                 (cmp_lte pattern 14
                     # [13 .. 14]
                     (cmp_eq pattern 13
-                        # [13]
-                        undefined
+                        # [13]: abcb - lam
+                        (\val.
+                            LET key = image_index (turnstyle_left dir pos) pos img IN
+                            LET new_vars = vars_insert key val vars IN
+                            rec dims img new_vars (dir_turn_right dir) (turnstyle_right dir pos))
                         # [14]: app
                         ((rec dims img vars dir (turnstyle_front dir pos))
                             (rec dims img vars (dir_turn_right dir) (turnstyle_right dir pos))))
@@ -235,7 +252,7 @@ LET turnstyle_eval = fix (\rec dims img vars dir pos.
                      LET ar = image_area dims img (turnstyle_right dir pos) IN
                         (cmp_eq al 1
                             af  # TODO: pow
-                            (turnstyle_prim af ar))))))) IN
+                            (out_num af (out_num ar ((turnstyle_prim af ar))))))))))) IN
 
 in_lines (\img.
     LET dims = image_dimensions img IN
