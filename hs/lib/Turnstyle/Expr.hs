@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Turnstyle.Expr
     ( Expr (..)
+    , PosAnn
     , getAnn
     , mapAnn
     , mapErr
@@ -59,14 +60,21 @@ mapErr m (Id ann e)    = Id   ann (mapErr m e)
 mapErr m (Err ann err) = Err  ann (m err)
 
 -- | Free variables in an expression.
-freeVars :: Ord v => Expr ann e v -> S.Set v
-freeVars (App _ f x)    = freeVars f <> freeVars x
-freeVars (Lam _ v body) = S.delete v $ freeVars body
-freeVars (Var _ v)      = S.singleton v
-freeVars (Prim _ _)     = S.empty
-freeVars (Lit _ _)      = S.empty
-freeVars (Id _ e)       = freeVars e
-freeVars (Err _ _)      = S.empty
+freeVars :: (PosAnn ann, Ord v) => Expr ann e v -> S.Set v
+freeVars = go S.empty
+  where
+    go visited expr = case expr of
+        _ | ann `S.member` visited -> mempty
+        App _ f x                  -> go visited' f <> go visited' x
+        Lam _ v body               -> S.delete v $ go visited' body
+        Var _ v                    -> S.singleton v
+        Prim _ _                   -> S.empty
+        Lit _ _                    -> S.empty
+        Id _ e                     -> go visited' e
+        Err _ _                    -> S.empty
+      where
+        ann      = getAnn expr
+        visited' = S.insert ann visited
 
 -- | All variables in an expression.
 allVars :: Ord v => Expr ann e v -> S.Set v
@@ -90,10 +98,12 @@ normalizeVars expr = evalState (go expr) (0, M.empty)
         Nothing -> (fresh, (fresh + 1, M.insert v fresh vars))
         Just n  -> (n, (fresh, vars))
 
+class Ord ann => PosAnn ann
+
 -- | Finds cyclic expressions by using comparison on the annotation, assuming
 -- this represents some sort of position.
 checkCycles
-    :: Ord ann
+    :: PosAnn ann
     => (Expr ann e v -> e)  -- ^ Construct cyclic error
     -> Expr ann e v         -- ^ Expression to check
     -> Expr ann e v         -- ^ Expression with additional errors

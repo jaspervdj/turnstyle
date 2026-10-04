@@ -51,7 +51,7 @@ Library
   Build-depends:
     base                 >= 4.7  && < 5,
     containers           >= 0.6  && < 0.7,
-    data-default         >= 0.7  && < 0.8,
+    data-default         >= 0.7  && < 0.9,
     either               >= 5.0  && < 5.1,
     filepath             >= 1.4  && < 1.5,
     JuicyPixels          >= 3.3  && < 3.4,
@@ -76,8 +76,8 @@ Executable turnstyle-spec-figures
   Default-language: Haskell2010
   Build-depends:
     base         >= 4.7 && < 5,
-    diagrams-lib >= 1.4 && < 1.5,
-    diagrams-svg >= 1.4 && < 1.5,
+    diagrams-lib >= 1.4 && < 1.6,
+    diagrams-svg >= 1.4 && < 1.6,
     turnstyle
 
 Executable turnstyle-annotate-examples
@@ -88,7 +88,7 @@ Executable turnstyle-annotate-examples
   Build-depends:
     base        >= 4.7  && < 5,
     blaze-svg   >= 0.3  && < 0.4,
-    bytestring  >= 0.11 && < 0.12,
+    bytestring  >= 0.11 && < 0.13,
     directory   >= 1.3  && < 1.4,
     filepath    >= 1.4  && < 1.5,
     turnstyle,
@@ -116,7 +116,9 @@ Executable turnstyle-image-to-ascii
     base                 >= 4.7  && < 5,
     containers           >= 0.6  && < 0.7,
     JuicyPixels          >= 3.3  && < 3.4,
-    optparse-applicative >= 0.18 && < 0.19
+    optparse-applicative >= 0.18 && < 0.19,
+    text                 >= 2.1  && < 2.2,
+    turnstyle
 
 Executable turnstyle-website
   Main-is:          Website.hs
@@ -136,9 +138,11 @@ Test-suite turnstyle-test
   Ghc-options:      -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
   Default-language: Haskell2010
   Other-modules:
+    Turnstyle.Compile.Shake.Tests
     Turnstyle.Compile.Tests
     Turnstyle.Eval.Tests
     Turnstyle.Expr.Tests
+    Turnstyle.Metacircular.Tests
     Turnstyle.Parse.Tests
     Turnstyle.Quattern.Tests
     Turnstyle.Text.Tests
@@ -148,7 +152,10 @@ Test-suite turnstyle-test
     either           >= 5.0  && < 5.1,
     JuicyPixels      >= 3.3  && < 3.4,
     mtl              >= 2.3  && < 2.4,
-    tasty            >= 1.4  && < 1.5,
+    random           >= 1.2  && < 1.3,
+    tasty            >= 1.4  && < 1.6,
     tasty-hunit      >= 0.10 && < 0.11,
-    tasty-quickcheck >= 0.10 && < 0.11,
+    tasty-quickcheck >= 0.10 && < 0.12,
+    text             >= 2.1  && < 2.2,
+    vector           >= 0.13 && < 0.14,
     turnstyle

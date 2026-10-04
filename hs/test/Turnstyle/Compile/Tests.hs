@@ -1,20 +1,27 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Turnstyle.Compile.Tests
     ( tests
     ) where
 
 import qualified Codec.Picture           as JP
+import           Control.Monad           (when)
 import           Data.Either.Validation  (Validation (..))
 import qualified Data.Map                as M
+import           Data.Maybe              (fromMaybe)
 import qualified Data.Set                as S
+import qualified Data.Text               as T
+import qualified Data.Vector.Unboxed     as VU
 import           Test.Tasty              (TestTree, testGroup)
-import           Test.Tasty.HUnit        (assertBool, testCase, (@?=))
+import           Test.Tasty.HUnit        (Assertion, assertBool, assertFailure,
+                                          testCase, (@?=))
 import qualified Test.Tasty.QuickCheck   as QC
 import           Turnstyle.Compile
 import           Turnstyle.Compile.Paint (defaultPalette)
 import qualified Turnstyle.Eval          as E
 import           Turnstyle.Eval          (eval)
-import           Turnstyle.Eval.Tests    (EvalState (..), emptyEvalState,
-                                          runEvalPure)
+import           Turnstyle.Eval.Tests    (MockEvalInput (..),
+                                          MockEvalOutput (..),
+                                          emptyMockEvalInput, mockEvalIO)
 import           Turnstyle.Expr
 import           Turnstyle.Expr.Tests
 import           Turnstyle.Image
@@ -30,14 +37,14 @@ tests = testGroup "Turnstyle.Compile"
         let sugar = exprToSugar (show <$> expr) in
         case compile defaultCompileOptions sugar of
             Left err -> error $ "compile error: " ++ show err
-            Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
+            Right cr -> case checkErrors (parseImage Nothing (JuicyPixels (crImage cr))) of
                 Failure err    -> error $ "parse error: " ++ show err
                 Success parsed -> toDeBruijn expr == toDeBruijn parsed
     , QC.testProperty "parse . compile (opt)" $ \(GenExpr expr) ->
         let sugar = exprToSugar (show <$> expr) in
         case compile defaultCompileOptions {coOptimize = True, coBudget = 10} sugar of
             Left err -> error $ "compile error: " ++ show err
-            Right img -> case checkErrors (parseImage Nothing (JuicyPixels img)) of
+            Right cr -> case checkErrors (parseImage Nothing (JuicyPixels (crImage cr))) of
                 Failure err    -> error $ "parse error: " ++ show err
                 Success parsed -> toDeBruijn expr == toDeBruijn parsed
     , rot13 "rot13" []
@@ -49,20 +56,32 @@ tests = testGroup "Turnstyle.Compile"
         , testCase "quality" $ assertBool "colors are not unique" $
             length defaultPalette == S.size (S.fromList defaultPalette)
         ]
+    , testCase "layout" $ do
+        sugar <- either (fail . show) pure $ parseSugar
+            "layout.txt" "\\@layout=\"front\"x. \\@layout=\"front\" x. @layout=\"center\" x"
+        cr <- either (fail . show) pure $ compile defaultCompileOptions sugar
+        expectPattern (JuicyPixels (crImage cr)) $ T.unlines
+            [ "AAB?"
+            , "CCCB"
+            , "DDD?"
+            ]
     ]
-  where
 
 rot13 :: String -> Attributes -> TestTree
 rot13 name importAttrs = testCase name $ do
     sugar <- either (fail . show) pure $ parseSugar "rot13.txt" src
-    img <- either (fail . show) pure $ compile
+    cr <- either (fail . show) pure $ compile
         defaultCompileOptions {coImports = M.singleton "y.png" yImage}
         sugar
-    let expr = parseImage Nothing (JuicyPixels img)
-        (result, finalState) = runEvalPure (eval expr)
-            emptyEvalState {esInChars = "abc\ndef\n"}
-    result @?= Right (E.Lit 0)
-    esOutChars finalState @?= reverse "nop\nqrs\n"
+    let expr = parseImage Nothing (JuicyPixels (crImage cr))
+    (evalIO, evalOutputIO) <- mockEvalIO $
+        emptyMockEvalInput {mockEvalInChars = "abc\ndef\n"}
+    result <- eval evalIO expr
+    case result of
+        E.Lit 0 -> pure ()
+        _       -> assertFailure "expected 0"
+    outChars <- mockEvalOutChars <$> evalOutputIO
+    outChars @?= reverse "nop\nqrs\n"
   where
     src = unlines
         [ "LET y = IMPORT " ++ prettyAttributes importAttrs ++ " \"y.png\" IN"
@@ -99,3 +118,58 @@ yImage = mkJuicyPixels
 mkJuicyPixels :: [[Pixel JuicyPixels]] -> JuicyPixels
 mkJuicyPixels pixels = JuicyPixels $ JP.generateImage
     (\x y -> pixels !! y !! x) (length (head pixels)) (length pixels)
+
+expectPattern :: JuicyPixels -> T.Text -> Assertion
+expectPattern actual expected = do
+    asciiImage <- either fail pure $ textToAsciiImage expected
+    let actualDimensions = (width actual, height actual)
+        expectedDimensions@(w, h) = (width asciiImage, height asciiImage)
+    when (actualDimensions /= expectedDimensions) $ assertFailure $
+        "expectPattern: expected image dimensions " ++
+        show expectedDimensions ++ " but got " ++ show actualDimensions
+
+    let go _ _ _ faults [] | null faults = Right ()
+        go _ _ visual _ [] = Left $ AsciiImage w h $ VU.generate (w * h) $ \idx ->
+            let (y, x) = idx `divMod` w in
+            fromMaybe ' ' $ M.lookup (x, y) visual
+        go charToPixel pixelToChar visual faults (pos@(x, y) : ps) =
+            let actualPixel = pixel x y actual
+                expectedPixel = pixel x y asciiImage in
+            case M.lookup expectedPixel charToPixel of
+                _ | expectedPixel == '?' ->
+                  go charToPixel pixelToChar (M.insert pos '?' visual) faults ps
+                Nothing ->
+                    go
+                        (M.insert expectedPixel actualPixel charToPixel)
+                        (M.insert actualPixel expectedPixel pixelToChar)
+                        (M.insert pos expectedPixel visual)
+                        faults
+                        ps
+                Just otherPixel -> case M.lookup actualPixel pixelToChar of
+                    Just c | c == expectedPixel && actualPixel == otherPixel -> go
+                        charToPixel
+                        pixelToChar
+                        (M.insert pos c visual)
+                        faults
+                        ps
+                    Just c -> go
+                        charToPixel
+                        pixelToChar
+                        (M.insert pos c visual)
+                        (pos : faults)
+                        ps
+                    Nothing -> go
+                        charToPixel
+                        pixelToChar
+                        (M.insert pos '?' visual)
+                        (pos : faults)
+                        ps
+
+    let faults = go M.empty M.empty M.empty [] [(x, y) | y <- [0 .. h - 1], x <- [0 .. w - 1]]
+    case faults of
+        Left visual -> assertFailure $
+            "does not match expected pattern: expected:\n\n" ++
+            unlines (map ("    " ++ ) (lines $ T.unpack $ asciiImageToText asciiImage)) ++
+            "\nbut got:\n\n" ++
+            unlines (map ("    " ++ ) (lines $ T.unpack $ asciiImageToText visual))
+        Right _ -> pure ()

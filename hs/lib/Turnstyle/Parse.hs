@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 module Turnstyle.Parse
-  ( Ann
+  ( Ann (..)
   , Dir (..)
   , Pos (..)
   , ParseError (..)
@@ -54,7 +54,10 @@ relPos (Pos x y) U LeftPos   = Pos (x - 1) (y    )
 relPos (Pos x y) U FrontPos  = Pos (x    ) (y - 1)
 relPos (Pos x y) U RightPos  = Pos (x + 1) (y    )
 
-type Ann = (Pos, Dir, Quattern)
+data Ann = Ann Pos Dir Quattern
+    deriving (Eq, Ord, Show)
+
+instance PosAnn Ann
 
 data ParseError
     = OutOfBounds
@@ -104,7 +107,7 @@ parse pos dir img = case pattern of
     AABB -> Id ann $ parseLeft
     ABAB -> Id ann $ parseRight
  where
-    ann        = (pos, dir, pattern)
+    ann        = Ann pos dir pattern
     relPos'    = relPos pos dir
     relPixel r = let (Pos px py) = relPos' r in pixel px py img
 
@@ -127,7 +130,7 @@ parseImage
   => Maybe Pos -> img -> Expr Ann ParseError (Pixel img)
 parseImage (Just (Pos x y)) img = parse (Pos x y) R img
 parseImage Nothing img = case initialPosition img of
-    Nothing  -> Err (Pos 0 0, R, AAAA) EmptyImage
+    Nothing  -> Err (Ann (Pos 0 0) R AAAA) EmptyImage
     Just pos -> parse pos R img
 
 contiguous :: (Image img, Eq (Pixel img)) => Pos -> img -> S.Set Pos

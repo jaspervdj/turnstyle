@@ -81,6 +81,7 @@ main = do
                     , sHeight      = height img
                     , sEntrance    = height img `div` 2
                     , sConstraints = constrs
+                    , sSourceMap   = []
                     }
             pure $ paint solution shape
         False -> do

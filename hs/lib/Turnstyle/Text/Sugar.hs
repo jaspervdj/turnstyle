@@ -18,8 +18,8 @@ data Sugar err ann
     = Let ann String (Sugar err ann) (Sugar err ann)
     | Import ann Attributes FilePath
     | App ann (Sugar err ann) (NonEmpty (Sugar err ann))
-    | Lam ann (NonEmpty String) (Sugar err ann)
-    | Var ann String
+    | Lam ann Attributes (NonEmpty String) (Sugar err ann)
+    | Var ann Attributes String
     | Prim ann Prim
     | Lit ann Integer
     | Err ann err
@@ -29,8 +29,8 @@ sugarImports :: Sugar err ann -> S.Set FilePath
 sugarImports (Let _ _ d b) = sugarImports d <> sugarImports b
 sugarImports (Import _ _ p)  = S.singleton p
 sugarImports (App _ f xs)  = sugarImports f <> foldMap sugarImports xs
-sugarImports (Lam _ _ b)   = sugarImports b
-sugarImports (Var _ _)     = S.empty
+sugarImports (Lam _ _ _ b) = sugarImports b
+sugarImports (Var _ _ _)   = S.empty
 sugarImports (Prim _ _)    = S.empty
 sugarImports (Lit _ _)     = S.empty
 sugarImports (Err _ _)     = S.empty
@@ -43,12 +43,12 @@ sugarToExpr imports (Let ann v d b) =
 sugarToExpr imports (Import ann _ fp) = imports ann fp
 sugarToExpr imports (App ann f xs) =
     foldl (E.App ann) (sugarToExpr imports f) (fmap (sugarToExpr imports) xs)
-sugarToExpr imports (Lam ann vs b)
+sugarToExpr imports (Lam ann _ vs b)
     = foldr (E.Lam ann) (sugarToExpr imports b) vs
-sugarToExpr _ (Var ann v)  = E.Var ann v
-sugarToExpr _ (Prim ann p) = E.Prim ann p
-sugarToExpr _ (Lit ann l)  = E.Lit ann l
-sugarToExpr _ (Err ann e)  = E.Err ann e
+sugarToExpr _ (Var ann _ v) = E.Var ann v
+sugarToExpr _ (Prim ann p)  = E.Prim ann p
+sugarToExpr _ (Lit ann l)   = E.Lit ann l
+sugarToExpr _ (Err ann e)   = E.Err ann e
 
 unApp
     :: E.Expr ann err v -> Maybe (E.Expr ann err v, NonEmpty (E.Expr ann err v))
@@ -67,9 +67,9 @@ exprToSugar :: E.Expr ann err String -> Sugar err ann
 exprToSugar expr = case expr of
     E.App ann _ _ | Just (f, xs) <- unApp expr -> App ann (exprToSugar f) (exprToSugar <$> xs)
     E.App ann f x -> App ann (exprToSugar f) (exprToSugar x :| [])
-    E.Lam ann _ _ | Just (vs, b) <- unLam expr -> Lam ann vs (exprToSugar b)
-    E.Lam ann v b -> Lam ann (v :| []) (exprToSugar b)
-    E.Var ann v -> Var ann v
+    E.Lam ann _ _ | Just (vs, b) <- unLam expr -> Lam ann [] vs (exprToSugar b)
+    E.Lam ann v b -> Lam ann [] (v :| []) (exprToSugar b)
+    E.Var ann v -> Var ann [] v
     E.Prim ann p -> Prim ann p
     E.Lit ann l -> Lit ann l
     E.Id  _ e -> exprToSugar e

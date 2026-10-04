@@ -46,15 +46,17 @@ expr1 = P.choice
     [ (P.<?> "lambda") $ do
         pos <- P.getPosition
         lambda
+        attrs <- attributes
         v : vs <- P.many1 var
         dot
         body <- expr
-        pure $ Lam pos (v :| vs) body
+        pure $ Lam pos attrs (v :| vs) body
     , do
         pos <- P.getPosition
+        attrs <- attributes
         ident <- identifier
         case ident of
-            VarId v  -> pure $ Var pos v
+            VarId v  -> pure $ Var pos attrs v
             PrimId p -> pure $ Prim pos p
     , Lit <$> P.getPosition <*> lit
     , parens expr

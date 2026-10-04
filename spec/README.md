@@ -4,19 +4,19 @@ author: Jasper Van der Jeugt
 version: v0.0.2
 ---
 
-The program is encoded as an image.  A **lossless** image format should be used
-so exact colors are preserved.  The use of [PNG] is recommended because of its
+Turnstyle programs are encoded as images.  A **lossless** image format should be
+used so exact colors are preserved.  We generally recommend [PNG] because of its
 wide support and decent compression.
 
-We assume that the reader is somewhat familiar with Lambda Calculus.
-If you want to learn more about Lambda Calculus, we recommend
-[this video with Graham Hutton](https://www.youtube.com/watch?v=eis11j_iGMs) or
-[this paper by Raúl Rojas](https://personal.utdallas.edu/~gupta/courses/apl/lambda.pdf)
-for a good introduction.
+We assume that the reader is somewhat familiar with Lambda Calculus.  If this is
+not the case, or if you need to refresh your memory, we recommend either:
+
+ -  [This video with Graham Hutton](https://www.youtube.com/watch?v=eis11j_iGMs)
+ -  [This paper by Raúl Rojas](https://personal.utdallas.edu/~gupta/courses/apl/lambda.pdf)
 
 # Syntax
 
-Turnstyle programs are evaluated by reading and evaluating **expressions** from
+Turnstyle programs are evaluated by parsing and evaluating **expressions** from
 the image.  An expression is read using a given **position** (represented as
 integral _(x, y)_ coordinates) and **heading** (right, down, left or up).
 
@@ -146,8 +146,6 @@ This is an overview of the different primitive functions and what they do.
 | 3      | _((`num_mul` x) y)_ evaluates to _x * y_.                                          |
 | 4      | _((`num_div` x) y)_ evaluates to _x / y_.                                          |
 | 5      | _((`num_mod` x) y)_ evaluates to _x % y_.  Both operands must be integral numbers. |
-| 6      | _(`num_floor` x)_ evaluates to _⌊x⌋_.                                              |
-| 7      | _(`num_ceil` x)_ evaluates to _⌈x⌉_.                                               |
 
 ### Comparisons (module=4)
 

@@ -15,7 +15,8 @@ import           System.FilePath       (takeExtension)
 import qualified System.IO             as IO
 import           Text.Read             (readMaybe)
 import qualified Turnstyle.Compile     as Compile
-import           Turnstyle.Eval        (eval)
+import           Turnstyle.Eval        (eval, defaultEvalIO)
+import          qualified Turnstyle.Eval        as Eval
 import           Turnstyle.Expr
 import           Turnstyle.Image
 import           Turnstyle.JuicyPixels (loadImage)
@@ -38,10 +39,11 @@ data RunOptions = RunOptions
     } deriving (Show)
 
 data CompileOptions = CompileOptions
-    { coOptimize :: Bool
-    , coSeed     :: Maybe Int
-    , coOut      :: Maybe FilePath
-    , coFilePath :: FilePath
+    { coOptimize  :: Bool
+    , coSeed      :: Maybe Int
+    , coOut       :: Maybe FilePath
+    , coSourceMap :: Maybe FilePath
+    , coFilePath  :: FilePath
     } deriving (Show)
 
 parseOptions :: OA.Parser Options
@@ -72,6 +74,8 @@ parseCompileOptions = CompileOptions
     <*> OA.optional (OA.option OA.auto (OA.long "seed" <> OA.metavar "SEED"))
     <*> OA.optional (OA.strOption
             (OA.long "out" <> OA.short 'o' <> OA.metavar "IMAGE.PNG"))
+    <*> OA.optional (OA.strOption
+            (OA.long "source-map" <> OA.metavar "SOURCEMAP.TXT"))
     <*> OA.argument OA.str (OA.metavar "PROGRAM.TXT")
 
 data Error
@@ -87,7 +91,7 @@ withImage
 withImage path f
     | takeExtension path == ".txt" = do
         contents <- T.readFile path
-        img <- either fail pure $ textToTextImage contents
+        img <- either fail pure $ textToAsciiImage contents
         f img
     | otherwise = loadImage path >>= f
 
@@ -102,7 +106,10 @@ main = do
                 let expr = parseImage (roInitialPosition ropts) (autoScale img)
                 putStrLn $ Text.prettyExpr $ checkCycles (const CycleError) $
                     mapErr ParseError expr
-                eval expr >>= print
+                whnf <- eval defaultEvalIO expr
+                case whnf of
+                    Eval.Lit num -> print num
+                    _            -> putStrLn $ show $ Eval.typeOf whnf
         Compile copts -> do
             let out = fromMaybe "a.png" (coOut copts)
             contents <- readFile $ coFilePath copts
@@ -120,7 +127,11 @@ main = do
                             }
                     case Compile.compile compileOptions sugar of
                         Left cerr -> IO.hPutStrLn IO.stderr $ show cerr
-                        Right img -> JP.savePngImage out $ JP.ImageRGBA8 img
+                        Right cr -> do
+                            JP.savePngImage out $ JP.ImageRGBA8 (Compile.crImage cr)
+                            for_ (coSourceMap copts) $ \sourceMapPath ->
+                                writeFile sourceMapPath $ unlines $
+                                    map show $ Compile.crSourceMap cr
   where
     opts = OA.info (parseOptions OA.<**> OA.helper)
         (OA.fullDesc <> OA.progDesc "Turnstyle")

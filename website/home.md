@@ -1,5 +1,5 @@
-Turnstyle is a graphical [esoteric programming language] loosely inspired by
-[Piet].  Both encode programs as images, however, the similarities end at the
+Turnstyle is a graphical [esoteric programming language] (very) loosely inspired
+by [Piet].  Both encode programs as images, however, the similarities end at the
 syntax level.
 
 Where Piet is really a stack machine in disguise, Turnstyle harnesses the

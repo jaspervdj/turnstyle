@@ -1,10 +1,12 @@
 module Turnstyle.Compile.Expr
     ( AppLayout (..)
     , LamLayout (..)
+    , VarLayout (..)
     , LitLayout (..)
     , Expr (..)
     , fromExpr
     , fromSugar
+    , toExpr
     ) where
 
 import           Data.Default          (Default (..))
@@ -27,49 +29,78 @@ instance Default AppLayout where def = AppLeftRight
 data LamLayout
     = LamLeft
     | LamRight
-    | LamStraight
+    | LamFront
     deriving (Eq, Show)
 
 instance Default LamLayout where def = LamLeft
+
+data VarLayout
+    = VarFront
+    | VarCenter
+    deriving (Eq, Show)
+
+instance Default VarLayout where def = VarFront
 
 data LitLayout = LitLayout Int Int deriving (Eq, Show)
 
 instance Default LitLayout where def = LitLayout 0 0
 
-data Expr v
-    = Import S.Attributes JuicyPixels (E.Expr Ann Void (Pixel JuicyPixels))
-    | App AppLayout (Expr v) (Expr v)
-    | Lam LamLayout v (Expr v)
-    | Var v
-    | Prim Prim
-    | Lit LitLayout Integer
+data Expr ann v
+    = Import ann S.Attributes JuicyPixels (E.Expr Ann Void (Pixel JuicyPixels))
+    | App ann AppLayout (Expr ann v) (Expr ann v)
+    | Lam ann LamLayout v (Expr ann v)
+    | Var ann VarLayout v
+    | Prim ann Prim
+    | Lit ann LitLayout Integer
+    deriving (Eq, Show)
 
-fromExpr :: E.Expr ann Void v -> Expr v
-fromExpr (E.App _ f x) = App def (fromExpr f) (fromExpr x)
-fromExpr (E.Lam _ v b) = Lam def v (fromExpr b)
-fromExpr (E.Var _ v)   = Var v
-fromExpr (E.Prim _ p)  = Prim p
-fromExpr (E.Lit _ l)   = Lit def l
-fromExpr (E.Id _ e)    = fromExpr e
-fromExpr (E.Err _ e)   = absurd e
+fromExpr :: E.Expr ann Void v -> Expr ann v
+fromExpr (E.App ann f x) = App ann def (fromExpr f) (fromExpr x)
+fromExpr (E.Lam ann v b) = Lam ann def v (fromExpr b)
+fromExpr (E.Var ann v)   = Var ann def v
+fromExpr (E.Prim ann p)  = Prim ann p
+fromExpr (E.Lit ann l)   = Lit ann def l
+fromExpr (E.Id ann e)    = fromExpr e
+fromExpr (E.Err ann e)   = absurd e
+
+-- | Convert back to an equivalent expression.  This is meant for testing.  Note
+-- that 'Import's are assumed to be independently valid expressions, without any
+-- unbound variables.
+toExpr :: Expr ann Int -> E.Expr ann Void Int
+toExpr (Import ann _ _ e) = E.normalizeVars $ E.mapAnn (\_ -> ann) e
+toExpr (App ann _ f x)    = E.App ann (toExpr f) (toExpr x)
+toExpr (Lam ann _ v b)    = E.Lam ann v (toExpr b)
+toExpr (Var ann _ v)      = E.Var ann v
+toExpr (Prim ann p)       = E.Prim ann p
+toExpr (Lit ann _ l)      = E.Lit ann l
 
 fromSugar
     :: Monad m
-    => (ann -> S.Attributes -> FilePath -> m (Expr String))
-    -> S.Sugar Void ann -> m (Expr String)
-fromSugar imports (S.Let _ v d b) = do
+    => (ann -> S.Attributes -> FilePath -> m (Expr ann String))
+    -> S.Sugar Void ann -> m (Expr ann String)
+fromSugar imports (S.Let ann v d b) = do
     d' <- fromSugar imports d
     b' <- fromSugar imports b
-    pure $ App def (Lam def v b') d'
+    pure $ App ann def (Lam ann def v b') d'
 fromSugar imports (S.Import ann attrs fp) = imports ann attrs fp
-fromSugar imports (S.App _ f xs) = do
+fromSugar imports (S.App ann f xs) = do
     f' <- fromSugar imports f
     xs' <- traverse (fromSugar imports) xs
-    pure $ foldl (App def) f' xs'
-fromSugar imports (S.Lam _ vs b) = do
+    pure $ foldl (App ann def) f' xs'
+fromSugar imports (S.Lam ann attrs vs b) = do
+    let layout = case lookup "layout" attrs of
+            Just "left"  -> LamLeft
+            Just "front" -> LamFront
+            Just "right" -> LamRight
+            _            -> def  -- TODO: errors?
     b' <- fromSugar imports b
-    pure $ foldr (Lam def) b' vs
-fromSugar _ (S.Var _ v)  = pure $ Var v
-fromSugar _ (S.Prim _ p) = pure $ Prim p
-fromSugar _ (S.Lit _ l)  = pure $ Lit def l
+    pure $ foldr (Lam ann layout) b' vs
+fromSugar _ (S.Var ann attrs v)  =
+    let layout = case lookup "layout" attrs of
+            Just "center" -> VarCenter
+            Just "front"  -> VarFront
+            _             -> def  -- TODO: errors?
+    in pure $ Var ann layout v
+fromSugar _ (S.Prim ann p) = pure $ Prim ann p
+fromSugar _ (S.Lit ann l)  = pure $ Lit ann def l
 fromSugar _ (S.Err _ e)  = absurd e

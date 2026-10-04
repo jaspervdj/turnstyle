@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFoldable #-}
 {-# LANGUAGE DeriveFunctor  #-}
+{-# LANGUAGE Rank2Types     #-}
 module Turnstyle.Compile.Shape
     ( ColorConstraint (..)
     , Shape (..)
@@ -9,8 +10,8 @@ module Turnstyle.Compile.Shape
 import qualified Codec.Picture                as JP
 import           Control.Monad                (guard)
 import qualified Data.Map                     as M
+import qualified Data.Set                     as S
 import           Turnstyle.Compile.Constraint
-import qualified Data.Set as S
 import           Turnstyle.Compile.Expr
 import           Turnstyle.Compile.Recompile
 import qualified Turnstyle.Image              as Image
@@ -18,20 +19,33 @@ import           Turnstyle.JuicyPixels        (JuicyPixels)
 import           Turnstyle.Prim
 import           Turnstyle.TwoD
 
-data Shape = Shape
+data Shape ann = Shape
     { sWidth       :: Int
     , sHeight      :: Int
     , sEntrance    :: Int  -- Pixels from top where we "enter" the shape.
     , sConstraints :: [ColorConstraint (Image.Pixel JuicyPixels) Pos]
+    , sSourceMap   :: [(Pos, Dir, ann)]
     } deriving (Show)
 
-newtype Transform = Transform {unTransform :: Shape -> (Shape, Pos -> Pos)}
+newtype Transform = Transform
+    { unTransform :: forall ann. Shape ann -> (Shape ann, Pos -> Pos)
+    }
 
 instance Semigroup Transform where
     Transform f <> Transform g = Transform $ \shape0 ->
         let (shape1, posMap1) = g shape0
             (shape2, posMap2) = f shape1 in
         (shape2, posMap1 . posMap2)
+
+data Context v = Context
+    { cVars :: M.Map v Pos
+    , cPath :: Maybe v
+    }
+
+transformContext :: (Pos -> Pos) -> Context v -> Context v
+transformContext f ctx = ctx
+    { cVars = fmap f (cVars ctx)
+    }
 
 rotateShapeLeft :: Transform
 rotateShapeLeft = Transform $ \s ->
@@ -41,6 +55,9 @@ rotateShapeLeft = Transform $ \s ->
         { sWidth       = sHeight s
         , sHeight      = sWidth s
         , sEntrance    = sEntrance s
+        , sSourceMap   = do
+            (pos, dir, ann) <- sSourceMap s
+            pure (rot pos, rotateLeft dir, ann)
         , sConstraints = fmap rot <$> sConstraints s
         }
     , revPos
@@ -50,17 +67,39 @@ offsetShape :: Int -> Int -> Transform
 offsetShape dx dy = Transform $ \s ->
     let fwd (Pos x y) = Pos (x + dx) (y + dy)
         bwd (Pos x y) = Pos (x - dx) (y - dy) in
-    (s {sConstraints = fmap fwd <$> sConstraints s}, bwd)
+    ( s { sSourceMap = [(fwd p, d, a) | (p, d, a) <- sSourceMap s]
+        , sConstraints = fmap fwd <$> sConstraints s
+        }
+    , bwd
+    )
 
-exprToShape :: Ord v => Expr v -> Shape
-exprToShape = exprToShape' M.empty
+-- | A 'Shape' stores it entrance.  This is not necessarily in the center of the
+-- image on the left side, since doing that would introduce significant negative
+-- space for every sub-expression.  Instead, we do this centering only once, for
+-- the top-level expression of the program.
+topLevelShape :: Shape ann -> Shape ann
+topLevelShape s = fst $ unTransform (offsetShape offsetX offsetY) $ s
+    { sEntrance = sEntrance s + offsetY
+    , sHeight   = spacingHeight * 2 + 1
+    }
+  where
+    topHeight     = sEntrance s
+    bottomHeight  = sHeight s - sEntrance s - 1
+    spacingHeight = max topHeight bottomHeight
+    offsetX       = 0
+    offsetY       = spacingHeight - sEntrance s
 
-exprToShape' :: Ord v => M.Map v Pos -> Expr v -> Shape
-exprToShape' ctx expr = case expr of
-    App AppLeftRight lhs rhs -> Shape
+exprToShape :: Ord v => Expr ann v -> Shape ann
+exprToShape = topLevelShape . toShape (Context M.empty Nothing)
+
+toShape :: Ord v => Context v -> Expr ann v -> Shape ann
+toShape ctx expr = case expr of
+    App ann AppLeftRight lhs rhs -> Shape
         { sWidth       = max 3 (max (sWidth lhsShape + offsetL) (sWidth rhsShape + offsetR))
         , sHeight      = sHeight lhsShape + 3 + sHeight rhsShape
         , sEntrance    = sHeight lhsShape + 1
+        , sSourceMap   =
+            (appC, R, ann) : sSourceMap lhsShape ++ sSourceMap rhsShape
         , sConstraints =
             -- Turnstyle shape
             [ NotEq appL appC, NotEq appL appF, Eq appL appR
@@ -81,18 +120,18 @@ exprToShape' ctx expr = case expr of
             sConstraints rhsShape
         }
       where
-        lhsContext            = lhsCtxMap <$> ctx
+        lhsContext = (transformContext lhsCtxMap ctx) {cPath = Nothing}
         (lhsShape, lhsCtxMap) = unTransform
             (offsetShape offsetL 0 <> rotateShapeLeft)
-            (exprToShape' lhsContext lhs)
+            (toShape lhsContext lhs)
 
-        rhsContext            = rhsCtxMap <$> ctx
+        rhsContext = (transformContext rhsCtxMap ctx) {cPath = Nothing}
         (rhsShape, rhsCtxMap) = unTransform
             (offsetShape offsetR (sHeight lhsShape + 3) <>
                 rotateShapeLeft <>
                 rotateShapeLeft <>
                 rotateShapeLeft)
-            (exprToShape' rhsContext rhs)
+            (toShape rhsContext rhs)
 
         entranceL = sEntrance lhsShape
         entranceR = sWidth rhsShape - sEntrance rhsShape - 1
@@ -110,10 +149,12 @@ exprToShape' ctx expr = case expr of
         appF = move entrance R enterF
         appC = move entrance R enterC
 
-    App AppLeftFront lhs rhs -> Shape
+    App ann AppLeftFront lhs rhs -> Shape
         { sWidth       = max 3 (sWidth lhsShape) + sWidth rhsShape
         , sHeight      = max (sHeight lhsShape + 3) (offsetR + sHeight rhsShape)
         , sEntrance    = entrance
+        , sSourceMap   =
+            (appC, R, ann) : sSourceMap lhsShape ++ sSourceMap rhsShape
         , sConstraints =
             -- Turnstyle shape
             [ NotEq appL appC, Eq appL appF, NotEq appL appR
@@ -136,15 +177,15 @@ exprToShape' ctx expr = case expr of
             sConstraints rhsShape
         }
       where
-        lhsContext            = lhsCtxMap <$> ctx
+        lhsContext = (transformContext lhsCtxMap ctx) {cPath = Nothing}
         (lhsShape, lhsCtxMap) = unTransform
             (offsetShape 0 (entrance - sHeight lhsShape - 1) <> rotateShapeLeft)
-            (exprToShape' lhsContext lhs)
+            (toShape lhsContext lhs)
 
-        rhsContext            = rhsCtxMap <$> ctx
+        rhsContext = (transformContext rhsCtxMap ctx) {cPath = Nothing}
         (rhsShape, rhsCtxMap) = unTransform
             (offsetShape (sWidth lhsShape) offsetR)
-            (exprToShape' rhsContext rhs)
+            (toShape rhsContext rhs)
 
         rhsX = sWidth lhsShape
 
@@ -162,10 +203,12 @@ exprToShape' ctx expr = case expr of
         appF = move entranceL R enterF
         appC = move entranceL R enterC
 
-    App AppFrontRight lhs rhs -> Shape
+    App ann AppFrontRight lhs rhs -> Shape
         { sWidth       = max 3 (sWidth rhsShape) + sWidth lhsShape
         , sHeight      = max (sHeight lhsShape) (entrance + 2 + sHeight rhsShape)
         , sEntrance    = entrance
+        , sSourceMap   =
+            (appC, R, ann) : sSourceMap lhsShape ++ sSourceMap rhsShape
         , sConstraints =
             -- Turnstyle shape
             [ Eq appR appF, NotEq appR appC, NotEq appR appL
@@ -188,16 +231,16 @@ exprToShape' ctx expr = case expr of
             sConstraints rhsShape
         }
       where
-        lhsContext            = lhsCtxMap <$> ctx
+        lhsContext = (transformContext lhsCtxMap ctx) {cPath = Nothing}
         (lhsShape, lhsCtxMap) = unTransform
             (offsetShape lhsX 0)
-            (exprToShape' lhsContext lhs)
+            (toShape lhsContext lhs)
 
-        rhsContext            = rhsCtxMap <$> ctx
+        rhsContext = (transformContext rhsCtxMap ctx) {cPath = Nothing}
         (rhsShape, rhsCtxMap) = unTransform
             (offsetShape 0 (entrance + 2) <>
                 rotateShapeLeft <> rotateShapeLeft <> rotateShapeLeft)
-            (exprToShape' rhsContext rhs)
+            (toShape rhsContext rhs)
 
         entrance  = sEntrance lhsShape
         entranceR = sWidth rhsShape - sEntrance rhsShape - 1
@@ -213,10 +256,53 @@ exprToShape' ctx expr = case expr of
         appF = move entranceR R enterF
         appC = move entranceR R enterC
 
-    Lam LamLeft v body -> Shape
+    -- If we want to construct a lambda shape, we must check if the variable for
+    -- the lambda is defined by the exact same region as the "path of Ids" shape
+    -- that our program drawing.  As an example, consider `\x. \x. x`, where the
+    -- first lambda has a front layout.  In such cases, we cannot pick a left or
+    -- right layout for the nested lambda.  Doing so would mean assigning x to a
+    -- color outside the path, inconsistent with x.
+    Lam ann LamFront v body -> Shape
+        { sWidth       = 1 + sWidth bodyShape
+        , sHeight      = sHeight bodyShape
+        , sEntrance    = entrance
+        , sSourceMap   = (lamC, R, ann) : sSourceMap bodyShape
+        , sConstraints =
+            -- Turnstyle shape
+            [ Eq lamC lamF, NotEq lamC lamL, NotEq lamC lamR
+            , NotEq lamL lamR
+            ] ++
+            -- Body
+            sConstraints bodyShape ++
+            -- Variable uniqueness
+            (case M.lookup v (cVars ctx) of
+                Just p  -> [Eq lamC p]
+                Nothing -> [NotEq lamC q | (_, q) <- M.toList (cVars ctx)])
+        }
+      where
+        varPos = Pos 0 entrance
+
+        bodyContext = ctx
+            { cVars = M.insert v varPos $ cVars $ transformContext mapCtx ctx
+            , cPath = Just v
+            }
+
+        (bodyShape, mapCtx) = unTransform
+            (offsetShape 1 0)
+            (toShape bodyContext body)
+
+        entrance = sEntrance bodyShape
+
+        lamL = move 1 U lamC
+        lamC = Pos 0 entrance
+        lamF = move 1 R lamC
+        lamR = move 1 D lamC
+
+    Lam ann LamLeft v body -> Shape
         { sWidth       = max 3 (sWidth bodyShape)
         , sHeight      = sHeight bodyShape + 3
         , sEntrance    = entrance
+        , sSourceMap   = (lamC, R, ann) : sSourceMap bodyShape
         , sConstraints =
             -- Turnstyle shape
             [ Eq lamL lamC, NotEq lamL lamF, NotEq lamL lamR
@@ -231,16 +317,17 @@ exprToShape' ctx expr = case expr of
             -- Body
             sConstraints bodyShape ++
             -- Variable uniqueness
-            (case M.lookup v ctx of
+            (case M.lookup v (cVars ctx) of
                 Just p  -> [Eq lamR p]
-                Nothing -> [NotEq lamR q | (_, q) <- M.toList ctx])
+                Nothing -> [NotEq lamR q | (_, q) <- M.toList (cVars ctx)])
         }
       where
-        bodyContext =
-            M.insert v (Pos (-3) (sEntrance bodyShape)) $
-            fmap mapCtx $ ctx
+        bodyContext = ctx
+            { cVars = M.insert v (Pos (-3) (sEntrance bodyShape)) $
+                cVars $ transformContext mapCtx ctx
+            }
         (bodyShape, mapCtx) = unTransform rotateShapeLeft
-            (exprToShape' bodyContext body)
+            (toShape bodyContext body)
 
         lamL = move bodyEntrance R enterL
         lamR = move bodyEntrance R enterR
@@ -255,10 +342,11 @@ exprToShape' ctx expr = case expr of
         enterF = move 1 R enterC
         enterR = move 1 D enterC
 
-    Lam LamRight v body -> Shape
+    Lam ann LamRight v body -> Shape
         { sWidth       = max 3 (sWidth bodyShape)
         , sHeight      = sHeight bodyShape + 3
         , sEntrance    = entrance
+        , sSourceMap   = (lamC, R, ann) : sSourceMap bodyShape
         , sConstraints =
             -- Turnstyle shape
             [ Eq lamR lamC, NotEq lamR lamF, NotEq lamR lamL
@@ -273,19 +361,20 @@ exprToShape' ctx expr = case expr of
             -- Body
             sConstraints bodyShape ++
             -- Variable uniqueness
-            (case M.lookup v ctx of
+            (case M.lookup v (cVars ctx) of
                 Just p  -> [Eq lamL p]
-                Nothing -> [NotEq lamL q | (_, q) <- M.toList ctx])
+                Nothing -> [NotEq lamL q | (_, q) <- M.toList (cVars ctx)])
         }
       where
-        bodyContext =
-            M.insert v (Pos (-3) (sEntrance bodyShape)) $
-            fmap mapCtx $ ctx
+        bodyContext = ctx
+            { cVars = M.insert v (Pos (-3) (sEntrance bodyShape)) $
+                cVars $ transformContext mapCtx $ ctx
+            }
 
         (bodyShape, mapCtx) = unTransform
             (offsetShape 0 3 <>
                 rotateShapeLeft <> rotateShapeLeft <> rotateShapeLeft)
-            (exprToShape' bodyContext body)
+            (toShape bodyContext body)
 
         lamL = move bodyEntrance R enterL
         lamR = move bodyEntrance R enterR
@@ -300,44 +389,34 @@ exprToShape' ctx expr = case expr of
         enterF = move 1 R enterC
         enterR = move 1 D enterC
 
-    Lam LamStraight v body -> Shape
-        { sWidth       = 1 + sWidth bodyShape
-        , sHeight      = sHeight bodyShape
-        , sEntrance    = entrance
-        , sConstraints =
-            -- Turnstyle shape
-            [ Eq lamC lamF, NotEq lamC lamL, NotEq lamC lamR
-            , NotEq lamL lamR
-            ] ++
-            -- Body
-            sConstraints bodyShape ++
-            -- Variable uniqueness
-            (case M.lookup v ctx of
-                Just p  -> [Eq lamC p]
-                Nothing -> [NotEq lamC q | (_, q) <- M.toList ctx])
-        }
-      where
-        bodyContext =
-            M.insert v (Pos (-1) entrance) $
-            fmap mapCtx $ ctx
-
-        (bodyShape, mapCtx) = unTransform
-            (offsetShape 1 0)
-            (exprToShape' bodyContext body)
-
-        entrance = sEntrance bodyShape
-
-        lamL = move 1 U lamC
-        lamC = Pos 0 entrance
-        lamF = move 1 R lamC
-        lamR = move 1 D lamC
-
-    Var v -> case M.lookup v ctx of
+    Var ann VarCenter v -> case M.lookup v (cVars ctx) of
         Nothing  -> error "exprToShape: unbound variable"
         Just pos -> Shape
             { sWidth       = 2
             , sHeight      = 3
             , sEntrance    = 1
+            , sSourceMap   = [(center, R, ann)]
+            , sConstraints =
+                -- Turnstyle shape
+                [ Eq left front, Eq left right, NotEq left center
+                ] ++
+                -- Variable
+                [ Eq center pos
+                ]
+            }
+          where
+            left   = move 1 U center
+            center = Pos 0 1
+            front  = move 1 R center
+            right  = move 1 D center
+
+    Var ann VarFront v -> case M.lookup v (cVars ctx) of
+        Nothing  -> error "exprToShape: unbound variable"
+        Just pos -> Shape
+            { sWidth       = 2
+            , sHeight      = 3
+            , sEntrance    = 1
+            , sSourceMap   = [(center, R, ann)]
             , sConstraints =
                 -- Turnstyle shape
                 [ Eq left center, NotEq left front, Eq left right
@@ -346,16 +425,17 @@ exprToShape' ctx expr = case expr of
                 [ Eq front pos
                 ]
             }
-      where
-        left   = move 1 U center
-        center = Pos 0 1
-        front  = move 1 R center
-        right  = move 1 D center
+          where
+            left   = move 1 U center
+            center = Pos 0 1
+            front  = move 1 R center
+            right  = move 1 D center
 
-    Prim prim -> Shape
+    Prim ann prim -> Shape
         { sWidth       = max 2 (max (frontArea + 1) (max leftArea rightArea))
         , sHeight      = 3
         , sEntrance    = 1
+        , sSourceMap   = [(center, R, ann)]
         , sConstraints =
             -- Turnstyle shape
             [ NotEq left center, NotEq left front, NotEq left right
@@ -397,10 +477,11 @@ exprToShape' ctx expr = case expr of
         front  = move 1 R center
         right  = move 1 D center
 
-    Lit (LitLayout upH downH) n -> Shape
+    Lit ann (LitLayout upH downH) n -> Shape
         { sWidth       = 1 + maximum [x | Pos x _ <- frontExtension]
         , sHeight      = 3 + max 0 (upH - 1) + max 0 (downH - 1)
         , sEntrance    = entrance
+        , sSourceMap   = [(center, R, ann)]
         , sConstraints =
             -- Turnstyle shape
             [ NotEq left center, NotEq left front, NotEq left right
@@ -433,17 +514,21 @@ exprToShape' ctx expr = case expr of
         front    = move 1 R center
         right    = move 1 D center
 
-    Import attrs img imgExpr | Just "true" <- lookup "recompile" attrs -> Shape
+    Import ann attrs img imgExpr | Just "true" <- lookup "recompile" attrs -> Shape
         { sWidth       = Image.width img
         , sHeight      = Image.height img
         , sEntrance    = Image.height img `div` 2
+        , sSourceMap   = [(Pos 0 entrance, R, ann)]
         , sConstraints = recompile img imgExpr
         }
+      where
+        entrance = Image.height img `div` 2
 
-    Import _ img _ -> Shape
+    Import ann _ img _ -> Shape
         { sWidth       = Image.width img
         , sHeight      = Image.height img
         , sEntrance    = Image.height img `div` 2
+        , sSourceMap   = [(Pos 0 entrance, R, ann)]
         , sConstraints = do
             y <- [0 .. Image.height img - 1]
             x <- [0 .. Image.width img - 1]
@@ -451,8 +536,11 @@ exprToShape' ctx expr = case expr of
             guard $ alpha /= 0
             pure $ LitEq col (Pos x y)
         }
+      where
+        entrance = Image.height img `div` 2
 
   where
+
     surrounding :: [Pos] -> S.Set Pos
     surrounding area = S.fromList
         [n | p <- area, n <- neighbors p, not (n `S.member` S.fromList area)]

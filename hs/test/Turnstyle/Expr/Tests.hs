@@ -12,10 +12,10 @@ import qualified Test.Tasty.QuickCheck as QC
 import           Turnstyle.Expr
 import           Turnstyle.Prim
 
-newtype GenExpr = GenExpr {unGenExpr :: Expr () Void Int} deriving (Show)
+newtype GenExpr = GenExpr {unGenExpr :: Expr GenPos Void Int} deriving (Show)
 
 instance QC.Arbitrary GenExpr where
-    arbitrary = GenExpr <$> genExpr 0
+    arbitrary = GenExpr . genPos <$> genExpr 0
 
     shrink (GenExpr expr) = case expr of
         App ann f x -> map GenExpr $
@@ -39,6 +39,24 @@ genExpr fresh = QC.oneof $
     , Id () <$> genExpr fresh
     ] ++
     if fresh > 0 then [Var () <$> QC.choose (0, fresh - 1)] else []
+
+newtype GenPos = GenPos Int deriving (Eq, Ord, Show)
+
+instance PosAnn GenPos
+
+genPos :: Expr ann err v -> Expr GenPos err v
+genPos = fst . go 0
+  where
+    go p0 (App _ f x) =
+        let (f', p1) = go p0 f
+            (x', p2) = go p1 x in
+        (App (GenPos p2) f' x', p2 + 1)
+    go p0 (Lam _ v b) = let (b', p1) = go p0 b in (Lam (GenPos p1) v b', p1 + 1)
+    go p0 (Var _ v) = (Var (GenPos p0) v, p0 + 1)
+    go p0 (Prim _ p) = (Prim (GenPos p0) p, p0 + 1)
+    go p0 (Lit _ l) = (Lit (GenPos p0) l, p0 + 1)
+    go p0 (Id _ e) = let (e', p1) = go p0 e in (Id (GenPos p1) e', p1 + 1)
+    go p0 (Err _ e) = (Err (GenPos p0) e, p0 + 1)
 
 data DeBruijn
     = DbApp DeBruijn DeBruijn

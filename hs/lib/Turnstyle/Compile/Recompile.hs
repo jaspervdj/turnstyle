@@ -41,7 +41,7 @@ exprToConstraints img visited ctx expr
         _ -> []
 
     relPixel rel = let (Pos px py) = relPos pos dir rel in pixel px py img
-    (pos, dir, quattern) = ann
+    Ann pos dir quattern = ann
 
     ctx' = case quattern of
         AABC -> M.insert (relPixel RightPos)  r ctx
